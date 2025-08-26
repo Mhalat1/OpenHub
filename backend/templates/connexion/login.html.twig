@@ -1,0 +1,142 @@
+
+
+{# templates/security/connexion.html.twig #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Git Match</title>
+    <style>
+        /* Reset basique */
+        * {
+                text-decoration: none;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #03163f;
+        }    
+        label {
+            color: white;
+        }
+        div.lang, p.small-text {
+            color: white;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* Sélecteur de langue */
+        .lang {
+            margin-bottom: 20px;
+            color: #777;
+        }
+        img{
+            height: 100%;
+            width: 100%;
+        }
+
+        .logo-box {
+            background: #ccc;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: 0b56cb;
+            box-shadow: 0 0 3px rgba(90, 155, 255, 0.6);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: white;
+            background: #001ad6;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #387ef5;
+        }
+
+        .small-text {
+            margin: 15px 0 5px;
+            font-size: 13px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        {# Sélecteur de langue (statique ou dynamique avec Symfony) #}
+        <div class="lang">
+            Français ▼
+        </div>
+
+        {# Logo placeholder #}
+        <div class="logo-box">
+            <img src="{{ asset('img/logo.png') }}" alt="Logo">
+        </div>
+
+        {# Formulaire de connexion #}
+
+  <form method="post" action="{{ path('app_login') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+    <div class="form-group">
+      <label for="email">Adresse email</label>
+      <input type="email" name="_username" id="email" class="form-control"
+             value="{{ last_username }}" required autofocus>
+    </div>
+
+    <div class="form-group mt-3">
+      <label for="password">Mot de passe</label>
+      <input type="password" name="_password" id="password" class="form-control" required>
+    </div>
+
+    <button class="btn btn-primary mt-4">Connexion</button>
+  </form>
+
+        <p class="small-text">Vous n’êtes pas encore inscrit ?</p>
+        <a href="{{ path('app_register') }}">
+            <button class="btn">Inscription</button>
+        </a>
+    </div>
+</body>
+</html>
