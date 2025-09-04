@@ -7,7 +7,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
-use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -32,6 +31,10 @@ public function userCreate(Request $request, UserPasswordHasherInterface $passwo
     $data = json_decode($request->getContent(), true);
     $email = $data['email'] ?? null;
     $password = $data['password'] ?? null;
+    $prenom = $data['prenom'] ?? null;
+    $nom = $data['nom'] ?? null;
+    $debutDispo = $data['debutDispo'] ?? null;
+    $finDispo = $data['finDispo'] ?? null;
 
     if (!$email || !$password) {
         return new JsonResponse([
@@ -52,6 +55,11 @@ public function userCreate(Request $request, UserPasswordHasherInterface $passwo
     $user = new User();
     $user->setEmail($email);
     $user->setPassword($passwordHasher->hashPassword($user, $password));
+    $user->setPrenom($prenom);
+    $user->setNom($nom);
+    $user->setRoles(['ROLE_USER']);
+    $user->setDebutDispo($debutDispo ? new \DateTimeImmutable($debutDispo) : null);
+    $user->setFinDispo($finDispo ? new \DateTimeImmutable($finDispo) : null);
 
     $this->manager->persist($user);
     $this->manager->flush();

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -34,14 +35,53 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $prenom = null;
 
-    public function getPrenom(): ?string
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?string $nom = null;
+
+
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?DateTimeImmutable $debutDispo = null;
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?DateTimeImmutable $finDispo = null;
+
+    public function getDebutDispo(): ?DateTimeImmutable
     {
+        return $this->debutDispo;
+    }
+    public function setDebutDispo(?DateTimeImmutable $debutDispo): static
+    {
+        $this->debutDispo = $debutDispo;
+        return $this;
+    }
+    public function getFinDispo(): ?DateTimeImmutable
+    {
+        return $this->finDispo;
+    }
+    public function setFinDispo(?DateTimeImmutable $finDispo): static
+    {
+        $this->finDispo = $finDispo;
+        return $this;
+    }
+
+
+    public function getPrenom(): ?string
+    {       
         return $this->prenom;
     }
     public function setPrenom(?string $prenom): static
     {
         $this->prenom = $prenom;
 
+        return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+    public function setNom(?string $nom): static
+    {
+        $this->nom = $nom;  
         return $this;
     }
 
