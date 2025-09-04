@@ -3,7 +3,7 @@ security:
 
     password_hashers:
         App\Entity\User:
-            algorithm: plaintext
+            algorithm: auto
 
     providers:
         app_user_provider:
@@ -33,6 +33,8 @@ security:
 
 
     access_control:
+        - { path: ^/api/connexion, roles: PUBLIC_ACCESS }
+        - { path: ^/api/userCreate, roles: PUBLIC_ACCESS }
         - { path: /api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }
