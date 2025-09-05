@@ -1,22 +1,41 @@
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes, useLocation } from "react-router-dom";
 import Navbar from "./composants/barreNavigation";
 import Messages from "./pages/Messages";
 import Profil from "./pages/Profil";
 import Deconnexion from "./pages/deconnexion";
-import Login from "./pages/connexion";
+import Connexion from "./pages/connexion";
 import Projets from "./pages/projets";
+import UserCreate from "./pages/inscription";
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+
+  // Routes où la Navbar ne doit pas s'afficher
+  const noNavbarPaths = ["/connexion", "/inscription", "/deconnexion"];
+
+  // Condition pour afficher Navbar
+  const showNavbar = !noNavbarPaths.includes(location.pathname);
+
   return (
-    <Router>
-      <Navbar />
+    <>
+      {showNavbar && <Navbar />}
+
       <Routes>
         <Route path="/profil" element={<Profil />} />
         <Route path="/projets" element={<Projets />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/deconnexion" element={<Deconnexion />} />
-        <Route path="/connexion" element={<Login />} />
+        <Route path="/connexion" element={<Connexion />} />
+        <Route path="/inscription" element={<UserCreate />} />
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

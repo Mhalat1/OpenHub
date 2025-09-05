@@ -1,23 +1,27 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "../style/connexion.css";
+import logo from '../images/logo.png';
 
-const Login = () => {
+const Connexion = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/login", {
+      const response = await fetch("http://127.0.0.1:8000/api/login_check", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            courriel: email,
-            motDePasse: password
+          email,
+          password,
         }),
       });
 
@@ -27,12 +31,10 @@ const Login = () => {
         throw new Error(data.message || "Identifiants incorrects");
       }
 
-      console.log("Réponse du backend :", data);
-
       if (data.token) {
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.token); // Stockage du JWT
         alert("Connexion réussie ✅");
-        window.location.href = "/profil";
+        navigate("/profil"); // Redirection vers profil
       }
 
     } catch (err) {
@@ -41,7 +43,8 @@ const Login = () => {
   };
 
   return (
-    <div>
+    <div className="connexion-container">
+      <img src={logo} alt="logo" />
       <h2>Connexion</h2>
       <form onSubmit={handleSubmit}>
         <input
@@ -51,7 +54,6 @@ const Login = () => {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <br />
         <input
           type="password"
           placeholder="Mot de passe"
@@ -59,12 +61,20 @@ const Login = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <br />
-        <button type="submit">Se connecter</button>
+        <button type="submit">Connexion</button>
       </form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <p>Vous n’êtes pas encore inscrit ?</p>
+      <button
+        className="inscription-btn"
+        onClick={() => navigate("/inscription")}
+      >
+        Inscription
+      </button>
+
+      {error && <p className="error">{error}</p>}
     </div>
   );
 };
 
-export default Login;
+export default Connexion;

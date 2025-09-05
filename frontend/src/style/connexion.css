@@ -1,0 +1,104 @@
+/* Conteneur principal */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #02143a; /* bleu foncé du fond */
+  height: 100%;
+}
+img{
+  height: 300px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+/* Conteneur centré */
+div {
+      height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Titre */
+h2 {
+  display: none; /* caché car non visible sur la maquette */
+}
+
+/* Logo */
+.logo {
+  width: 200px;
+  margin-bottom: 40px;
+}
+
+/* Champs de saisie */
+form {
+  width: 100%;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 8px;
+  background: #f2f2f2;
+  font-size: 15px;
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 0 4px rgba(0, 86, 255, 0.8);
+}
+
+/* Bouton de connexion */
+button[type="submit"] {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 12px;
+  background: #0032ff; /* bleu vif */
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button[type="submit"]:hover {
+  background: #0020a5;
+}
+
+/* Texte d’inscription */
+p {
+  margin: 20px 0 10px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* Bouton d’inscription */
+.inscription-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #0032ff;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.inscription-btn:hover {
+  background: #0020a5;
+}
+
+/* Message d’erreur */
+.error {
+  margin-top: 10px;
+  color: red;
+  font-size: 14px;
+}

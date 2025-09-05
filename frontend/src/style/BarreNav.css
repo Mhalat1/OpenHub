@@ -1,0 +1,54 @@
+/* Conteneur de la navbar */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #64a4ff; /* bleu clair */
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+/* Liste horizontale */
+nav ul {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  list-style: none;
+  width: 100%;
+  max-width: 600px;
+  margin: 0;
+  padding: 0;
+}
+
+/* Chaque élément */
+nav li {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* Liens */
+nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #111;
+  font-size: 1.5rem; /* taille des icônes/emoji */
+  text-decoration: none;
+  width: 55px;
+  height: 55px;
+  border-radius: 15px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Hover effet */
+nav a:hover {
+  background: #222;
+  color: #fff;
+  transform: scale(1.1);
+}
