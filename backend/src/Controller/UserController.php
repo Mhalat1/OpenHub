@@ -10,15 +10,18 @@ use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Bundle\SecurityBundle\Security;
+
 
 final class UserController extends AbstractController
 {
 
     private EntityManagerInterface $manager;
     private $user;
+    private $security;
 
 
-    public function __construct(EntityManagerInterface $manager)
+    public function __construct(EntityManagerInterface $manager,)
     {
         $this->manager = $manager;
         $this->user = $this->manager->getRepository(User::class);
@@ -79,5 +82,33 @@ public function userCreate(Request $request, UserPasswordHasherInterface $passwo
         return $this->json($users);
     }
 
+#[Route('api/getConnectedUser', name: 'get_connected_user', methods: ['GET'])]
+public function getConnectedUser(Request $request, Security $security): Response
+{
+    // Récupérer l'utilisateur connecté
+    $user = $security->getUser();
     
+    if (!$user) {
+        return $this->json(['error' => 'Utilisateur non authentifié'], Response::HTTP_UNAUTHORIZED);
+    }
+
+    // Récupérer le jeton JWT dans les headers de la requête
+    $authorizationHeader = $request->headers->get('Authorization');
+    
+    if ($authorizationHeader) {
+        // Le jeton JWT est généralement dans le format "Bearer <token>"
+        $jwt = str_replace('Bearer ', '', $authorizationHeader);  // Extraire le token
+    } else {
+        return $this->json(['error' => 'JWT Token not found'], Response::HTTP_UNAUTHORIZED);
+    }
+
+    // Pour déboguer, tu peux afficher le JWT récupéré (pas recommandé en production)
+     dd($jwt);
+    
+    // Retourner les informations de l'utilisateur connecté
+    return $this->json([
+        'jwt' => $jwt,  // Affichage du JWT pour test (non sécurisé à exposer en prod)
+    ]);
+}
+
 }

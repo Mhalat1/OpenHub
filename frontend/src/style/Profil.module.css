@@ -1,232 +1,373 @@
-.profilConteneur {
-  background: #f4f6fa;
+/* Profil.module.css */
+
+.profilContainer {
+  width: 100%;
   min-height: 100vh;
-  padding: 100px 40px;
-  font-family: Arial, sans-serif;
-}
-
-/* EN-TÊTE */
-.profilEnTête {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #02143a;
-  padding: 20px 60px;
-  border-radius: 12px;
-  color: white;
-}
-
-.profilPhoto {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid white;
-}
-
-.boutonModifier {
-  font-size: 16px;
-  padding: 20px;
-  border: none;
-  border-radius: 8px;
-  background: #0032ff;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-h2 {
-  display: inline;
-}
-
-.boutonModifier:hover {
-  background: #001c9e;
-}
-
-/* CONTENU */
-.profilContenu {
-  margin-top: 30px;
-}
-
-.profilInfos {
-  background: white;
-  padding: 20px 60px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.sectionInfos {
-  text-align: center;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.sectionInfos h2 {
-  margin: 5px 0;
-  color: #02143a;
-}
-
-.sectionInfos h3 {
+  background: #f5f5f5;
   margin: 0;
-  color: #555;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-.grilleInfos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+/* Header avec barre de recherche */
+.header {
+  background: linear-gradient(135deg, #5b9bd5, #4472c4);
+  padding: 100px 50px 80px 50px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.elementInfo {
-  display: flex;
-  flex-direction: column;
+.searchContainer {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-.label {
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #0032ff;
+.searchInput {
+  width: 100%;
+  padding: 20px 25px 20px 60px;
+  border: none;
+  border-radius: 30px;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  outline: none;
+  color: white;
+  box-sizing: border-box;
 }
 
-.champModifier {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
 }
 
-/* DISPONIBILITÉS */
-.sectionDisponibilités {
-  background: white;
-  padding: 20px 60px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+.searchIcon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 20px;
 }
 
-.plageDates {
+/* Navigation tabs */
+.navTabs {
+  background: linear-gradient(135deg, #5b9bd5, #4472c4);
+  padding: 0 50px;
+  margin-top: -50px;
   display: flex;
   justify-content: space-between;
-  margin-top: 15px;
+  position: relative;
+  z-index: 2;
 }
 
-.inputDate {
+.navButtons {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  gap: 0;
 }
 
-.inputDate span {
-  margin-bottom: 5px;
-  font-weight: bold;
+.navButton {
+  padding: 20px 60px;
+  border: none;
+  background: white;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 25px 25px 0 0;
+}
+
+.navButton:first-child {
+  border-radius: 25px 0 0 0;
+}
+
+.navButton:last-child {
+  border-radius: 0 25px 0 0;
+}
+
+.navButton.active {
+  background: white;
   color: #333;
 }
 
-.boutonsVue {
+.navButton:not(.active) {
+  background: transparent;
+  color: white;
+  opacity: 0.7;
+}
+
+.navButton:not(.active):hover {
+  opacity: 1;
+}
+
+/* Sub navigation */
+.subNav {
+  background: white;
   display: flex;
-  gap: 10px;
-  margin-top: 20px;
+  justify-content: flex-start;
+  gap: 80px;
+  padding: 0 50px;
+  border-bottom: 2px solid #f0f0f0;
 }
 
-.boutonVue {
-  flex: 1;
-  padding: 10px;
+.subNavButton {
+  padding: 20px 0;
   border: none;
-  border-radius: 8px;
-  background: #00b341;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s;
-}
-
-.boutonVue:hover {
-  background: #008c32;
-}
-
-/* ACTIONS */
-.sectionActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Deux colonnes égales */
-  gap: 20px;
-}
-
-.boutonAction {
-  flex: 1;
-  padding: 20px;
-  border: none;
-  border-radius: 10px;
-  background: #0032ff;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s;
+  background: transparent;
+  color: #999;
   font-size: 16px;
-  margin: 0% 30%;
-  width: 40%;
-}
-
-.boutonAction:hover {
-  background: #0020a5;
-}
-
-/* BOUTON SAUVEGARDER */
-.sectionSauvegarde {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.boutonSauvegarde {
-  padding: 14px 24px;
-  border: none;
-  border-radius: 12px;
-  background: #ff9500;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
   cursor: pointer;
-  transition: background 0.3s;
+  position: relative;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
-.boutonSauvegarde:hover {
-  background: #cc7700;
+.subNavButton.active {
+  color: #4472c4;
+  font-weight: 600;
 }
 
-/* MODALE */
-.modale {
-  position: fixed;
-  top: 0;
+.subNavButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
   left: 0;
+  right: 0;
+  height: 3px;
+  background: #4472c4;
+}
+
+.subNavButton:hover:not(.active) {
+  color: #666;
+}
+
+/* Grille des utilisateurs */
+.usersGrid {
+  background: white;
+  padding: 30px 50px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: calc(100vh - 300px);
+}
+
+.userCard {
+  display: flex;
+  align-items: center;
+  padding: 25px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: 100px;
+  box-sizing: border-box;
+}
+
+.userCard:hover {
+  border-color: #8bb3e0;
+  box-shadow: 0 5px 15px rgba(139, 179, 224, 0.2);
+  transform: translateY(-1px);
+}
+
+.userAvatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 25px;
+  flex-shrink: 0;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.userAvatar img {
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  object-fit: cover;
 }
 
-.contenuModale {
-  background: white;
-  padding: 20px;
-  width: 80%;
-  max-width: 600px;
-  border-radius: 10px;
-  position: relative;
+.userInfo {
+  flex-grow: 1;
 }
 
-.boutonFermer {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
+.userName {
   font-size: 20px;
-  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
 }
 
-.itemContribution {
-  margin-bottom: 20px;
+.userLevel {
+  font-size: 16px;
+  color: #6c757d;
+  margin: 0;
+}
+
+.addButton {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  border: none;
+  background: #8bb3e0;
+  color: #333;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.addButton:hover {
+  background: #6b96d1;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* États de chargement et d'erreur */
+.loading, .error {
+  text-align: center;
+  padding: 60px;
+  font-size: 20px;
+  background: white;
+  margin: 0 50px;
+}
+
+.loading {
+  color: #4472c4;
+}
+
+.error {
+  color: #dc3545;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 15px;
+}
+
+.noResults {
+  text-align: center;
+  padding: 80px 20px;
+  color: #6c757d;
+  font-size: 20px;
+  background: white;
+  margin: 0 50px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .entete, .ongletsNav, .sousNav, .grilleUtilisateurs {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+  
+  .grilleUtilisateurs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .entete, .ongletsNav, .sousNav, .grilleUtilisateurs {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .boutonsNav {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .boutonNav {
+    flex: 1;
+    padding: 15px 20px;
+    font-size: 16px;
+  }
+  
+  .sousNav {
+    gap: 40px;
+    justify-content: center;
+  }
+  
+  .carteUtilisateur {
+    padding: 20px;
+    height: 90px;
+  }
+  
+  .avatarUtilisateur {
+    width: 70px;
+    height: 70px;
+    margin-right: 20px;
+  }
+  
+  .nomUtilisateur {
+    font-size: 18px;
+  }
+  
+  .niveauUtilisateur {
+    font-size: 14px;
+  }
+  
+  .boutonAjouter {
+    width: 45px;
+    height: 45px;
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .entete {
+    padding: 30px 15px 60px 15px;
+  }
+  
+  .ongletsNav, .sousNav, .grilleUtilisateurs {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .champRecherche {
+    font-size: 16px;
+    padding: 15px 20px 15px 50px;
+  }
+  
+  .boutonNav {
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+  
+  .sousNav {
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .boutonSousNav {
+    font-size: 14px;
+  }
+  
+  .carteUtilisateur {
+    padding: 15px;
+    height: 80px;
+  }
+  
+  .avatarUtilisateur {
+    width: 60px;
+    height: 60px;
+    margin-right: 15px;
+  }
+  
+  .nomUtilisateur {
+    font-size: 16px;
+  }
+  
+  .niveauUtilisateur {
+    font-size: 13px;
+  }
+  
+  .boutonAjouter {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
 }

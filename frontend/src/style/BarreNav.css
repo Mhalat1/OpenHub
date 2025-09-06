@@ -4,7 +4,7 @@ nav {
   top: 0;
   left: 0;
   width: 100%;
-  background: #64a4ff; /* bleu clair */
+  background: #02143a;
   padding: 10px 0;
   display: flex;
   justify-content: center;
@@ -12,7 +12,6 @@ nav {
   z-index: 1000;
 }
 
-/* Liste horizontale */
 nav ul {
   display: flex;
   justify-content: space-around;

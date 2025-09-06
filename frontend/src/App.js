@@ -1,5 +1,6 @@
 import { Route, BrowserRouter as Router, Routes, useLocation } from "react-router-dom";
 import Navbar from "./composants/barreNavigation";
+import Accueil from "./pages/Accueil";
 import Messages from "./pages/Messages";
 import Profil from "./pages/Profil";
 import Deconnexion from "./pages/deconnexion";
@@ -21,12 +22,14 @@ function AppContent() {
       {showNavbar && <Navbar />}
 
       <Routes>
+        <Route path="/accueil" element={<Accueil />} />
         <Route path="/profil" element={<Profil />} />
         <Route path="/projets" element={<Projets />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/deconnexion" element={<Deconnexion />} />
         <Route path="/connexion" element={<Connexion />} />
         <Route path="/inscription" element={<UserCreate />} />
+
       </Routes>
     </>
   );

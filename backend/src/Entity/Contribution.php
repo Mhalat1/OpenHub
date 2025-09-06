@@ -27,19 +27,15 @@ class Contribution
 
     #[ORM\ManyToOne(inversedBy: 'contributions')]
     private ?Projet $contributionprojet = null;
-
-
-    
+   
 
     public function getId(): ?int
     {
         return $this->id;
     }
-
     public function setId(int $id): static
     {
         $this->id = $id;
-
         return $this;
     }
     
@@ -51,7 +47,6 @@ class Contribution
     public function setNom(string $nom): static
     {
         $this->nom = $nom;
-
         return $this;
     }    
     public function getCompetencesNecessaires(): ?string
@@ -62,10 +57,8 @@ class Contribution
     public function setCompetencesNecessaires(string $competencesNecessaires): static
     {
         $this->competencesNecessaires = $competencesNecessaires;
-
         return $this;
     }
-
     
     public function getDescription(): ?string
     {
@@ -75,7 +68,6 @@ class Contribution
     public function setDescription(string $description): static
     {
         $this->description = $description;
-
         return $this;
     }
 
@@ -87,7 +79,6 @@ class Contribution
     public function setContribution(?Utilisateur $contribution): static
     {
         $this->contribution = $contribution;
-
         return $this;
     }
 
@@ -99,10 +90,6 @@ class Contribution
     public function setContributionprojet(?Projet $contributionprojet): static
     {
         $this->contributionprojet = $contributionprojet;
-
         return $this;
     }
-    
-
-
 }
