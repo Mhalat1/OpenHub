@@ -1,57 +1,33 @@
 /* Conteneur principal */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background: #02143a; /* bleu foncé du fond */
-  height: 100%;
-}
-
-img{
-  height: 400px;
-  width: 100%;
-  margin-bottom: 40px;
-}
-
-.connexion-container{
-  width: 100%;
-  max-width: 700px;
-  margin: auto;
-}
-
-div {
-      height: 100%;
+.connexionContainer {
+  background: #02143a;
+  height: 100vh; /* ✅ mieux que 100% pour couvrir tout l’écran */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-
-/* Titre */
-h2 {
-  display: none; /* caché car non visible sur la maquette */
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 /* Logo */
 .logo {
   width: 200px;
+  height: auto;
   margin-bottom: 40px;
 }
 
+
 /* Champs de saisie */
 form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px 50px;
-}
-.inscription-container{
   width: 100%;
-  max-width: 700px;
+  max-width: 400px; /* ✅ pour éviter que ce soit trop large */
 }
+
 input {
-  width: 90%;
+  width: 100%;
   padding: 14px;
   margin-bottom: 15px;
   border: none;
@@ -67,17 +43,17 @@ input:focus {
 
 /* Bouton de connexion */
 button[type="submit"] {
+  width: 100%;
   padding: 14px;
   margin-top: 10px;
   border: none;
   border-radius: 12px;
-  background: #0032ff; /* bleu vif */
+  background: #0032ff;
   color: white;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.3s;
-  grid-column: 1/ -1;
 }
 
 button[type="submit"]:hover {
@@ -92,8 +68,9 @@ p {
 }
 
 /* Bouton d’inscription */
-.inscription-btn {
+.inscriptionBtn {
   width: 100%;
+  max-width: 400px; /* aligné avec le formulaire */
   padding: 14px;
   border: none;
   border-radius: 12px;
@@ -105,7 +82,7 @@ p {
   transition: background 0.3s;
 }
 
-.inscription-btn:hover {
+.inscriptionBtn:hover {
   background: #0020a5;
 }
 

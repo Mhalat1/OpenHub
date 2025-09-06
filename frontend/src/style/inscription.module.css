@@ -1,42 +1,36 @@
 /* Conteneur principal */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background: #02143a; /* bleu foncé du fond */
-  height: 100%;
-}
-img{
-  height: 300px;
-  width: 100%;
-  margin-bottom: 40px;
-}
-/* Conteneur centré */
-div {
-      height: 100%;
+.inscriptionContainer {
+  background: #02143a;
+  height: 100vh; /* occupe tout l’écran */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-/* Titre */
-h2 {
-  display: none; /* caché car non visible sur la maquette */
+  font-family: Arial, sans-serif;
+  padding: 20px;
 }
 
 /* Logo */
 .logo {
   width: 200px;
+  height: auto;
   margin-bottom: 40px;
 }
 
-/* Champs de saisie */
-form {
-  width: 100%;
+/* Titre */
+h2 {
+  color: white;
+  margin-bottom: 20px;
 }
 
+/* Formulaire */
+form {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Champs de saisie */
 input {
   width: 100%;
   padding: 14px;
@@ -52,14 +46,14 @@ input:focus {
   box-shadow: 0 0 4px rgba(0, 86, 255, 0.8);
 }
 
-/* Bouton de connexion */
+/* Bouton de création */
 button[type="submit"] {
   width: 100%;
   padding: 14px;
   margin-top: 10px;
   border: none;
   border-radius: 12px;
-  background: #0032ff; /* bleu vif */
+  background: #00b341; /* vert pour création */
   color: white;
   font-size: 16px;
   font-weight: bold;
@@ -68,19 +62,20 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-  background: #0020a5;
+  background: #008c32;
 }
 
-/* Texte d’inscription */
+/* Texte pour redirection */
 p {
   margin: 20px 0 10px;
   color: #aaa;
   font-size: 14px;
 }
 
-/* Bouton d’inscription */
-.inscription-btn {
+/* Bouton connexion */
+.connexionBtn {
   width: 100%;
+  max-width: 400px;
   padding: 14px;
   border: none;
   border-radius: 12px;
@@ -92,11 +87,17 @@ p {
   transition: background 0.3s;
 }
 
-.inscription-btn:hover {
+.connexionBtn:hover {
   background: #0020a5;
 }
 
-/* Message d’erreur */
+/* Messages */
+.success {
+  margin-top: 10px;
+  color: green;
+  font-size: 14px;
+}
+
 .error {
   margin-top: 10px;
   color: red;

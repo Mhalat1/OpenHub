@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../style/connexion.css";
+import styles from "../style/connexion.module.css"; // ✅
 import logo from '../images/logo.png';
 
 const Connexion = () => {
@@ -19,10 +19,7 @@ const Connexion = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -32,19 +29,18 @@ const Connexion = () => {
       }
 
       if (data.token) {
-        localStorage.setItem("token", data.token); // Stockage du JWT
+        localStorage.setItem("token", data.token);
         alert("Connexion réussie ✅");
-        navigate("/profil"); // Redirection vers profil
+        navigate("/profil");
       }
-
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <div className="connexion-container">
-      <img src={logo} alt="logo" />
+    <div className={styles.connexionContainer}> 
+      <img src={logo} alt="logo" className={styles.logo} />
       <h2>Connexion</h2>
       <form onSubmit={handleSubmit}>
         <input
@@ -66,13 +62,13 @@ const Connexion = () => {
 
       <p>Vous n’êtes pas encore inscrit ?</p>
       <button
-        className="inscription-btn"
+        className={styles.inscriptionBtn}
         onClick={() => navigate("/inscription")}
       >
         Inscription
       </button>
 
-      {error && <p className="error">{error}</p>}
+      {error && <p className={styles.error}>{error}</p>} {/* ✅ */}
     </div>
   );
 };

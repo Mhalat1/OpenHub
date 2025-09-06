@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../style/inscription.css";
+import styles from "../style/inscription.module.css"; // ✅ CSS module
 import logo from '../images/logo.png';
 
 const UserCreate = () => {
@@ -20,7 +20,6 @@ const UserCreate = () => {
     e.preventDefault();
     setMessage("");
     setError("");
-    
 
     try {
       const response = await fetch("http://127.0.0.1:8000/api/userCreate", {
@@ -28,13 +27,13 @@ const UserCreate = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          email: email, 
-          password: password, 
-          prenom: prenom,
-          nom: nom,
-          debutDispo: debutDispo,
-          finDispo: finDispo
+        body: JSON.stringify({
+          email,
+          password,
+          prenom,
+          nom,
+          debutDispo,
+          finDispo
         }),
       });
 
@@ -48,7 +47,7 @@ const UserCreate = () => {
         setNom("");
         setDebutDispo("");
         setFinDispo("");
-        window.location.href = "/connexion"; // ou "/profil" si déjà connecté
+        navigate("/connexion");
       } else {
         setError(data.message);
       }
@@ -59,9 +58,9 @@ const UserCreate = () => {
   };
 
   return (
-    <div className="inscription-container">
+    <div className={styles.inscriptionContainer}>
       <h2>Créer un utilisateur</h2>
-      <img src={logo} alt="logo" />
+      <img src={logo} alt="logo" className={styles.logo} />
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -77,50 +76,47 @@ const UserCreate = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <input 
-            type="text"
-            placeholder="Prénom"
-            value={prenom}
-            onChange={(e) => setPrenom(e.target.value)}
-            required
+        <input
+          type="text"
+          placeholder="Prénom"
+          value={prenom}
+          onChange={(e) => setPrenom(e.target.value)}
+          required
         />
-        <input 
-            type="text"
-            placeholder="Nom"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            required
+        <input
+          type="text"
+          placeholder="Nom"
+          value={nom}
+          onChange={(e) => setNom(e.target.value)}
+          required
         />
-        <input 
-            type="date"
-            placeholder="Début disponibilité"
-            value={debutDispo}
-            onChange={(e) => setDebutDispo(e.target.value)}
-            required
+        <input
+          type="date"
+          placeholder="Début disponibilité"
+          value={debutDispo}
+          onChange={(e) => setDebutDispo(e.target.value)}
+          required
         />
-        <input 
-            type="date"
-            placeholder="Fin disponibilité"
-            value={finDispo}
-            onChange={(e) => setFinDispo(e.target.value)}
-            required
+        <input
+          type="date"
+          placeholder="Fin disponibilité"
+          value={finDispo}
+          onChange={(e) => setFinDispo(e.target.value)}
+          required
         />
         <button type="submit">Créer</button>
       </form>
 
-      {message && <p style={{ color: "green", marginTop: "10px" }}>{message}</p>}
-      {error && <p style={{ color: "red", marginTop: "10px" }}>{error}</p>}
-
-
+      {message && <p className={styles.success}>{message}</p>}
+      {error && <p className={styles.error}>{error}</p>}
 
       <p>Vous êtes déjà inscrit ?</p>
       <button
-        className="inscription-btn"
+        className={styles.connexionBtn}
         onClick={() => navigate("/connexion")}
       >
         Connexion
       </button>
-
     </div>
   );
 };

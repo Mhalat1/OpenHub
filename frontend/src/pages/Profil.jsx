@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import '../style/Profil.css';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import utilisateurphoto from '../images/utilisateurs/user1.png';
+import styles from '../style/Profil.module.css';
 
 const Profil = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -15,6 +17,7 @@ const Profil = () => {
     disponibiliteDebut: "",
     disponibiliteFin: ""
   });
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -26,146 +29,37 @@ const Profil = () => {
 
   const handleSave = () => {
     setIsEditing(false);
-    // Ici, on pourrait ajouter une logique pour sauvegarder les données
+    // Ajouter la logique pour sauvegarder les données si nécessaire
   };
 
   return (
-    <div className="profil-container">
-      <div className="profil-header">
+    <div className={styles.profilContainer}>
+      <div className={styles.profilHeader}>
+        <img src={utilisateurphoto} alt="Photo de profil" className={styles.profilPhoto} />
         <h1>Niveau 7</h1>
-        <button 
-          className="edit-button"
+      </div>
+
+      <div className={styles.profilContent}>
+        <div className={styles.profilInfo}>
+          <div className={styles.infoSection}>
+
+              <h2>{userData.prenom}</h2>
+            
+              <h2>{userData.nom}</h2>
+          
+          </div>
+        </div>
+
+        <div className={styles.disponibilitesSection}>
+          <h3>Disponibilités</h3>
+                  <button 
+          className={styles.editButton}
           onClick={() => setIsEditing(!isEditing)}
         >
           {isEditing ? 'Annuler' : 'Modifier'}
         </button>
-      </div>
-
-      <div className="profil-content">
-        <div className="profil-info">
-          <div className="info-section">
-            {isEditing ? (
-              <input
-                type="text"
-                name="prenom"
-                value={userData.prenom}
-                onChange={handleInputChange}
-                className="edit-input"
-              />
-            ) : (
-              <h2>{userData.prenom}</h2>
-            )}
-            
-            {isEditing ? (
-              <input
-                type="text"
-                name="nom"
-                value={userData.nom}
-                onChange={handleInputChange}
-                className="edit-input"
-              />
-            ) : (
-              <h3>{userData.nom}</h3>
-            )}
-          </div>
-
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">Page:</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="page"
-                  value={userData.page}
-                  onChange={handleInputChange}
-                  className="edit-input"
-                />
-              ) : (
-                <span>{userData.page}</span>
-              )}
-            </div>
-
-            <div className="info-item">
-              <span className="label">Contributions:</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="contributions"
-                  value={userData.contributions}
-                  onChange={handleInputChange}
-                  className="edit-input"
-                />
-              ) : (
-                <span>{userData.contributions}</span>
-              )}
-            </div>
-
-            <div className="info-item">
-              <span className="label">Module:</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="module"
-                  value={userData.module}
-                  onChange={handleInputChange}
-                  className="edit-input"
-                />
-              ) : (
-                <span>{userData.module}</span>
-              )}
-            </div>
-
-            <div className="info-item">
-              <span className="label">Projets:</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="projets"
-                  value={userData.projets}
-                  onChange={handleInputChange}
-                  className="edit-input"
-                />
-              ) : (
-                <span>{userData.projets}</span>
-              )}
-            </div>
-
-            <div className="info-item">
-              <span className="label">Compétences:</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="competences"
-                  value={userData.competences}
-                  onChange={handleInputChange}
-                  className="edit-input"
-                />
-              ) : (
-                <span>{userData.competences}</span>
-              )}
-            </div>
-
-            <div className="info-item">
-              <span className="label">Disponibilités:</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="disponibilites"
-                  value={userData.disponibilites}
-                  onChange={handleInputChange}
-                  className="edit-input"
-                />
-              ) : (
-                <span>{userData.disponibilites}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="disponibilites-section">
-          <h3>Disponibilités</h3>
-          <div className="date-range">
-            <div className="date-input">
+          <div className={styles.dateRange}>
+            <div className={styles.dateInput}>
               <span>Du:</span>
               {isEditing ? (
                 <input
@@ -173,13 +67,13 @@ const Profil = () => {
                   name="disponibiliteDebut"
                   value={userData.disponibiliteDebut}
                   onChange={handleInputChange}
-                  className="edit-input"
+                  className={styles.editInput}
                 />
               ) : (
                 <span>{userData.disponibiliteDebut || "01/01/2023"}</span>
               )}
             </div>
-            <div className="date-input">
+            <div className={styles.dateInput}>
               <span>Au:</span>
               {isEditing ? (
                 <input
@@ -187,28 +81,46 @@ const Profil = () => {
                   name="disponibiliteFin"
                   value={userData.disponibiliteFin}
                   onChange={handleInputChange}
-                  className="edit-input"
+                  className={styles.editInput}
                 />
               ) : (
                 <span>{userData.disponibiliteFin || "31/12/2023"}</span>
               )}
             </div>
           </div>
-          <div className="view-buttons">
-            <button className="view-button">Voir</button>
-            <button className="view-button">Voir</button>
-          </div>
         </div>
 
-        <div className="actions-section">
-          <button className="action-button">Page Modification Profil</button>
-          <button className="action-button">Ajouter à vos contacts</button>
+        <div className={styles.actionsSection}>
+          <button 
+            className={styles.actionButton} 
+            onClick={() => navigate("/projets")} 
+          >
+            Page Contributions
+          </button>
+          <button 
+            className={styles.actionButton} 
+            onClick={() => navigate("/projets")} 
+          >
+            Page Contributions
+          </button>
+          <button 
+            className={styles.actionButton} 
+            onClick={() => navigate("/projets")} 
+          >
+            Modale Projets
+          </button>
+          <button 
+            className={styles.actionButton} 
+            onClick={() => navigate("/projets")} 
+          >
+            Modale Compétences
+          </button>
         </div>
       </div>
 
       {isEditing && (
-        <div className="save-section">
-          <button className="save-button" onClick={handleSave}>
+        <div className={styles.saveSection}>
+          <button className={styles.saveButton} onClick={handleSave}>
             Enregistrer les modifications
           </button>
         </div>

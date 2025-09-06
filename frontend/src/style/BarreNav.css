@@ -21,7 +21,6 @@ nav ul {
   width: 100%;
   max-width: 600px;
   margin: 0;
-  padding: 0;
 }
 
 /* Chaque élément */
@@ -46,9 +45,10 @@ nav a {
   transition: all 0.3s ease-in-out;
 }
 
-/* Hover effet */
 nav a:hover {
-  background: #222;
+  background: #0032ff;
   color: #fff;
   transform: scale(1.1);
 }
+
+

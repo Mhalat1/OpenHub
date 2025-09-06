@@ -1,0 +1,192 @@
+.profilContainer {
+  background: #f4f6fa;
+  min-height: 100vh;
+  padding: 100px 40px;
+  font-family: Arial, sans-serif;
+}
+
+/* HEADER */
+.profilHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #02143a;
+    padding: 20px 60px;
+  border-radius: 12px;
+  color: white;
+}
+
+.profilPhoto {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+}
+
+.editButton {
+  font-size: 16px;
+  padding: 20px;
+  border: none;
+  border-radius: 8px;
+  background: #0032ff;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+h2{
+  display: inline;
+}
+.editButton:hover {
+  background: #001c9e;
+}
+
+/* CONTENU */
+.profilContent {
+  margin-top: 30px;
+}
+
+.profilInfo {
+  background: white;
+  padding: 20px 60px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.infoSection {
+  text-align: center;
+  margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.infoSection h2 {
+  margin: 5px 0;
+  color: #02143a;
+}
+
+.infoSection h3 {
+  margin: 0;
+  color: #555;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #0032ff;
+}
+
+.editInput {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* DISPONIBILITES */
+.disponibilitesSection {
+  background: white;
+  padding: 20px 60px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.dateRange {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.dateInput {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.dateInput span {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.viewButtons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.viewButton {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #00b341;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.viewButton:hover {
+  background: #008c32;
+}
+
+/* ACTIONS */
+.actionsSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Deux colonnes égales */
+  gap: 20px
+}
+
+.actionButton {
+  flex: 1;
+  padding: 20px;
+  border: none;
+  border-radius: 10px;
+  background: #0032ff;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+  font-size: 16px;
+}
+
+.actionButton:hover {
+  background: #0020a5;
+}
+
+/* SAVE BUTTON */
+.saveSection {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.saveButton {
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  background: #ff9500;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.saveButton:hover {
+  background: #cc7700;
+}
