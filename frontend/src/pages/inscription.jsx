@@ -10,6 +10,7 @@ const UserCreate = () => {
   const [password, setPassword] = useState("");
   const [debutDispo, setDebutDispo] = useState("");
   const [finDispo, setFinDispo] = useState("");
+  const [compétences, setCompetences] = useState("");
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -33,7 +34,8 @@ const UserCreate = () => {
           prenom,
           nom,
           debutDispo,
-          finDispo
+          finDispo,
+          compétences
         }),
       });
 
@@ -47,6 +49,7 @@ const UserCreate = () => {
         setNom("");
         setDebutDispo("");
         setFinDispo("");
+        setCompetences("");
         navigate("/connexion");
       } else {
         setError(data.message);
@@ -103,6 +106,12 @@ const UserCreate = () => {
           value={finDispo}
           onChange={(e) => setFinDispo(e.target.value)}
           required
+        />
+        < input
+          type="text"
+          placeholder="Compétences (séparées par des virgules)"
+          value={compétences}
+          onChange={(e) => setCompetences(e.target.value)}
         />
         <button type="submit">Créer</button>
       </form>

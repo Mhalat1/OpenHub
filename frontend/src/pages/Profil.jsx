@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import styles from '../style/Profil.module.css';
+import styles from '../style/Profils.module.css';
 
 const Profil = () => {
   const [users, setUsers] = useState([]); // État pour stocker les utilisateurs

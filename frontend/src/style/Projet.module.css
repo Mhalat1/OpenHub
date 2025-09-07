@@ -1,0 +1,81 @@
+/* Accueil.module.css */
+
+/* Container global */
+.projetsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 150px 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Chaque carte de projet */
+.projetCard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Effet hover */
+.projetCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Titres */
+.projetCard h2 {
+  font-size: 1.5rem;
+  color: #1f2937; /* gris foncé */
+  margin-bottom: 10px;
+}
+
+/* Texte descriptif */
+.projetCard p {
+  font-size: 0.95rem;
+  color: #4b5563; /* gris moyen */
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+/* Compétences */
+.projetCard p strong {
+  color: #111827; /* accent couleur pour le label */
+}
+
+/* Barre de recherche */
+.searchInput {
+  width: 100%;
+  max-width: 40%;
+  padding: 10px 15px;
+  margin: 150px 30% 20px 30% ;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #4f46e5; /* violet moderne */
+  box-shadow: 0 0 5px rgba(79, 70, 229, 0.3);
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .projetsContainer {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+
+  .projetCard {
+    padding: 15px;
+  }
+}
