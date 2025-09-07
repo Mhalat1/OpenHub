@@ -29,7 +29,7 @@ class Projet
     private ?DateTimeImmutable $dateDeFin = null;
 
     #[ORM\ManyToOne(inversedBy: 'projets')]
-    private ?Utilisateur $projet = null;
+    private ?User $projet = null;
 
     /**
      * @var Collection<int, Contribution>
@@ -112,12 +112,12 @@ public function setDateDeFin(?\DateTimeImmutable $dateDeFin): self
     return $this;
 }
 
-public function getProjet(): ?Utilisateur
+public function getProjet(): ?User
 {
     return $this->projet;
 }
 
-public function setProjet(?Utilisateur $projet): static
+public function setProjet(?User $projet): static
 {
     $this->projet = $projet;
 

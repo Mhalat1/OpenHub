@@ -241,15 +241,6 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->projets;
     }
 
-    public function addProjet(Projet $projet): static
-    {
-        if (!$this->projets->contains($projet)) {
-            $this->projets->add($projet);
-            $projet->setProjet($this);
-        }
-
-        return $this;
-    }
 
     public function removeProjet(Projet $projet): static
     {

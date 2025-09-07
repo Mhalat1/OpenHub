@@ -7,7 +7,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\Persistence\ManagerRegistry;
 
-use App\Entity\Utilisateur;
 use App\Entity\Competence;
 use App\Entity\Contribution;
 use App\Entity\Projet;

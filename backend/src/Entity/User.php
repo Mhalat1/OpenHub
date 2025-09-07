@@ -43,6 +43,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?DateTimeImmutable $debutDispo = null;
     #[ORM\Column(length: 10, nullable: true)]
     private ?DateTimeImmutable $finDispo = null;
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $competences = null;
+
+    public function getCompetences(): ?string
+    {
+        return $this->competences;
+    }
+    public function setCompetences(?string $competences): static
+    {
+        $this->competences = $competences;
+        return $this;
+    }
 
     public function getDebutDispo(): ?DateTimeImmutable
     {
