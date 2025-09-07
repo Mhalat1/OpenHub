@@ -38,7 +38,6 @@ public function userCreate(Request $request, UserPasswordHasherInterface $passwo
     $nom = $data['nom'] ?? null;
     $debutDispo = $data['debutDispo'] ?? null;
     $finDispo = $data['finDispo'] ?? null;
-    $compétences = $data['compétences'] ?? null;
 
     if (!$email || !$password) {
         return new JsonResponse([
@@ -64,7 +63,6 @@ public function userCreate(Request $request, UserPasswordHasherInterface $passwo
     $user->setRoles(['ROLE_USER']);
     $user->setDebutDispo($debutDispo ? new \DateTimeImmutable($debutDispo) : null);
     $user->setFinDispo($finDispo ? new \DateTimeImmutable($finDispo) : null);
-    $user->setCompetences($compétences);
 
     $this->manager->persist($user);
     $this->manager->flush();
@@ -93,6 +91,7 @@ public function getConnectedUser(Request $request, Security $security): Response
         return $this->json(['message' => 'Utilisateur non authentifié'], 401);
     }
     return $this->json($user);
+    return $this->json($user, 200, [], ['groups' => 'user:read']);
 }
 
 }

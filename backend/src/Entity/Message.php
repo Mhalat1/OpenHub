@@ -31,7 +31,7 @@ class Message
     private ?string $destinataire = null;
 
         #[ORM\ManyToOne(inversedBy: 'messages')]
-        private ?Utilisateur $message = null;
+        private ?User $message = null;
 
     public function getId(): ?int
     {
@@ -114,12 +114,12 @@ class Message
         return $this; 
     }
 
-    public function getMessage(): ?Utilisateur
+    public function getMessage(): ?User
     {
         return $this->message;
     }
 
-    public function setMessage(?Utilisateur $message): static
+    public function setMessage(?User $message): static
     {
         $this->message = $message;
 

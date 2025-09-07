@@ -5,14 +5,17 @@ namespace App\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Entity\Projet;
+use Doctrine\ORM\EntityManagerInterface;
+
 
 final class ProjetController extends AbstractController
 {
-    #[Route('/projet', name: 'app_projet')]
-    public function index(): Response
+    #[Route('/api/projet', name: 'app_projet', methods: ['GET'])]
+    public function projet(EntityManagerInterface $entityManager): Response
     {
-        return $this->render('projet/index.html.twig', [
-            'controller_name' => 'ProjetController',
-        ]);
+
+        $projet = $entityManager->getRepository(Projet::class)->findAll();
+        return $this->json($projet);
     }
 }

@@ -28,19 +28,9 @@ class Projet
     #[ORM\Column(length: 255)]
     private ?DateTimeImmutable $dateDeFin = null;
 
-    #[ORM\ManyToOne(inversedBy: 'projets')]
-    private ?User $projet = null;
 
-    /**
-     * @var Collection<int, Contribution>
-     */
-    #[ORM\OneToMany(targetEntity: Contribution::class, mappedBy: 'contributionprojet')]
-    private Collection $contributions;
 
-    public function __construct()
-    {
-        $this->contributions = new ArrayCollection();
-    }
+
 
     public function getId(): ?int
     {
@@ -112,47 +102,8 @@ public function setDateDeFin(?\DateTimeImmutable $dateDeFin): self
     return $this;
 }
 
-public function getProjet(): ?User
-{
-    return $this->projet;
-}
 
-public function setProjet(?User $projet): static
-{
-    $this->projet = $projet;
 
-    return $this;
-}
-
-/**
- * @return Collection<int, Contribution>
- */
-public function getContributions(): Collection
-{
-    return $this->contributions;
-}
-
-public function addContribution(Contribution $contribution): static
-{
-    if (!$this->contributions->contains($contribution)) {
-        $this->contributions->add($contribution);
-        $contribution->setContributionprojet($this);
-    }
-
-    return $this;
-}
-
-public function removeContribution(Contribution $contribution): static
-{
-    if ($this->contributions->removeElement($contribution)) {
-        // set the owning side to null (unless already changed)
-        if ($contribution->getContributionprojet() === $this) {
-            $contribution->setContributionprojet(null);
-        }
-    }
-
-    return $this;
-}
 
 
 }
