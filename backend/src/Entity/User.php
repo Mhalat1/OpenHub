@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_USER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -21,7 +21,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     /**
-     * @var list<string> The user roles
+     * @var list<string> User roles
      */
     #[ORM\Column]
     private array $roles = [];
@@ -33,67 +33,73 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 100, nullable: true)]
-    private ?string $prenom = null;
+    private ?string $firstName = null;
 
-    #[ORM\Column(length: 10, nullable: true)]
-    private ?string $nom = null;
-
-
-    #[ORM\Column(length: 10, nullable: true)]
-    private ?DateTimeImmutable $debutDispo = null;
-    #[ORM\Column(length: 10, nullable: true)]
-    private ?DateTimeImmutable $finDispo = null;
     #[ORM\Column(length: 100, nullable: true)]
-    private ?string $competences = null;
+    private ?string $lastName = null;
 
-    public function getCompetences(): ?string
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $availabilityStart = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $availabilityEnd = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $skills = null;
+
+    // Getters and setters
+    public function getSkills(): ?string
     {
-        return $this->competences;
+        return $this->skills;
     }
-    public function setCompetences(?string $competences): static
+
+    public function setSkills(?string $skills): static
     {
-        $this->competences = $competences;
+        $this->skills = $skills;
         return $this;
     }
 
-    public function getDebutDispo(): ?DateTimeImmutable
+    public function getAvailabilityStart(): ?DateTimeImmutable
     {
-        return $this->debutDispo;
+        return $this->availabilityStart;
     }
-    public function setDebutDispo(?DateTimeImmutable $debutDispo): static
+
+    public function setAvailabilityStart(?DateTimeImmutable $availabilityStart): static
     {
-        $this->debutDispo = $debutDispo;
-        return $this;
-    }
-    public function getFinDispo(): ?DateTimeImmutable
-    {
-        return $this->finDispo;
-    }
-    public function setFinDispo(?DateTimeImmutable $finDispo): static
-    {
-        $this->finDispo = $finDispo;
+        $this->availabilityStart = $availabilityStart;
         return $this;
     }
 
-
-    public function getPrenom(): ?string
-    {       
-        return $this->prenom;
-    }
-    public function setPrenom(?string $prenom): static
+    public function getAvailabilityEnd(): ?DateTimeImmutable
     {
-        $this->prenom = $prenom;
+        return $this->availabilityEnd;
+    }
 
+    public function setAvailabilityEnd(?DateTimeImmutable $availabilityEnd): static
+    {
+        $this->availabilityEnd = $availabilityEnd;
         return $this;
     }
 
-    public function getNom(): ?string
+    public function getFirstName(): ?string
     {
-        return $this->nom;
+        return $this->firstName;
     }
-    public function setNom(?string $nom): static
+
+    public function setFirstName(?string $firstName): static
     {
-        $this->nom = $nom;  
+        $this->firstName = $firstName;
+        return $this;
+    }
+
+    public function getLastName(): ?string
+    {
+        return $this->lastName;
+    }
+
+    public function setLastName(?string $lastName): static
+    {
+        $this->lastName = $lastName;
         return $this;
     }
 
@@ -110,16 +116,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
-
         return $this;
     }
 
     /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
+     * Returns the identifier for this user (email).
      */
-    public function getUserIdentifier(): string  // PHP 8.0
+    public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
@@ -130,9 +133,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
-
+        $roles[] = 'ROLE_USER'; // Every user has at least ROLE_USER
         return array_unique($roles);
     }
 
@@ -142,7 +143,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
-
         return $this;
     }
 
@@ -157,19 +157,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
-
         return $this;
     }
 
     /**
-     * Removes sensitive data from the user.
-     *
-     * @see UserInterface
+     * Clears sensitive data from the user.
      */
     public function eraseCredentials(): void
     {
-        // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
+        // Clear temporary sensitive data if any, e.g. $this->plainPassword = null;
     }
-
 }

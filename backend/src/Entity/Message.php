@@ -14,24 +14,24 @@ class Message
     private ?int $id = null;
 
     #[ORM\Column(length: 25)]
-    private ?string $titre = null;
+    private ?string $title = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $contenu = null;
+    private ?string $content = null;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $dateEnvoi = null;
+    private ?\DateTimeImmutable $sentAt = null;
 
+    #[ORM\Column(length: 255)]
+    private ?string $sender = null;
 
-        #[ORM\Column(length: 255)]
-    private ?string $expediteur = null;
+    #[ORM\Column(length: 255)]
+    private ?string $recipient = null;
 
+    #[ORM\ManyToOne(inversedBy: 'messages')]
+    private ?User $user = null;
 
-        #[ORM\Column(length: 255)]
-    private ?string $destinataire = null;
-
-        #[ORM\ManyToOne(inversedBy: 'messages')]
-        private ?User $message = null;
+    // ---------------- Getters and Setters ---------------- //
 
     public function getId(): ?int
     {
@@ -41,88 +41,72 @@ class Message
     public function setId(int $id): static
     {
         $this->id = $id;
-
         return $this;
     }
 
-    public function getTitre(): ?string
+    public function getTitle(): ?string
     {
-        return $this->titre;
+        return $this->title;
     }
 
-    public function setTitre(string $titre): static
+    public function setTitle(string $title): static
     {
-        $this->titre = $titre;
-
+        $this->title = $title;
         return $this;
     }
 
-    public function getContenu(): ?string
+    public function getContent(): ?string
     {
-        return $this->contenu;
+        return $this->content;
     }
 
-    public function setContenu(string $contenu): static
+    public function setContent(string $content): static
     {
-        $this->contenu = $contenu;
-
+        $this->content = $content;
         return $this;
     }
 
-    public function getDateEnvoi(): ?\DateTimeImmutable
+    public function getSentAt(): ?\DateTimeImmutable
     {
-        return $this->dateEnvoi;
+        return $this->sentAt;
     }
 
-    public function setDateEnvoi(\DateTimeImmutable $dateEnvoi): static
+    public function setSentAt(\DateTimeImmutable $sentAt): static
     {
-        $this->dateEnvoi = $dateEnvoi;
-
+        $this->sentAt = $sentAt;
         return $this;
     }
 
-
-
-
-
-
-    
-    public function getExpediteur(): ?string
+    public function getSender(): ?string
     {
-        return $this->expediteur;
+        return $this->sender;
     }
 
-    public function setExpediteur(string $expediteur): static
+    public function setSender(string $sender): static
     {
-        $this->expediteur = $expediteur;
-
+        $this->sender = $sender;
         return $this;
     }
 
-
-
-    
-    public function getDestinataire(): ?string
+    public function getRecipient(): ?string
     {
-        return $this->destinataire;
+        return $this->recipient;
     }
 
-    public function setDestinataire(string $destinataire): static
+    public function setRecipient(string $recipient): static
     {
-        $this->destinataire = $destinataire;
-
+        $this->recipient = $recipient;
         return $this; 
     }
 
-    public function getMessage(): ?User
+    public function getUser(): ?User
     {
-        return $this->message;
+        return $this->user;
     }
 
-    public function setMessage(?User $message): static
+    public function setUser(?User $user): static
     {
-        $this->message = $message;
-
+        $this->user = $user;
         return $this;
     }
 }
