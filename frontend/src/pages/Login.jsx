@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "../style/connexion.module.css"; // ✅
+import styles from "../style/login.module.css"; // ✅ updated to English
 import logo from '../images/logo.png';
 
-const Connexion = () => {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,12 +25,12 @@ const Connexion = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Identifiants incorrects");
+        throw new Error(data.message || "Invalid credentials");
       }
 
       if (data.token) {
         localStorage.setItem("token", data.token);
-        alert("Connexion réussie ✅");
+        alert("Login successful ✅");
         navigate("/profil");
       }
     } catch (err) {
@@ -39,9 +39,9 @@ const Connexion = () => {
   };
 
   return (
-    <div className={styles.connexionContainer}> 
+    <div className={styles.loginContainer}> 
       <img src={logo} alt="logo" className={styles.logo} />
-      <h2>Connexion</h2>
+      <h2>Login</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -52,20 +52,20 @@ const Connexion = () => {
         />
         <input
           type="password"
-          placeholder="Mot de passe"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button type="submit">Connexion</button>
+        <button type="submit">Login</button>
       </form>
 
-      <p>Vous n’êtes pas encore inscrit ?</p>
+      <p>Not registered yet?</p>
       <button
-        className={styles.inscriptionBtn}
-        onClick={() => navigate("/inscription")}
+        className={styles.registerBtn}
+        onClick={() => navigate("/register")}
       >
-        Inscription
+        Register
       </button>
 
       {error && <p className={styles.error}>{error}</p>} {/* ✅ */}
@@ -73,4 +73,4 @@ const Connexion = () => {
   );
 };
 
-export default Connexion;
+export default Login;

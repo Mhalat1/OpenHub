@@ -1,14 +1,15 @@
-/* Conteneur principal */
-.inscriptionContainer {
+/* Main container */
+.loginContainer {
   background: #02143a;
-  height: 100vh; /* occupe tout l’écran */
+  height: 100vh; /* better than 100% to cover full screen */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-family: Arial, sans-serif;
-  padding: 20px;
+  margin: 0;
+  padding: 0;
 }
 
 /* Logo */
@@ -18,19 +19,12 @@
   margin-bottom: 40px;
 }
 
-/* Titre */
-h2 {
-  color: white;
-  margin-bottom: 20px;
-}
-
-/* Formulaire */
+/* Input fields */
 form {
   width: 100%;
-  max-width: 400px;
+  max-width: 400px; /* prevents it from being too wide */
 }
 
-/* Champs de saisie */
 input {
   width: 100%;
   padding: 14px;
@@ -46,14 +40,14 @@ input:focus {
   box-shadow: 0 0 4px rgba(0, 86, 255, 0.8);
 }
 
-/* Bouton de création */
+/* Login button */
 button[type="submit"] {
   width: 100%;
   padding: 14px;
   margin-top: 10px;
   border: none;
   border-radius: 12px;
-  background: #00b341; /* vert pour création */
+  background: #0032ff;
   color: white;
   font-size: 16px;
   font-weight: bold;
@@ -62,20 +56,20 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-  background: #008c32;
+  background: #0020a5;
 }
 
-/* Texte pour redirection */
+/* Register text */
 p {
   margin: 20px 0 10px;
   color: #aaa;
   font-size: 14px;
 }
 
-/* Bouton connexion */
-.connexionBtn {
+/* Register button */
+.registerBtn {
   width: 100%;
-  max-width: 400px;
+  max-width: 400px; /* aligned with form */
   padding: 14px;
   border: none;
   border-radius: 12px;
@@ -87,17 +81,11 @@ p {
   transition: background 0.3s;
 }
 
-.connexionBtn:hover {
+.registerBtn:hover {
   background: #0020a5;
 }
 
-/* Messages */
-.success {
-  margin-top: 10px;
-  color: green;
-  font-size: 14px;
-}
-
+/* Error message */
 .error {
   margin-top: 10px;
   color: red;

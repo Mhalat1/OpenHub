@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import styles from '../style/Profils.module.css';
+import styles from '../style/Profil.module.css';
 
 const Profil = () => {
-  const [users, setUsers] = useState([]); // État pour stocker les utilisateurs
-  const [loading, setLoading] = useState(true); // Pour afficher un loader si nécessaire
-  const [error, setError] = useState(null); // Pour gérer les erreurs
-  const [activeTab, setActiveTab] = useState('public'); // Pour gérer les onglets
-  const [searchTerm, setSearchTerm] = useState(''); // Pour la barre de recherche
+  const [users, setUsers] = useState([]); // Store users
+  const [loading, setLoading] = useState(true); // Loader state
+  const [error, setError] = useState(null); // Error state
+  const [activeTab, setActiveTab] = useState('public'); // Active tab
+  const [searchTerm, setSearchTerm] = useState(''); // Search input
 
-  // Fonction pour récupérer les utilisateurs
+  // Fetch users from API
   const fetchData = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -28,35 +28,34 @@ const Profil = () => {
     }
   };
 
-  // Utiliser useEffect pour effectuer l'appel API lors du montage du composant
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Filtrer les utilisateurs selon le terme de recherche
-  const filteredUsers = users.filter(user => 
-    `${user.prenom} ${user.nom}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  // Filter users by name or email
+  const filteredUsers = users.filter(user =>
+    `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Fonction pour gérer l'ajout d'un utilisateur
+  // Handle add user action
   const handleAddUser = (userId) => {
-    console.log(`Ajouter utilisateur ${userId}`);
-    // Logique d'ajout ici
+    console.log(`Add user ${userId}`);
+    // Add user logic here
   };
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
   if (error) return <div className={styles.error}>Error: {error}</div>;
 
   return (
-    <div className={styles.profilContainer}>
-      {/* Header avec barre de recherche */}
+    <div className={styles.profileContainer}>
+      {/* Header with search bar */}
       <div className={styles.header}>
         <div className={styles.searchContainer}>
           <div className={styles.searchIcon}>🔍</div>
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search users"
             className={styles.searchInput}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -68,21 +67,21 @@ const Profil = () => {
       <div className={styles.navTabs}>
         <div className={styles.navButtons}>
           <button 
-            className={`${styles.navButton} ${activeTab === 'projets' ? styles.active : ''}`}
-            onClick={() => setActiveTab('projets')}
+            className={`${styles.navButton} ${activeTab === 'projects' ? styles.active : ''}`}
+            onClick={() => setActiveTab('projects')}
           >
-            Projets
+            Projects
           </button>
           <button 
-            className={`${styles.navButton} ${activeTab === 'utilisateurs' ? styles.active : ''}`}
-            onClick={() => setActiveTab('utilisateurs')}
+            className={`${styles.navButton} ${activeTab === 'users' ? styles.active : ''}`}
+            onClick={() => setActiveTab('users')}
           >
-            Utilisateurs
+            Users
           </button>
         </div>
       </div>
 
-      {/* Sub navigation */}
+      {/* Sub-navigation */}
       <div className={styles.subNav}>
         <button 
           className={`${styles.subNavButton} ${activeTab === 'public' ? styles.active : ''}`}
@@ -91,10 +90,10 @@ const Profil = () => {
           Public
         </button>
         <button 
-          className={`${styles.subNavButton} ${activeTab === 'amis' ? styles.active : ''}`}
-          onClick={() => setActiveTab('amis')}
+          className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
+          onClick={() => setActiveTab('friends')}
         >
-          Amis
+          Friends
         </button>
         <button 
           className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
@@ -104,27 +103,27 @@ const Profil = () => {
         </button>
       </div>
 
-      {/* Liste des utilisateurs */}
+      {/* Users grid */}
       <div className={styles.usersGrid}>
         {filteredUsers.map((user, index) => (
           <div key={user.id || index} className={styles.userCard}>
             <div className={styles.userAvatar}>
               <img 
                 src={user.avatar || `https://i.pravatar.cc/80?img=${index + 1}`} 
-                alt={`${user.prenom} ${user.nom}`}
+                alt={`${user.firstName} ${user.lastName}`}
                 onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${user.prenom}+${user.nom}&background=random`;
+                  e.target.src = `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`;
                 }}
               />
             </div>
             <div className={styles.userInfo}>
-              <h3 className={styles.userName}>{user.prenom} {user.nom}</h3>
-              <p className={styles.userLevel}>niveau {user.niveau || Math.floor(Math.random() * 50) + 1}</p>
+              <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
+              <p className={styles.userLevel}>Level {user.level || Math.floor(Math.random() * 50) + 1}</p>
             </div>
             <button 
               className={styles.addButton}
               onClick={() => handleAddUser(user.id)}
-              aria-label={`Ajouter ${user.prenom} ${user.nom}`}
+              aria-label={`Add ${user.firstName} ${user.lastName}`}
             >
               ✕
             </button>
@@ -134,7 +133,7 @@ const Profil = () => {
 
       {filteredUsers.length === 0 && !loading && (
         <div className={styles.noResults}>
-          Aucun utilisateur trouvé
+          No users found
         </div>
       )}
     </div>

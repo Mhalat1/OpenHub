@@ -1,12 +1,12 @@
-.profilConteneur {
+.profileContainer {
   background: #f4f6fa;
   min-height: 100vh;
   padding: 100px 40px;
   font-family: Arial, sans-serif;
 }
 
-/* EN-TÊTE */
-.profilEnTête {
+/* HEADER */
+.profileHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -16,7 +16,7 @@
   color: white;
 }
 
-.profilPhoto {
+.profilePhoto {
   width: 100px;
   height: 100px;
   border-radius: 50%;
@@ -24,32 +24,12 @@
   border: 3px solid white;
 }
 
-.boutonModifier {
-  font-size: 16px;
-  padding: 20px;
-  border: none;
-  border-radius: 8px;
-  background: #0032ff;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-h2 {
-  display: inline;
-}
-
-.boutonModifier:hover {
-  background: #001c9e;
-}
-
-/* CONTENU */
-.profilContenu {
+/* CONTENT */
+.profileContent {
   margin-top: 30px;
 }
 
-.profilInfos {
+.profileInfos {
   background: white;
   padding: 20px 60px;
   border-radius: 12px;
@@ -57,30 +37,30 @@ h2 {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.sectionInfos {
+.infoSection {
   text-align: center;
   margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
 }
 
-.sectionInfos h2 {
+.infoSection h2 {
   margin: 5px 0;
   color: #02143a;
 }
 
-.sectionInfos h3 {
+.infoSection h3 {
   margin: 0;
   color: #555;
 }
 
-.grilleInfos {
+.infoGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
 }
 
-.elementInfo {
+.infoItem {
   display: flex;
   flex-direction: column;
 }
@@ -91,15 +71,15 @@ h2 {
   color: #0032ff;
 }
 
-.champModifier {
+.inputField {
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
 }
 
-/* DISPONIBILITÉS */
-.sectionDisponibilités {
+/* AVAILABILITY */
+.availabilitySection {
   background: white;
   padding: 20px 60px;
   border-radius: 12px;
@@ -107,7 +87,7 @@ h2 {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.plageDates {
+.dateRange {
   display: flex;
   justify-content: space-between;
   margin-top: 15px;
@@ -125,13 +105,13 @@ h2 {
   color: #333;
 }
 
-.boutonsVue {
+.viewButtons {
   display: flex;
   gap: 10px;
   margin-top: 20px;
 }
 
-.boutonVue {
+.viewButton {
   flex: 1;
   padding: 10px;
   border: none;
@@ -143,18 +123,18 @@ h2 {
   transition: background 0.3s;
 }
 
-.boutonVue:hover {
+.viewButton:hover {
   background: #008c32;
 }
 
-/* ACTIONS */
-.sectionActions {
+/* ACTION BUTTONS */
+.actionButtons {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Deux colonnes égales */
+  grid-template-columns: 1fr 1fr; /* two equal columns */
   gap: 20px;
 }
 
-.boutonAction {
+.actionButton {
   flex: 1;
   padding: 20px;
   border: none;
@@ -169,17 +149,17 @@ h2 {
   width: 40%;
 }
 
-.boutonAction:hover {
+.actionButton:hover {
   background: #0020a5;
 }
 
-/* BOUTON SAUVEGARDER */
-.sectionSauvegarde {
+/* SAVE BUTTON */
+.saveSection {
   margin-top: 20px;
   text-align: center;
 }
 
-.boutonSauvegarde {
+.saveButton {
   padding: 14px 24px;
   border: none;
   border-radius: 12px;
@@ -191,12 +171,12 @@ h2 {
   transition: background 0.3s;
 }
 
-.boutonSauvegarde:hover {
+.saveButton:hover {
   background: #cc7700;
 }
 
-/* MODALE */
-.modale {
+/* MODAL */
+.modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -208,7 +188,7 @@ h2 {
   align-items: center;
 }
 
-.contenuModale {
+.modalContent {
   background: white;
   padding: 20px;
   width: 80%;
@@ -217,7 +197,7 @@ h2 {
   position: relative;
 }
 
-.boutonFermer {
+.closeButton {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -227,6 +207,6 @@ h2 {
   cursor: pointer;
 }
 
-.itemContribution {
+.contributionItem {
   margin-bottom: 20px;
 }

@@ -1,18 +1,18 @@
 import { Route, BrowserRouter as Router, Routes, useLocation } from "react-router-dom";
-import Navbar from "./composants/barreNavigation";
-import Accueil from "./pages/Accueil";
+import Navbar from "./component/barreNavigation";
+import Home from "./pages/Home";
 import Messages from "./pages/Messages";
 import Profil from "./pages/Profil";
-import Deconnexion from "./pages/deconnexion";
-import Connexion from "./pages/connexion";
-import Projets from "./pages/projets";
-import UserCreate from "./pages/inscription";
+import Logout from "./pages/logout";
+import Login from "./pages/Login";
+import Projects from "./pages/Projects";
+import UserCreate from "./pages/Register";
 
 function AppContent() {
   const location = useLocation();
 
   // Routes où la Navbar ne doit pas s'afficher
-  const noNavbarPaths = ["/connexion", "/inscription", "/deconnexion"];
+  const noNavbarPaths = ["/login", "/register", "/logout"];
 
   // Condition pour afficher Navbar
   const showNavbar = !noNavbarPaths.includes(location.pathname);
@@ -22,13 +22,13 @@ function AppContent() {
       {showNavbar && <Navbar />}
 
       <Routes>
-        <Route path="/accueil" element={<Accueil />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/profil" element={<Profil />} />
-        <Route path="/projets" element={<Projets />} />
+        <Route path="/projects" element={<Projects />} />
         <Route path="/messages" element={<Messages />} />
-        <Route path="/deconnexion" element={<Deconnexion />} />
-        <Route path="/connexion" element={<Connexion />} />
-        <Route path="/inscription" element={<UserCreate />} />
+        <Route path="/logout" element={<Logout />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<UserCreate />} />
 
       </Routes>
     </>

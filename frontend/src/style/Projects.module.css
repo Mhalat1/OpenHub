@@ -1,7 +1,7 @@
-/* Accueil.module.css */
+/* Home.module.css */
 
-/* Container global */
-.projetsContainer {
+/* Main container */
+.projectsContainer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
@@ -10,8 +10,8 @@
   min-height: 100vh;
 }
 
-/* Chaque carte de projet */
-.projetCard {
+/* Each project card */
+.projectCard {
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
@@ -22,38 +22,38 @@
   justify-content: space-between;
 }
 
-/* Effet hover */
-.projetCard:hover {
+/* Hover effect */
+.projectCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* Titres */
-.projetCard h2 {
+/* Titles */
+.projectCard h2 {
   font-size: 1.5rem;
-  color: #1f2937; /* gris foncé */
+  color: #1f2937; /* dark gray */
   margin-bottom: 10px;
 }
 
-/* Texte descriptif */
-.projetCard p {
+/* Description text */
+.projectCard p {
   font-size: 0.95rem;
-  color: #4b5563; /* gris moyen */
+  color: #4b5563; /* medium gray */
   margin-bottom: 8px;
   line-height: 1.4;
 }
 
-/* Compétences */
-.projetCard p strong {
-  color: #111827; /* accent couleur pour le label */
+/* Skills labels */
+.projectCard p strong {
+  color: #111827; /* accent color for label */
 }
 
-/* Barre de recherche */
+/* Search bar */
 .searchInput {
   width: 100%;
   max-width: 40%;
   padding: 10px 15px;
-  margin: 150px 30% 20px 30% ;
+  margin: 150px 30% 20px 30%;
   display: block;
   border-radius: 8px;
   border: 1px solid #ccc;
@@ -63,19 +63,18 @@
 }
 
 .searchInput:focus {
-  border-color: #4f46e5; /* violet moderne */
+  border-color: #4f46e5; /* modern purple */
   box-shadow: 0 0 5px rgba(79, 70, 229, 0.3);
 }
 
-
 /* Responsive */
 @media (max-width: 768px) {
-  .projetsContainer {
+  .projectsContainer {
     grid-template-columns: 1fr;
     padding: 15px;
   }
 
-  .projetCard {
+  .projectCard {
     padding: 15px;
   }
 }
