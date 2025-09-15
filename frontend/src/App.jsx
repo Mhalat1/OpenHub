@@ -3,7 +3,7 @@ import Navbar from "./component/barreNavigation";
 import Home from "./pages/Home";
 import Messages from "./pages/Messages";
 import Profil from "./pages/Profil";
-import Logout from "./pages/logout";
+import Logout from "./pages/Logout";
 import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import UserCreate from "./pages/Register";
