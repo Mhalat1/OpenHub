@@ -11,6 +11,8 @@ const Profil = () => {
   // Fetch users from API
   const fetchData = async () => {
     const token = localStorage.getItem("token");
+    console.log(token);
+    
     try {
       const response = await fetch("http://127.0.0.1:8000/api/getAllUsers", {
         method: "GET",
@@ -19,6 +21,8 @@ const Profil = () => {
           "Authorization": `Bearer ${token}`,
         },
       });
+      
+      
       const data = await response.json();
       setUsers(data);
     } catch (error) {

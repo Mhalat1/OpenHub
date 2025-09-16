@@ -18,6 +18,25 @@ services:
       # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
       # - ./docker/db/data:/var/lib/postgresql/data:rw
 ###< doctrine/doctrine-bundle ###
+  frontend:
+    container_name: frontend
+    build: 
+      context: ../frontend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+        - ../frontend:/frontend
+        - /frontend/node_modules
+    ports:
+      - 5174:5174
+    networks:
+      - openhub
+
+
+networks:
+  openhub:
+    driver: bridge
 
 volumes:
 ###> doctrine/doctrine-bundle ###
