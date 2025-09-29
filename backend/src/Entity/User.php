@@ -47,6 +47,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $skills = null;
 
+    #[ORM\ManyToOne(inversedBy: 'Contributors')]
+    private ?Project $project = null;
+
     // Getters and setters
     public function getSkills(): ?string
     {
@@ -166,5 +169,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
         // Clear temporary sensitive data if any, e.g. $this->plainPassword = null;
+    }
+
+    public function getProject(): ?Project
+    {
+        return $this->project;
+    }
+
+    public function setProject(?Project $project): static
+    {
+        $this->project = $project;
+
+        return $this;
     }
 }

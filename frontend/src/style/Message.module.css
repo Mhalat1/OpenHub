@@ -1,0 +1,87 @@
+/* Home.module.css */
+
+/* Main container */
+.projectsContainer {
+  display: grid;
+  gap: 20px;
+  padding: 150px 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Each project card */
+.projectCard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Hover effect */
+.projectCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Titles */
+.projectCard h2 {
+  font-size: 1.5rem;
+  color: #1f2937; /* dark gray */
+  margin-bottom: 10px;
+}
+
+/* Description text */
+.projectCard p {
+  font-size: 0.95rem;
+  color: #4b5563; /* medium gray */
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+/* Skills labels */
+.projectCard p strong {
+  color: #111827; /* accent color for label */
+}
+
+/* Search bar */
+.searchInput {
+  width: 100%;
+  max-width: 40%;
+  padding: 10px 15px;
+  margin: 20px;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.searchInput:focus {
+  border-color: #4f46e5; /* modern purple */
+  box-shadow: 0 0 5px rgba(79, 70, 229, 0.3);
+}
+
+h4 {
+  color: #333;
+  margin-top: 10px;
+}
+h4 #text {
+  color: #0c00b8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .projectsContainer {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+
+  .projectCard {
+    padding: 15px;
+  }
+}

@@ -1,22 +1,6 @@
-// const Messages = () => {
-//       const token = localStorage.getItem("token");
-//       console.log(token);
-//       <h2>token</h2>
-//   return (
-//     <div>
-//       <p>12</p>
-//       <h2>Messages</h2>
-//       <p>token : {token}</p>
-//     </div>
-//   );
-
-// };
-
-// export default Messages;
-
-
 import React, { useEffect, useState } from 'react';
-import styles from '../style/Projects.module.css';
+import styles from '../style/Message.module.css';
+import '../style/tokendisplay.css';
 
 const Messages = () => {
   const [messages, setMessages] = useState([]);
@@ -76,17 +60,7 @@ const Messages = () => {
     <div className={styles.projectsContainer}>
       <h1>My Messages</h1>
       
-      {/* Affichage du token */}
-      <div style={{ 
-        padding: '10px', 
-        background: '#f0f0f0', 
-        borderRadius: '5px', 
-        marginBottom: '20px',
-        wordBreak: 'break-all',
-        fontSize: '0.85em'
-      }}>
-        <strong>Token:</strong> {token}
-      </div>
+     
       
       {/* Search bar */}
       <div className={styles.searchBar}>
@@ -115,7 +89,13 @@ const Messages = () => {
           ))}
         </div>
       )}
+      <div className={styles.tokenDisplay}>
+        <strong>Token:</strong> <h4>{token}</h4>
+      </div>
     </div>
+    
+
+    
   );
 };
 

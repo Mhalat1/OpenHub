@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\ProjectRepository;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ProjectRepository::class)]
@@ -28,6 +30,17 @@ class Project
 
     #[ORM\Column(length: 255)]
     private ?DateTimeImmutable $endDate = null;
+
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'project')]
+    private Collection $Contributors;
+
+    public function __construct()
+    {
+        $this->Contributors = new ArrayCollection();
+    }
 
     // ---------------- Getters and Setters ---------------- //
 
@@ -94,6 +107,36 @@ class Project
     public function setEndDate(?DateTimeImmutable $endDate): static
     {
         $this->endDate = $endDate;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getContributors(): Collection
+    {
+        return $this->Contributors;
+    }
+
+    public function addContributor(User $contributor): static
+    {
+        if (!$this->Contributors->contains($contributor)) {
+            $this->Contributors->add($contributor);
+            $contributor->setProject($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContributor(User $contributor): static
+    {
+        if ($this->Contributors->removeElement($contributor)) {
+            // set the owning side to null (unless already changed)
+            if ($contributor->getProject() === $this) {
+                $contributor->setProject(null);
+            }
+        }
+
         return $this;
     }
 }
