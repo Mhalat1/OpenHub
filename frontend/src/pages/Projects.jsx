@@ -11,7 +11,7 @@ const Projects = () => {
   const fetchProjects = async () => {
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/projet", {
+      const response = await fetch("http://127.0.0.1:8000/api/projects", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -33,11 +33,11 @@ const Projects = () => {
     fetchProjects();
   }, []);
 
-  // Filter projects by name or skills
+  // Filter projects by name or required skills
   const filteredProjects = projects.filter(
     (project) =>
-      project.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.competencesNecessaires.toLowerCase().includes(searchTerm.toLowerCase())
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (project.requiredSkills && project.requiredSkills.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) return <p>Loading projects...</p>;
@@ -60,11 +60,11 @@ const Projects = () => {
         ) : (
           filteredProjects.map((project) => (
             <div key={project.id} className={styles.projectCard}>
-              <h2>{project.nom}</h2>
+              <h2>{project.name}</h2>
               <p>{project.description}</p>
-              <p><strong>Skills:</strong> {project.competencesNecessaires}</p>
-              <p><strong>Start Date:</strong> {new Date(project.dateDeCreation).toLocaleDateString()}</p>
-              <p><strong>End Date:</strong> {new Date(project.dateDeFin).toLocaleDateString()}</p>
+              <p><strong>Skills:</strong> {project.requiredSkills}</p>
+              <p><strong>Start Date:</strong> {new Date(project.startDate).toLocaleDateString()}</p>
+              <p><strong>End Date:</strong> {new Date(project.endDate).toLocaleDateString()}</p>
             </div>
           ))
         )}

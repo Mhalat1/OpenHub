@@ -29,6 +29,7 @@ const Home = () => {
       setLoading(false);
     }
   };
+  console.log(user);
 
   useEffect(() => {
     fetchData();
@@ -38,8 +39,15 @@ const Home = () => {
     setIsModalOpen(!isModalOpen);
   };
 
+  if (loading) return <p>Loading user data...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   return (
     <div className={styles.profileContainer}>
+
+      
+    <strong>Token :</strong>
+    <p>{localStorage.getItem("token")}</p>
       <div className={styles.profileHeader}>
         <img src={userPhoto} alt="Profile photo" className={styles.profilePhoto} />
         <h1>Level 7</h1>
@@ -55,14 +63,22 @@ const Home = () => {
 
         <div className={styles.availabilitySection}>
           <div className={styles.dateRange}>
-            <div className={styles.inputDate}><span>Email: {user.email || "..."}</span></div>
+            <div className={styles.inputDate}>
+              <span>Email: {user.email || "..."}</span>
+            </div>
           </div>
           <div className={styles.dateRange}>
-            <div className={styles.inputDate}><span>Available from: {user.startAvailability || "..."}</span></div>
-            <div className={styles.inputDate}><span>To: {user.endAvailability || "..."}</span></div>
+            <div className={styles.inputDate}>
+              <span>Available from: {user.availabilityStart ? new Date(user.availabilityStart).toLocaleDateString() : "..."}</span>
+            </div>
+            <div className={styles.inputDate}>
+              <span>To: {user.availabilityEnd ? new Date(user.availabilityEnd).toLocaleDateString() : "..."}</span>
+            </div>
           </div>
           <div className={styles.dateRange}>
-            <div className={styles.inputDate}><span>Skills: {user.skills || "..."}</span></div>
+            <div className={styles.inputDate}>
+              <span>Skills: {user.skills || "..."}</span>
+            </div>
           </div>
         </div>
 
@@ -75,7 +91,6 @@ const Home = () => {
             <div className={styles.modalContent}>
               <h2>My Contributions</h2>
               <button className={styles.closeButton} onClick={toggleModal}>X</button>
-
               <button className={styles.actionButton} onClick={toggleModal}>
                 Add a new Contribution
               </button>
@@ -88,3 +103,7 @@ const Home = () => {
 };
 
 export default Home;
+
+
+
+

@@ -5,7 +5,13 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
 
+
+
+
+
 services:
+    App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
+
     App\Security\LoginSuccessHandler:
         public: true
 
