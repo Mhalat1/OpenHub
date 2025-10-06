@@ -46,7 +46,7 @@
 
 .infoSection h2 {
   margin: 5px 0;
-  color: #02143a;
+  color: #000000;
 }
 
 .infoSection h3 {
@@ -209,4 +209,90 @@
 
 .contributionItem {
   margin-bottom: 20px;
+}
+
+.skillButton {
+  margin: 0 6px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: #eee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.skillButton:hover {
+  background-color: #dcdcdc;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modalContent {
+  background: #fff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  padding: 30px 40px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  position: relative;
+  animation: slideUp 0.3s ease-in-out;
+}
+
+.modalTitle {
+  text-align: center;
+  color: #222;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.modalInfo h3 {
+  margin: 10px 0 5px;
+  color: #007bff;
+  font-size: 1.1rem;
+}
+
+.modalInfo p {
+  margin: 0 0 15px;
+  color: #333;
+  background: #f9f9f9;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.closeButton {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: #007bff;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

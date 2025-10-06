@@ -144,6 +144,9 @@ public function getUserSkills(Security $security): JsonResponse
         $data[] = [
             'id' => $skill->getId(),
             'nom' => $skill->getNom(),
+            'contextApprentissage' => $skill->getContextApprentissage(),
+            'duree' => $skill->getDuree()?->format('Y-m-d'),
+            'technoUtilisees' => $skill->getTechnoUtilisees(),
         ];
     }
 

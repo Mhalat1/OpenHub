@@ -11,10 +11,23 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState('public');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState(null);
+
+
+
+  const openSkillModal = (skill) => {
+    setSelectedSkill(skill);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedSkill(null);
+    setIsModalOpen(false);
+  };
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
-    
+
     try {
       const response = await fetch("http://127.0.0.1:8000/api/getConnectedUser", {
         method: "GET",
@@ -23,11 +36,11 @@ const Home = () => {
           "Authorization": `Bearer ${token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`User API error: ${response.status}`);
       }
-      
+
       const dataUser = await response.json();
       setUser(dataUser);
       console.log('User data:', dataUser);
@@ -44,11 +57,11 @@ const Home = () => {
           "Authorization": `Bearer ${token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Skills API error: ${response.status}`);
       }
-      
+
       const dataSkills = await response.json();
       setSkills(Array.isArray(dataSkills) ? dataSkills : []);
       console.log('Skills data:', dataSkills);
@@ -77,7 +90,7 @@ const Home = () => {
     <div className={styles.profileContainer}>
       <strong>Token:</strong>
       <p>{localStorage.getItem("token")}</p>
-      
+
       <div className={styles.profileHeader}>
         <img src={userPhoto} alt="Profile photo" className={styles.profilePhoto} />
         <h1>Level 7</h1>
@@ -97,7 +110,7 @@ const Home = () => {
               <span>Email: {user.email || "..."}</span>
             </div>
           </div>
-          
+
           <div className={styles.dateRange}>
             <div className={styles.inputDate}>
               <span>Available from: {user.availabilityStart ? new Date(user.availabilityStart).toLocaleDateString() : "..."}</span>
@@ -108,29 +121,57 @@ const Home = () => {
           </div>
 
           <div className={styles.dateRange}>
-            <span>All Skills: {skills.length > 0 ? skills.map(skill => skill.nom).join(', ') : 'No skills available'}</span>
+            <span>All Skills: </span>
+            {skills.length > 0 ? (
+              skills.map(skill => (
+                <button
+                  key={skill.id}
+                  className={styles.skillButton}
+                  onClick={() => openSkillModal(skill)}
+                >
+                  {skill.nom}
+                </button>
+              ))
+            ) : (
+              <span>No skills available</span>
+            )}
           </div>
-          
+
+
         </div>
 
-        <button className={styles.actionButton} onClick={toggleModal}>
-          Contributions Modal
-        </button>
+       {isModalOpen && selectedSkill && (
+  <div className={styles.modalOverlay}>
+    <div className={styles.modalContent}>
+      <button className={styles.closeButton} onClick={closeModal}>×</button>
 
-        {isModalOpen && (
-          <div className={styles.modal}>
-            <div className={styles.modalContent}>
-              <h2>My Contributions</h2>
-              <button className={styles.closeButton} onClick={toggleModal}>X</button>
-              <button className={styles.actionButton} onClick={toggleModal}>
-                Add a new Contribution
-              </button>
-            </div>
-          </div>
-        )}
+      <h2 className={styles.modalTitle}>{selectedSkill.nom}</h2>
+
+      <div className={styles.modalInfo}>
+        <div>
+          <h3>Contexte d’apprentissage</h3>
+          <p>{selectedSkill.contextApprentissage || "Non renseigné"}</p>
+        </div>
+
+        <div>
+          <h3>Technologies utilisées</h3>
+          <p>{selectedSkill.technoUtilisees || "Non renseigné"}</p>
+        </div>
+
+        <div>
+          <h3>Durée</h3>
+          <p>{selectedSkill.duree || "Non renseigné"}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
     </div>
   );
+
+
 };
 
 export default Home;
