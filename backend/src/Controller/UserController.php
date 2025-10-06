@@ -153,6 +153,53 @@ public function getUserSkills(Security $security): JsonResponse
     return new JsonResponse($data);
 }
 
+#[Route('/api/user/skills/add', name: 'api_user_skills_add', methods: ['POST'])]
+public function addUserSkill(
+    Request $request,
+    Security $security,
+    EntityManagerInterface $em
+): JsonResponse {
+    // 1. Vérifier que l'utilisateur est connecté
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
+    }
+
+    // 2. Récupérer les données envoyées
+    $data = json_decode($request->getContent(), true);
+    $skillId = $data['skill_id'] ?? null;
+
+    // 3. Vérifier qu'un skill_id est bien envoyé
+    if (!$skillId) {
+        return new JsonResponse(['message' => 'ID de compétence manquant'], 400);
+    }
+
+    // 4. Chercher la compétence dans la base
+    $skill = $em->getRepository(Skills::class)->find($skillId);
+    if (!$skill) {
+        return new JsonResponse(['message' => 'Compétence non trouvée'], 404);
+    }
+
+    // 5. Vérifier si l'utilisateur a déjà cette compétence
+    if ($user->getSkills()->contains($skill)) {
+        return new JsonResponse(['message' => 'Vous avez déjà cette compétence'], 400);
+    }
+
+    // 6. AJOUTER LA COMPÉTENCE À LA COLLECTION
+    $user->addSkill($skill);
+
+    // 7. Sauvegarder dans la base
+    $em->persist($user);
+    $em->flush();
+
+    // 8. Réponse de succès
+    return new JsonResponse([
+        'success' => true,
+        'message' => 'Compétence ajoutée avec succès',
+        'skill_name' => $skill->getNom()
+    ], 201);
+}
+
 
 }
 
