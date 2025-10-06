@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -44,23 +46,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $availabilityEnd = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $skills = null;
 
     #[ORM\ManyToOne(inversedBy: 'Contributors')]
     private ?Project $project = null;
 
-    // Getters and setters
-    public function getSkills(): ?string
+    /**
+     * @var Collection<int, Skills>
+     */
+    #[ORM\ManyToMany(targetEntity: Skills::class)]
+    private Collection $Skills;
+
+    public function __construct()
     {
-        return $this->skills;
+        $this->Skills = new ArrayCollection();
     }
 
-    public function setSkills(?string $skills): static
-    {
-        $this->skills = $skills;
-        return $this;
-    }
 
     public function getAvailabilityStart(): ?DateTimeImmutable
     {
@@ -182,4 +182,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
+    /**
+     * @return Collection<int, Skills>
+     */
+    public function getSkills(): Collection
+    {
+        return $this->Skills;
+    }
+
+    public function addSkill(Skills $skill): static
+    {
+        if (!$this->Skills->contains($skill)) {
+            $this->Skills->add($skill);
+        }
+
+        return $this;
+    }
+
+    public function removeSkill(Skills $skill): static
+    {
+        $this->Skills->removeElement($skill);
+
+        return $this;
+    }
+
+
 }

@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\Competences;
+use App\Entity\Skills;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Competences>
+ * @extends ServiceEntityRepository<Skills>
  */
-class CompetencesRepository extends ServiceEntityRepository
+class SkillsRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Competences::class);
+        parent::__construct($registry, Skills::class);
     }
 
     //    /**
-    //     * @return Competences[] Returns an array of Competences objects
+    //     * @return Skills[] Returns an array of Skills objects
     //     */
     //    public function findByExampleField($value): array
     //    {
@@ -31,7 +31,7 @@ class CompetencesRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?Competences
+    //    public function findOneBySomeField($value): ?Skills
     //    {
     //        return $this->createQueryBuilder('c')
     //            ->andWhere('c.exampleField = :val')

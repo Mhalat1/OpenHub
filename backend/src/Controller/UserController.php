@@ -10,6 +10,8 @@ use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\Response;
+use App\Entity\Skills;
 
 final class UserController extends AbstractController
 {
@@ -59,7 +61,6 @@ final class UserController extends AbstractController
         $user->setRoles(['ROLE_USER']);
         $user->setAvailabilityStart($availabilityStart ? new \DateTimeImmutable($availabilityStart) : null);
         $user->setAvailabilityEnd($availabilityEnd ? new \DateTimeImmutable($availabilityEnd) : null);
-        $user->setSkills($skills);
 
         $this->manager->persist($user);
         $this->manager->flush();
@@ -123,7 +124,33 @@ final class UserController extends AbstractController
             'lastName' => $user->getLastName(),
             'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
             'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
-            'skills' => $user->getSkills(),
         ]);
     }
+#[Route('/api/user/skills', name: 'api_user_skills', methods: ['GET'])]
+public function getUserSkills(Security $security): JsonResponse
+{
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
+
+    // Récupération directe des compétences via la relation ManyToMany
+    $skills = $user->getSkills();
+
+    // Conversion en tableau simple
+    $data = [];
+    foreach ($skills as $skill) {
+        $data[] = [
+            'id' => $skill->getId(),
+            'nom' => $skill->getNom(),
+        ];
+    }
+
+    return new JsonResponse($data);
 }
+
+
+}
+
+

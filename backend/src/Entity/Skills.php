@@ -2,12 +2,14 @@
 
 namespace App\Entity;
 
-use App\Repository\CompetencesRepository;
+use App\Repository\SkillsRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: CompetencesRepository::class)]
-class Competences
+#[ORM\Entity(repositoryClass: SkillsRepository::class)]
+class Skills
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -25,6 +27,7 @@ class Competences
 
     #[ORM\Column(length: 255)]
     private ?string $TechnoUtilisees = null;
+
 
     public function getId(): ?int
     {
@@ -78,4 +81,6 @@ class Competences
 
         return $this;
     }
+
+
 }

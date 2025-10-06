@@ -34,7 +34,7 @@ class Project
     /**
      * @var Collection<int, User>
      */
-    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'project')]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'project')]
     private Collection $Contributors;
 
     public function __construct()

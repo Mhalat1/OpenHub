@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 
 const Home = () => {
   const [user, setUser] = useState({});
+  const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('public');
@@ -13,6 +14,7 @@ const Home = () => {
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
+    
     try {
       const response = await fetch("http://127.0.0.1:8000/api/getConnectedUser", {
         method: "GET",
@@ -21,15 +23,43 @@ const Home = () => {
           "Authorization": `Bearer ${token}`,
         },
       });
-      const data = await response.json();
-      setUser(data);
+      
+      if (!response.ok) {
+        throw new Error(`User API error: ${response.status}`);
+      }
+      
+      const dataUser = await response.json();
+      setUser(dataUser);
+      console.log('User data:', dataUser);
     } catch (error) {
+      console.error('Error fetching user:', error);
       setError(error.message);
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/user/skills", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Skills API error: ${response.status}`);
+      }
+      
+      const dataSkills = await response.json();
+      setSkills(Array.isArray(dataSkills) ? dataSkills : []);
+      console.log('Skills data:', dataSkills);
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+      // Don't set error here to avoid blocking the UI if skills fail
+      // Just log it and keep skills as empty array
     } finally {
       setLoading(false);
     }
   };
-  console.log(user);
 
   useEffect(() => {
     fetchData();
@@ -39,15 +69,15 @@ const Home = () => {
     setIsModalOpen(!isModalOpen);
   };
 
+
   if (loading) return <p>Loading user data...</p>;
   if (error) return <p>Error: {error}</p>;
 
   return (
     <div className={styles.profileContainer}>
-
+      <strong>Token:</strong>
+      <p>{localStorage.getItem("token")}</p>
       
-    <strong>Token :</strong>
-    <p>{localStorage.getItem("token")}</p>
       <div className={styles.profileHeader}>
         <img src={userPhoto} alt="Profile photo" className={styles.profilePhoto} />
         <h1>Level 7</h1>
@@ -67,6 +97,7 @@ const Home = () => {
               <span>Email: {user.email || "..."}</span>
             </div>
           </div>
+          
           <div className={styles.dateRange}>
             <div className={styles.inputDate}>
               <span>Available from: {user.availabilityStart ? new Date(user.availabilityStart).toLocaleDateString() : "..."}</span>
@@ -75,11 +106,11 @@ const Home = () => {
               <span>To: {user.availabilityEnd ? new Date(user.availabilityEnd).toLocaleDateString() : "..."}</span>
             </div>
           </div>
+
           <div className={styles.dateRange}>
-            <div className={styles.inputDate}>
-              <span>Skills: {user.skills || "..."}</span>
-            </div>
+            <span>All Skills: {skills.length > 0 ? skills.map(skill => skill.nom).join(', ') : 'No skills available'}</span>
           </div>
+          
         </div>
 
         <button className={styles.actionButton} onClick={toggleModal}>
@@ -103,7 +134,3 @@ const Home = () => {
 };
 
 export default Home;
-
-
-
-
