@@ -153,6 +153,35 @@ public function getUserSkills(Security $security): JsonResponse
     return new JsonResponse($data);
 }
 
+
+
+#[Route('/api/skills', name: 'api_skills', methods: ['GET'])]
+public function getAllSkills(Security $security): JsonResponse
+{
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
+
+    $Allskills = $this->manager->getRepository(Skills::class)->findAll();
+
+    // Conversion en tableau simple
+    $data = [];
+    foreach ($Allskills as $skill) {
+        $data[] = [
+            'id' => $skill->getId(),
+            'nom' => $skill->getNom(),
+            'contextApprentissage' => $skill->getContextApprentissage(),
+            'duree' => $skill->getDuree()?->format('Y-m-d'),
+            'technoUtilisees' => $skill->getTechnoUtilisees(),
+        ];
+    }
+
+    return new JsonResponse($data);
+}
+
+
 #[Route('/api/user/skills/add', name: 'api_user_skills_add', methods: ['POST'])]
 public function addUserSkill(
     Request $request,

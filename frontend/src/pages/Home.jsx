@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 const Home = () => {
   const [user, setUser] = useState({});
   const [skills, setSkills] = useState([]);
+  const [availableSkills, setAvailableSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,10 +29,11 @@ const Home = () => {
       setMessage('❌ please enter a skill ID');
       return;
     }
-    
+
     try {
       setMessage(' ⏳ Adding skill...');
-      
+      const token = localStorage.getItem("token");
+
       const response = await fetch("http://127.0.0.1:8000/api/user/skills/add", {
         method: "POST",
         headers: {
@@ -59,10 +61,35 @@ const Home = () => {
     }
   };
 
+
+  const fetchAvailableSkills = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("http://127.0.0.1:8000/api/skills", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur API compétences: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAvailableSkills(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des compétences:", error);
+    }
+  };
+
+
   // Fonction pour récupérer les compétences
   const fetchSkills = async () => {
     const token = localStorage.getItem("token");
-    
+
     try {
       const response = await fetch("http://127.0.0.1:8000/api/user/skills", {
         method: "GET",
@@ -116,7 +143,10 @@ const Home = () => {
 
   useEffect(() => {
     fetchData();
+    fetchAvailableSkills(); // 👈 Ajout ici
   }, []);
+
+
 
   if (loading) return <p>Loading user data...</p>;
   if (error) return <p>Error: {error}</p>;
@@ -152,7 +182,7 @@ const Home = () => {
             </div>
           </div>
 
-        
+
 
           <div className={styles.dateRange}>
             <span>Mes Compétences ({skills.length}) : </span>
@@ -170,54 +200,61 @@ const Home = () => {
               <span>Aucune compétence</span>
             )}
           </div>
-
-
-
-
-
-
-
-
-
-
-          
         </div>
 
-        <div className={styles.dateRange}>
-            <h3>Add Skill</h3>
-            {message && (
-              <div className={message.includes('✅') ? styles.successMessage : styles.errorMessage}>
-                {message}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px' }}>
-              <input
-                type="number"
-                placeholder="ID de la compétence (ex: 4)"
-                value={newSkillId}
-                onChange={(e) => setNewSkillId(e.target.value)}
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  width: '350px'
-                }}
-              />
-              <button
-                onClick={addSkill}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                + Add
-              </button>
-            </div>
-          </div>
+
+
+
+<div className={styles.addSkillContainer}>
+  <div className={styles.addSkillCard}>
+    <h2 className={styles.addSkillTitle}>Ajouter une compétence</h2>
+
+    <div className={styles.addSkillForm}>
+      <div className={styles.formGroup}>
+        <label htmlFor="skillSelect" className={styles.formLabel}>
+          Sélectionnez une compétence
+        </label>
+        <select
+          id="skillSelect"
+          value={newSkillId}
+          onChange={(e) => setNewSkillId(e.target.value)}
+          className={styles.formSelect}
+        >
+          <option value="">-- Choisir une compétence --</option>
+          {availableSkills.map(skill => (
+            <option key={skill.id} value={skill.id}>
+              {skill.nom}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        onClick={addSkill}
+        className={styles.btnPrimary}
+      >
+        Add Skill
+      </button>
+
+      {message && (
+        <div
+          className={`${styles.messageBox} ${
+            message.includes("✅")
+              ? styles.success
+              : message.includes("⏳")
+                ? styles.info
+                : styles.error
+          }`}
+        >
+          {message}
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+
+
 
         {/* Modal des détails de compétence */}
         {isModalOpen && selectedSkill && (
