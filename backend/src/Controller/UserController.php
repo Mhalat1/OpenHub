@@ -230,6 +230,60 @@ public function addUserSkill(
 }
 
 
+
+#[Route('/api/user/availability', name: 'api_user_availability_change', methods: ['POST'])]
+public function changeAvailability(
+    Request $request,
+    Security $security,
+    EntityManagerInterface $em
+): JsonResponse {
+    // 1. Vérifier que l'utilisateur est connecté
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
+    }
+
+    // 2. Récupérer les données envoyées
+    $data = json_decode($request->getContent(), true);
+    $availabilityStart = $data['availabilityStart'] ?? null;
+    $availabilityEnd = $data['availabilityEnd'] ?? null;
+
+    // 3. Vérifier qu'un availability est bien envoyé
+    if (!$availabilityStart || !$availabilityEnd) {
+        return new JsonResponse(['message' => 'availability not sended'], 400);
+    }
+
+    // 4. Convertir les chaînes en DateTimeImmutable
+    try {
+        $startDate = new \DateTimeImmutable($availabilityStart);
+    } catch (\Exception $e) {
+        return new JsonResponse(['message' => 'Invalid availabilityStart date format'], 400);
+    }
+
+    try {
+        $endDate = new \DateTimeImmutable($availabilityEnd);
+    } catch (\Exception $e) {
+        return new JsonResponse(['message' => 'Invalid availabilityEnd date format'], 400);
+    }
+
+    // 5. Mettre à jour l'utilisateur
+    $user->setAvailabilityStart($startDate);
+    $user->setAvailabilityEnd($endDate);
+
+    // 6. Sauvegarder dans la base
+    $em->persist($user);
+    $em->flush();
+
+    // 7. Réponse de succès
+    return new JsonResponse([
+        'success' => true,
+        'message' => 'Availability updated successfully',
+        'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
+        'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d')
+    ], 200);
+}
+
+
 }
 
 

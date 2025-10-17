@@ -13,6 +13,9 @@ const Home = () => {
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [newSkillId, setNewSkillId] = useState('');
   const [message, setMessage] = useState('');
+  const [availabilityStart, setAvailabilityStart] = useState('');
+  const [availabilityEnd, setAvailabilityEnd] = useState('');
+
 
   const openSkillModal = (skill) => {
     setSelectedSkill(skill);
@@ -24,7 +27,53 @@ const Home = () => {
     setIsModalOpen(false);
   };
 
-  const addSkill = async () => {
+
+const addAvailability = async () => {
+  if (!availabilityStart) {
+    setMessage('❌ Please enter start date');
+    return;
+  }
+  if (!availabilityEnd) {
+    setMessage('❌ Please enter end date');
+    return;
+  }
+
+  try {
+    setMessage('⏳ Updating availability...');
+    const token = localStorage.getItem("token");
+
+    const response = await fetch("http://127.0.0.1:8000/api/user/availability", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        availabilityStart,
+        availabilityEnd,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      setMessage("✅ Availability updated successfully!");
+      setAvailabilityStart('');
+      setAvailabilityEnd('');
+      await fetchData(); // recharge user info
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+  } catch (error) {
+    console.error("Error adding availability:", error);
+    setMessage("❌ Network error while updating availability");
+  }
+};
+
+
+
+
+const addSkill = async () => {
     if (!newSkillId) {
       setMessage('❌ please enter a skill ID');
       return;
@@ -234,6 +283,63 @@ const Home = () => {
         className={styles.btnPrimary}
       >
         Add Skill
+      </button>
+
+      {message && (
+        <div
+          className={`${styles.messageBox} ${
+            message.includes("✅")
+              ? styles.success
+              : message.includes("⏳")
+                ? styles.info
+                : styles.error
+          }`}
+        >
+          {message}
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+
+
+<div className={styles.addSkillContainer}>
+  <div className={styles.addSkillCard}>
+    <h2 className={styles.addSkillTitle}>Modifier les dates de disponibilitees</h2>
+
+    <div className={styles.addSkillForm}>
+      <div className={styles.formGroup}>
+        <label htmlFor="availabilityStart" className={styles.formLabel}>
+          Date de debut de disponibilitee
+        </label>
+        <input
+          type="date"
+          id="availabilityStart"
+          value={availabilityStart|| ""}
+          onChange={(e) => setAvailabilityStart(e.target.value)}
+          className={styles.formInput}
+        />
+
+      </div>
+      <div className={styles.formGroup}>
+        <label htmlFor="availabilityEnd" className={styles.formLabel}>
+          Date de fin de disponibilitee
+        </label>
+        <input
+          type="date"
+          id="availabilityEnd"
+          value={availabilityEnd|| ""}
+          onChange={(e) => setAvailabilityEnd(e.target.value)}
+          className={styles.formInput}
+        />
+      </div>
+
+      <button
+        onClick={addAvailability}
+        className={styles.btnPrimary}
+      >
+        Add New Availability Dates
       </button>
 
       {message && (
