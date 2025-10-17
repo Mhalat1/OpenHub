@@ -31,16 +31,6 @@ class Project
     #[ORM\Column(length: 255)]
     private ?DateTimeImmutable $endDate = null;
 
-    /**
-     * @var Collection<int, User>
-     */
-    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'project')]
-    private Collection $Contributors;
-
-    public function __construct()
-    {
-        $this->Contributors = new ArrayCollection();
-    }
 
     // ---------------- Getters and Setters ---------------- //
 
@@ -110,33 +100,7 @@ class Project
         return $this;
     }
 
-    /**
-     * @return Collection<int, User>
-     */
-    public function getContributors(): Collection
-    {
-        return $this->Contributors;
-    }
 
-    public function addContributor(User $contributor): static
-    {
-        if (!$this->Contributors->contains($contributor)) {
-            $this->Contributors->add($contributor);
-            $contributor->setProject($this);
-        }
 
-        return $this;
-    }
 
-    public function removeContributor(User $contributor): static
-    {
-        if ($this->Contributors->removeElement($contributor)) {
-            // set the owning side to null (unless already changed)
-            if ($contributor->getProject() === $this) {
-                $contributor->setProject(null);
-            }
-        }
-
-        return $this;
-    }
 }

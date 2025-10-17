@@ -126,6 +126,8 @@ final class UserController extends AbstractController
             'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
         ]);
     }
+
+    
 #[Route('/api/user/skills', name: 'api_user_skills', methods: ['GET'])]
 public function getUserSkills(Security $security): JsonResponse
 {
@@ -143,7 +145,7 @@ public function getUserSkills(Security $security): JsonResponse
     foreach ($skills as $skill) {
         $data[] = [
             'id' => $skill->getId(),
-            'nom' => $skill->getNom(),
+            'name' => $skill->getName(),
             'contextApprentissage' => $skill->getContextApprentissage(),
             'duree' => $skill->getDuree()?->format('Y-m-d'),
             'technoUtilisees' => $skill->getTechnoUtilisees(),
@@ -171,7 +173,7 @@ public function getAllSkills(Security $security): JsonResponse
     foreach ($Allskills as $skill) {
         $data[] = [
             'id' => $skill->getId(),
-            'nom' => $skill->getNom(),
+            'name' => $skill->getName(),
             'contextApprentissage' => $skill->getContextApprentissage(),
             'duree' => $skill->getDuree()?->format('Y-m-d'),
             'technoUtilisees' => $skill->getTechnoUtilisees(),
@@ -225,7 +227,7 @@ public function addUserSkill(
     return new JsonResponse([
         'success' => true,
         'message' => 'Compétence ajoutée avec succès',
-        'skill_name' => $skill->getNom()
+        'skill_name' => $skill->getName()
     ], 201);
 }
 

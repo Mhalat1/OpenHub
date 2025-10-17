@@ -17,7 +17,7 @@ class Skills
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $Nom = null;
+    private ?string $Name = null;
 
     #[ORM\Column(length: 50)]
     private ?string $ContextApprentissage = null;
@@ -34,14 +34,14 @@ class Skills
         return $this->id;
     }
 
-    public function getNom(): ?string
+    public function getName(): ?string
     {
-        return $this->Nom;
+        return $this->Name;
     }
 
-    public function setNom(string $Nom): static
+    public function setName(string $Name): static
     {
-        $this->Nom = $Nom;
+        $this->Name = $Name;
 
         return $this;
     }

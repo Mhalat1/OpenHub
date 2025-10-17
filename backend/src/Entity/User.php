@@ -47,8 +47,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?DateTimeImmutable $availabilityEnd = null;
 
 
-    #[ORM\ManyToOne(inversedBy: 'Contributors')]
-    private ?Project $project = null;
 
     /**
      * @var Collection<int, Skills>
@@ -56,9 +54,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Skills::class)]
     private Collection $Skills;
 
+    /**
+     * @var Collection<int, project>
+     */
+    #[ORM\ManyToMany(targetEntity: project::class, inversedBy: 'users')]
+    private Collection $projects;
+
     public function __construct()
     {
         $this->Skills = new ArrayCollection();
+        $this->projects = new ArrayCollection();
     }
 
 
@@ -171,17 +176,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // Clear temporary sensitive data if any, e.g. $this->plainPassword = null;
     }
 
-    public function getProject(): ?Project
-    {
-        return $this->project;
-    }
-
-    public function setProject(?Project $project): static
-    {
-        $this->project = $project;
-
-        return $this;
-    }
 
     /**
      * @return Collection<int, Skills>
@@ -203,6 +197,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeSkill(Skills $skill): static
     {
         $this->Skills->removeElement($skill);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, project>
+     */
+    public function getProjects(): Collection
+    {
+        return $this->projects;
+    }
+
+    public function addProjects(project $userProject): static
+    {
+        if (!$this->projects->contains($userProject)) {
+            $this->projects->add($userProject);
+        }
+
+        return $this;
+    }
+
+    public function removeUserProject(project $userProject): static
+    {
+        $this->projects->removeElement($userProject);
 
         return $this;
     }
