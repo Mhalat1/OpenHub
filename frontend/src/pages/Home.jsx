@@ -16,6 +16,7 @@ const Home = () => {
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [SelectedProject, setSelectedProject] = useState(null);
   const [newSkillId, setNewSkillId] = useState('');
+  const [newProjectId, setNewProjectId] = useState('');
   const [message, setMessage] = useState('');
   const [availabilityStart, setAvailabilityStart] = useState('');
   const [availabilityEnd, setAvailabilityEnd] = useState('');
@@ -34,6 +35,9 @@ const Home = () => {
     setSelectedSkill(null);
     setIsModalOpen(false);
   };
+
+
+
 
 
   const addAvailability = async () => {
@@ -79,6 +83,41 @@ const Home = () => {
   };
 
 
+  const addProject = async () => {
+    if (!newProjectId) {
+      setMessage('❌ please enter a project ID');
+      return;
+    }
+    try {
+      setMessage(' ⏳ Adding project...');
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("http://127.0.0.1:8000/api/add/project", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          project_id: parseInt(newProjectId)
+        }),
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage(`✅ ${result.project_name} added successfully`);
+        setNewProjectId('');
+        // Recharger les compétences
+        await fetchUserProjects();
+
+      } else {
+        setMessage(`❌ ${result.message}`);
+      }
+    } catch (error) {
+      setMessage('❌ Erreur réseau lors de l\'ajout');
+      console.error('Error adding project:', error);
+    }
+  };
 
 
   const addSkill = async () => {
@@ -251,6 +290,7 @@ const Home = () => {
     fetchAvailableSkills();
     fetchAllProjects();
     fetchUserProjects();
+    addProject();
 
   }, []);
 
@@ -273,7 +313,6 @@ const Home = () => {
 
         <h2>{user.lastName || "Last name"}</h2>
         <h2>{user.firstName || "First name"}</h2>
-        <h2>Level 7</h2>
       </div>
 
       <div className={styles.profileContent}>
@@ -330,6 +369,18 @@ const Home = () => {
           </div>
         </div>
 
+        {message && (
+          <div
+            className={`${styles.messageBox} ${message.includes("✅")
+              ? styles.success
+              : message.includes("⏳")
+                ? styles.info
+                : styles.error
+              }`}
+          >
+            {message}
+          </div>
+        )}
 
 
         <div className={styles.divider}>
@@ -364,22 +415,10 @@ const Home = () => {
                   Add Skill
                 </button>
 
-                {message && (
-                  <div
-                    className={`${styles.messageBox} ${message.includes("✅")
-                      ? styles.success
-                      : message.includes("⏳")
-                        ? styles.info
-                        : styles.error
-                      }`}
-                  >
-                    {message}
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
-          <div className={styles.divider} />
 
 
 
@@ -421,45 +460,45 @@ const Home = () => {
                   Add New Availability Dates
                 </button>
 
-                {message && (
-                  <div
-                    className={`${styles.messageBox} ${message.includes("✅")
-                      ? styles.success
-                      : message.includes("⏳")
-                        ? styles.info
-                        : styles.error
-                      }`}
-                  >
-                    {message}
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
-          
+
 
           <div className={styles.addSkillContainer}>
             <div className={styles.addSkillCard}>
               <h2 className={styles.addSkillTitle}>Contribuer a d'autres Projets ({projects.length})</h2>
-            <div className={styles.projectsSection}>
-              <h2>All Projects ({projects.length})</h2>
-              {projects.length > 0 ? (
-                projects.map(project => (
-                  <div key={project.id} className={styles.projectItem}>
-                    <h3>{project.name}</h3>
-                    <p>{project.description}</p>
-                    <p><strong>Skills:</strong> {project.requiredSkills}</p>
-                    <p><strong>Start Date:</strong> {new Date(project.startDate).toLocaleDateString()}</p>
-                    <p><strong>End Date:</strong> {new Date(project.endDate).toLocaleDateString()}</p>
-                  </div>
-                ))
-              ) : (
-                <span>No projects available</span>
-              )}
+              <div className={styles.projectsSection}>
+                <h2>All Projects ({projects.length})</h2>
+
+                <select
+                  id="skillSelect"
+                  value={newProjectId}
+                  onChange={(e) => setNewProjectId(e.target.value)}
+                  className={styles.formSelect}
+                >
+                  <option value="">-- Choose a project --</option>
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={addProject}
+                  className={styles.btnPrimary}
+                >
+                  Add Project
+                </button>
+
+
+
+              </div>
             </div>
-            </div>
-          
-</div>
+
+          </div>
 
 
 
@@ -484,7 +523,7 @@ const Home = () => {
                     <p>From {SelectedProject.startDate ? new Date(SelectedProject.startDate).toLocaleDateString() : "N/A"} to {SelectedProject.endDate ? new Date(SelectedProject.endDate).toLocaleDateString() : "N/A"}</p>
                   </div>
 
-                  
+
                 </div>
               </div>
             </div>

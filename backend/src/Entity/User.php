@@ -204,12 +204,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @return Collection<int, project>
      */
-    public function getProjects(): Collection
+    public function getProject(): Collection
     {
         return $this->projects;
     }
 
-    public function addProjects(project $userProject): static
+    public function addProject(project $userProject): static
     {
         if (!$this->projects->contains($userProject)) {
             $this->projects->add($userProject);
