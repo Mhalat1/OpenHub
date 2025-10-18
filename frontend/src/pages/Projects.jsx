@@ -11,7 +11,7 @@ const Projects = () => {
   const fetchProjects = async () => {
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/projects", {
+      const response = await fetch("http://127.0.0.1:8000/api/allprojects", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

@@ -21,6 +21,7 @@
   border-radius: 16px;
   color: white;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      margin: 50px 0px 0px 0px;
 }
 
 .profilePhoto {
@@ -107,7 +108,7 @@
   display: flex;
   justify-content: center;
   width: 100%;
-  padding: 2rem;
+    padding: 2rem 1rem;
 }
 
 .addSkillCard {
@@ -276,6 +277,12 @@
 .closeButton:hover {
   color: #2563eb;
 }
+
+.divider {
+  display: flex;
+  background: #e5e7eb;
+  margin: 30px 0;
+} 
 
 /* ANIMATIONS */
 @keyframes fadeIn {
