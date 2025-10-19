@@ -84,12 +84,7 @@ const Home = () => {
 
 
   const addProject = async () => {
-    if (!newProjectId) {
-      setMessage('❌ please enter a project ID');
-      return;
-    }
     try {
-      setMessage(' ⏳ Adding project...');
       const token = localStorage.getItem("token");
 
       const response = await fetch("http://127.0.0.1:8000/api/add/project", {
@@ -110,8 +105,6 @@ const Home = () => {
         // Recharger les compétences
         await fetchUserProjects();
 
-      } else {
-        setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
       setMessage('❌ Erreur réseau lors de l\'ajout');
