@@ -132,7 +132,6 @@ const Profil = () => {
       {/* Header with search bar */}
       <div className={styles.header}>
         <div className={styles.searchContainer}>
-          <div className={styles.searchIcon}>🔍</div>
           <input
             type="text"
             placeholder="Search users"
@@ -143,23 +142,6 @@ const Profil = () => {
         </div>
       </div>
 
-      {/* Navigation tabs */}
-      <div className={styles.navTabs}>
-        <div className={styles.navButtons}>
-          <button 
-            className={`${styles.navButton} ${activeTab === 'projects' ? styles.active : ''}`}
-            onClick={() => setActiveTab('projects')}
-          >
-            Projects
-          </button>
-          <button 
-            className={`${styles.navButton} ${activeTab === 'users' ? styles.active : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            Users
-          </button>
-        </div>
-      </div>
 
       {/* Sub-navigation */}
       <div className={styles.subNav}>

@@ -1,6 +1,6 @@
 /* Container général */
 .profileContainer {
-  background: #f4f6fa;
+  background: #273858;
   min-height: 100vh;
   padding: 80px 40px;
   font-family: "Inter", sans-serif;
@@ -16,7 +16,7 @@
   justify-content: space-between;
   width: 100%;
   max-width: 1000px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #000000, #1d4ed8);
   padding: 20px 40px;
   border-radius: 16px;
   color: white;
@@ -91,7 +91,7 @@
   padding: 6px 14px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #10b981, #047857);
+  background: linear-gradient(135deg, #000000, #047857);
   color: white;
   font-weight: 500;
   cursor: pointer;
@@ -174,7 +174,7 @@
   font-weight: 600;
   font-size: 1rem;
   color: white;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #000000, #1d4ed8);
   cursor: pointer;
   border: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease;

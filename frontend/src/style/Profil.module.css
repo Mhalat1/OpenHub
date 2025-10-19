@@ -2,7 +2,7 @@
 .profileContainer {
   width: 100%;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #273858;
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -10,19 +10,21 @@
 
 /* Header with search bar */
 .header {
-  background: linear-gradient(135deg, #5b9bd5, #4472c4);
-  padding: 100px 50px 80px 50px;
+  padding: 75px 0px 0px 0px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .searchContainer {
+      background: linear-gradient(135deg, #000000, #1d4ed8);
   position: relative;
-  max-width: 1000px;
-  margin: 0 auto;
+  
+    padding: 50px;
+    margin: 20px 50px;
 }
 
 .searchInput {
+  
   width: 100%;
   padding: 20px 25px 20px 60px;
   border: none;
@@ -51,7 +53,7 @@
 
 /* Navigation tabs */
 .navTabs {
-  background: linear-gradient(135deg, #5b9bd5, #4472c4);
+  background: linear-gradient(135deg, #000000, #4472c4);
   padding: 0 50px;
   margin-top: -50px;
   display: flex;
@@ -102,12 +104,11 @@
 
 /* Sub-navigation */
 .subNav {
-  background: white;
+  background: #273858;
   display: flex;
   justify-content: flex-start;
   gap: 80px;
   padding: 0 50px;
-  border-bottom: 2px solid #f0f0f0;
 }
 
 .subNavButton {
@@ -143,7 +144,7 @@
 
 /* Users grid */
 .usersGrid {
-  background: white;
+  background: #273858;
   padding: 30px 50px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -177,7 +178,7 @@
   overflow: hidden;
   margin-right: 25px;
   flex-shrink: 0;
-  border: 3px solid white;
+  border: 3px solid rgb(0, 0, 0);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -323,9 +324,7 @@
 
 .modalHeader {
   text-align: center;
-  margin-bottom: 24px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #eee;
 }
 
 .modalAvatar {
