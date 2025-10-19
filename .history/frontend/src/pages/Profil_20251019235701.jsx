@@ -282,7 +282,7 @@ const Profil = () => {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>🛠️ Skills:</span>
                     <ul className={styles.skillList}>
-                      {skills.map((skill) => (
+                      {skills.map((skills) => (
                         <li key={skill.id} className={styles.skillItem}>
                           {skill.name}
                         </li>

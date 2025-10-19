@@ -284,7 +284,7 @@ const Profil = () => {
                     <ul className={styles.skillList}>
                       {skills.map((skill) => (
                         <li key={skill.id} className={styles.skillItem}>
-                          {skill.name}
+                          {skill}
                         </li>
                       ))}
                     </ul>

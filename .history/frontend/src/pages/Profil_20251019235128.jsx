@@ -10,7 +10,6 @@ const Profil = () => {
   const [selectedUser, setSelectedUser] = useState(null); // User for modal
   const [skills, setSkills] = useState([]); // Store skills
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
-  const [userProjects, setUserProjects] = useState([]); // Store user projects
 
   // Fetch users from API
   const fetchData = async () => {
@@ -94,7 +93,6 @@ const Profil = () => {
   useEffect(() => {
     fetchData();
     fetchSkills();
-    fetchUserProjects();
   }, []);
 
 
@@ -263,33 +261,15 @@ const Profil = () => {
                     <span className={styles.infoValue}>{selectedUser.availabilityEnd}</span>
                   </div>
                 )}
-              
-
-                {userProjects.length > 0 && (
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>📁 Projects:</span>
-                    <ul className={styles.projectList}>
-                      {userProjects.map(project => (
-                        <li key={project.id} className={styles.projectItem}>
-                          {project.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {skills.length > 0 && (
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>🛠️ Skills:</span>
-                    <ul className={styles.skillList}>
-                      {skills.map((skill) => (
-                        <li key={skill.id} className={styles.skillItem}>
-                          {skill.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                
+                {
+                  skills.map(skill => (
+                    <div key={skill.id} className={styles.infoRow}>
+                      <span className={styles.infoLabel}>🛠️ Skill:</span>
+                      <span className={styles.infoValue}>{skill.name}</span>
+                    </div>
+                  ))
+                }
                 
               </div>
 

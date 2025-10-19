@@ -277,19 +277,6 @@ const Profil = () => {
                     </ul>
                   </div>
                 )}
-
-                {skills.length > 0 && (
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>🛠️ Skills:</span>
-                    <ul className={styles.skillList}>
-                      {skills.map((skill) => (
-                        <li key={skill.id} className={styles.skillItem}>
-                          {skill.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
                 
               </div>
 
