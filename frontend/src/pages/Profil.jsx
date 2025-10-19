@@ -7,6 +7,9 @@ const Profil = () => {
   const [error, setError] = useState(null); // Error state
   const [activeTab, setActiveTab] = useState('public'); // Active tab
   const [searchTerm, setSearchTerm] = useState(''); // Search input
+  const [selectedUser, setSelectedUser] = useState(null); // User for modal
+  const [skills, setSkills] = useState([]); // Store skills
+  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
 
   // Fetch users from API
   const fetchData = async () => {
@@ -20,7 +23,13 @@ const Profil = () => {
         },
       });
       const data = await response.json();
-      setUsers(data);
+      
+      // Dédoublonner les utilisateurs par ID
+      const uniqueUsers = Array.from(
+        new Map(data.map(user => [user.id, user])).values()
+      );
+      
+      setUsers(uniqueUsers);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -28,9 +37,42 @@ const Profil = () => {
     }
   };
 
+
+
+
+  
+  const fetchSkills = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/user/skills", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Skills API error: ${response.status}`);
+      }
+
+      const dataSkills = await response.json();
+      setSkills(Array.isArray(dataSkills) ? dataSkills : []);
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+    }
+  };
+
+
+
+
   useEffect(() => {
     fetchData();
+    fetchSkills();
   }, []);
+
+
 
   // Filter users by name or email
   const filteredUsers = users.filter(user =>
@@ -38,8 +80,21 @@ const Profil = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Open modal with user data
+  const handleOpenModal = (user) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+  };
+
   // Handle add user action
-  const handleAddUser = (userId) => {
+  const handleAddUser = (userId, e) => {
+    e.stopPropagation(); // Prevent modal from opening
     console.log(`Add user ${userId}`);
     // Add user logic here
   };
@@ -105,24 +160,29 @@ const Profil = () => {
 
       {/* Users grid */}
       <div className={styles.usersGrid}>
-        {filteredUsers.map((user, index) => (
-          <div key={user.id || index} className={styles.userCard}>
+        {filteredUsers.map((user) => (
+          <div 
+            key={user.id} 
+            className={styles.userCard}
+            onClick={() => handleOpenModal(user)}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={styles.userAvatar}>
               <img 
-                src={user.avatar || `https://i.pravatar.cc/80?img=${index + 1}`} 
+                src={user.avatar || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`} 
                 alt={`${user.firstName} ${user.lastName}`}
                 onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`;
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=4F46E5`;
                 }}
               />
             </div>
             <div className={styles.userInfo}>
               <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
-              <p className={styles.userLevel}>Level {user.level || Math.floor(Math.random() * 50) + 1}</p>
             </div>
             <button 
               className={styles.addButton}
-              onClick={() => handleAddUser(user.id)}
+              onClick={(e) => handleAddUser(user.id, e)}
               aria-label={`Add ${user.firstName} ${user.lastName}`}
             >
               ✕
@@ -134,6 +194,81 @@ const Profil = () => {
       {filteredUsers.length === 0 && !loading && (
         <div className={styles.noResults}>
           No users found
+        </div>
+      )}
+
+      {/* Modal */}
+      {isModalOpen && selectedUser && skills && (
+        <div className={styles.modalOverlay} onClick={handleCloseModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.modalClose} onClick={handleCloseModal}>
+              ✕
+            </button>
+            
+            <div className={styles.modalHeader}>
+              <div className={styles.modalAvatar}>
+                <img 
+                  src={selectedUser.avatar || `https://ui-avatars.com/api/?name=${selectedUser.firstName}+${selectedUser.lastName}&background=random&size=120`} 
+                  alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                />
+              </div>
+              <h2 className={styles.modalTitle}>
+                {selectedUser.firstName} {selectedUser.lastName}
+              </h2>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.modalInfo}>
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>📧 Email:</span>
+                  <span className={styles.infoValue}>{selectedUser.email}</span>
+                </div>
+                
+
+                {selectedUser.availabilityStart && (
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>📱 availabilityStart:</span>
+                    <span className={styles.infoValue}>{selectedUser.availabilityStart}</span>
+                  </div>
+                )}
+                
+                {selectedUser.availabilityEnd && (
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>💬 availabilityEnd:</span>
+                    <span className={styles.infoValue}>{selectedUser.availabilityEnd}</span>
+                  </div>
+                )}
+                
+                {
+                  skills.map(skill => (
+                    <div key={skill.id} className={styles.infoRow}>
+                      <span className={styles.infoLabel}>🛠️ Skill:</span>
+                      <span className={styles.infoValue}>{skill.name}</span>
+                    </div>
+                  ))
+                }
+                
+              </div>
+
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.modalButton}
+                  onClick={() => {
+                    handleAddUser(selectedUser.id, { stopPropagation: () => {} });
+                    handleCloseModal();
+                  }}
+                >
+                  Add Friend
+                </button>
+                <button 
+                  className={styles.modalButtonSecondary}
+                  onClick={handleCloseModal}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

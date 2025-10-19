@@ -92,7 +92,6 @@ final class UserController extends AbstractController
             'lastName' => $user->getLastName(),
             'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
             'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
-            'skills' => $user->getSkills(),
         ], $users);
 
         return new JsonResponse($result);
