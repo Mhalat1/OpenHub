@@ -61,33 +61,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $projects;
 
     /**
-     * @var Collection<int, friends>
+     * @var Collection<int, User>
      */
-    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'friends')]
-    private Collection $friends;
+    #[ORM\ManyToMany(targetEntity: User::class)]
+    #[ORM\JoinTable(name: 'user_friends')]
+    private Collection $userFriends;
 
     public function __construct()
     {
         $this->Skills = new ArrayCollection();
         $this->projects = new ArrayCollection();
-        $this->friends = new ArrayCollection();
+        $this->userFriends = new ArrayCollection();
     }
 
-    public function getFriends(): Collection
+    public function getUserfriends(): Collection
     {
-        return $this->friends;
+        return $this->userFriends;
     }
-    public function addFriend(project $friend): static
+    public function addUserfriend(User $friend): static
     {
-        if (!$this->friends->contains($friend)) {
-            $this->friends->add($friend);
+        if (!$this->userFriends->contains($friend)) {
+            $this->userFriends->add($friend);
         }
 
         return $this;
     }  
-    public function removeFriend(project $friend): static
+    public function removeUserfriend(User $friend): static
     {
-        $this->friends->removeElement($friend);
+        $this->userFriends->removeElement($friend);
 
         return $this;
     }
