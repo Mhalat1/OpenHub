@@ -7,11 +7,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
+use App\Entity\Skills;
+use App\Entity\Project;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Response;
-use App\Entity\Skills;
 
 final class UserController extends AbstractController
 {
@@ -127,164 +128,312 @@ final class UserController extends AbstractController
     }
 
     
-#[Route('/api/user/skills', name: 'api_user_skills', methods: ['GET'])]
-public function getUserSkills(Security $security): JsonResponse
-{
-    $user = $security->getUser();
+    #[Route('/api/user/skills', name: 'api_user_skills', methods: ['GET'])]
+    public function getUserSkills(Security $security): JsonResponse
+    {
+        $user = $security->getUser();
 
-    if (!$user instanceof User) {
-        return new JsonResponse(['message' => 'User not authenticated'], 401);
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            // Récupération directe des compétences via la relation ManyToMany
+            $skills = $user->getSkills();
+
+            // Conversion en tableau simple
+            $data = [];
+            foreach ($skills as $skill) {
+                $data[] = [
+                    'id' => $skill->getId(),
+                    'name' => $skill->getName(),
+                    'description' => $skill->getDescription(),
+                    'duree' => $skill->getDuree() ? $skill->getDuree()->format('Y-m-d') : null,
+                    'technoUtilisees' => $skill->getTechnoUtilisees(),
+                ];
+            }
+
+            return new JsonResponse($data);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'Error fetching user skills',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    // Récupération directe des compétences via la relation ManyToMany
-    $skills = $user->getSkills();
+    #[Route('/api/skills', name: 'api_skills', methods: ['GET'])]
+    public function getAllSkills(Security $security): JsonResponse
+    {
+        $user = $security->getUser();
 
-    // Conversion en tableau simple
-    $data = [];
-    foreach ($skills as $skill) {
-        $data[] = [
-            'id' => $skill->getId(),
-            'name' => $skill->getName(),
-            'description' => $skill->getDescription(),
-            'duree' => $skill->getDuree()?->format('Y-m-d'),
-            'technoUtilisees' => $skill->getTechnoUtilisees(),
-        ];
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $skillsRepo = $this->manager->getRepository(Skills::class);
+            $Allskills = $skillsRepo->findAll();
+
+            error_log("Found " . count($Allskills) . " skills");
+
+            $data = [];
+            foreach ($Allskills as $skill) {
+                try {
+                    $skillData = [
+                        'id' => $skill->getId(),
+                        'name' => $skill->getName() ?? 'N/A',
+                        'description' => $skill->getDescription() ?? 'N/A',
+                        'duree' => null,
+                        'technoUtilisees' => $skill->getTechnoUtilisees() ?? 'N/A',
+                    ];
+
+                    if (method_exists($skill, 'getDuree')) {
+                        $duree = $skill->getDuree();
+                        if ($duree instanceof \DateTimeInterface) {
+                            $skillData['duree'] = $duree->format('Y-m-d');
+                        }
+                    }
+
+                    $data[] = $skillData;
+                } catch (\Exception $e) {
+                    error_log("Error processing skill " . $skill->getId() . ": " . $e->getMessage());
+                    continue;
+                }
+            }
+
+            return new JsonResponse($data);
+        } catch (\Exception $e) {
+            error_log("Error in getAllSkills: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            return new JsonResponse([
+                'error' => 'Error fetching all skills',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => basename($e->getFile())
+            ], 500);
+        }
     }
 
-    return new JsonResponse($data);
+    #[Route('/api/user/add/skills', name: 'api_user_skills_add', methods: ['POST'])]
+    public function addUserSkill(
+        Request $request,
+        Security $security,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        // 1. Vérifier que l'utilisateur est connecté
+        $user = $security->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
+        }
+
+        try {
+            // 2. Récupérer les données envoyées
+            $data = json_decode($request->getContent(), true);
+            $skillId = $data['skill_id'] ?? null;
+
+            // 3. Vérifier qu'un skill_id est bien envoyé
+            if (!$skillId) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'ID de compétence manquant'
+                ], 400);
+            }
+
+            // 4. Chercher la compétence dans la base
+            $skill = $em->getRepository(Skills::class)->find($skillId);
+            if (!$skill) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Compétence non trouvée'
+                ], 404);
+            }
+
+            // 5. Vérifier si l'utilisateur a déjà cette compétence
+            if ($user->getSkills()->contains($skill)) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Vous avez déjà cette compétence'
+                ], 400);
+            }
+
+            // 6. AJOUTER LA COMPÉTENCE À LA COLLECTION
+            $user->addSkill($skill);
+
+            // 7. Sauvegarder dans la base
+            $em->persist($user);
+            $em->flush();
+
+            // 8. Réponse de succès
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Compétence ajoutée avec succès',
+                'skill_name' => $skill->getName()
+            ], 201);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/api/user/availability', name: 'api_user_availability_change', methods: ['POST'])]
+    public function changeAvailability(
+        Request $request,
+        Security $security,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        // 1. Vérifier que l'utilisateur est connecté
+        $user = $security->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
+        }
+
+        try {
+            // 2. Récupérer les données envoyées
+            $data = json_decode($request->getContent(), true);
+            $availabilityStart = $data['availabilityStart'] ?? null;
+            $availabilityEnd = $data['availabilityEnd'] ?? null;
+
+            // 3. Vérifier qu'un availability est bien envoyé
+            if (!$availabilityStart || !$availabilityEnd) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'availability not sended'
+                ], 400);
+            }
+
+            // 4. Convertir les chaînes en DateTimeImmutable
+            try {
+                $startDate = new \DateTimeImmutable($availabilityStart);
+            } catch (\Exception $e) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Invalid availabilityStart date format'
+                ], 400);
+            }
+
+            try {
+                $endDate = new \DateTimeImmutable($availabilityEnd);
+            } catch (\Exception $e) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Invalid availabilityEnd date format'
+                ], 400);
+            }
+
+            // 5. Mettre à jour l'utilisateur
+            $user->setAvailabilityStart($startDate);
+            $user->setAvailabilityEnd($endDate);
+
+            // 6. Sauvegarder dans la base
+            $em->persist($user);
+            $em->flush();
+
+            // 7. Réponse de succès
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Availability updated successfully',
+                'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
+                'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d')
+            ], 200);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/api/user/projects', name: 'api_user_projects', methods: ['GET'])]
+    public function getUserProjects(Security $security): JsonResponse
+    {
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $projects = $user->getProject();
+
+            $data = [];
+            foreach ($projects as $project) {
+                $data[] = [
+                    'id' => $project->getId(),
+                    'name' => $project->getName(),
+                    'description' => $project->getDescription(),
+                    'requiredSkills' => $project->getRequiredSkills(),
+                    'startDate' => $project->getStartDate() ? $project->getStartDate()->format('Y-m-d') : null,
+                    'endDate' => $project->getEndDate() ? $project->getEndDate()->format('Y-m-d') : null,
+                ];
+            }
+
+            return new JsonResponse($data);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'Error fetching user projects',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/api/user/add/project', name: 'api_user_add_project', methods: ['POST'])]
+    public function addUserToProject(
+        Request $request,
+        Security $security,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $user = $security->getUser();
+        
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $data = json_decode($request->getContent(), true);
+            $projectId = $data['project_id'] ?? null;
+
+            if (!$projectId) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Project ID required'
+                ], 400);
+            }
+
+            $project = $em->getRepository(Project::class)->find($projectId);
+            
+            if (!$project) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
+            // Vérifier si l'utilisateur est déjà dans ce projet
+            if ($user->getProject()->contains($project)) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Already in this project'
+                ], 400);
+            }
+
+            $user->addProject($project);
+            $em->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'project_name' => $project->getName(),
+                'message' => 'Added to project successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
-
-
-
-#[Route('/api/skills', name: 'api_skills', methods: ['GET'])]
-public function getAllSkills(Security $security): JsonResponse
-{
-    $user = $security->getUser();
-
-    if (!$user instanceof User) {
-        return new JsonResponse(['message' => 'User not authenticated'], 401);
-    }
-
-    $Allskills = $this->manager->getRepository(Skills::class)->findAll();
-
-    // Conversion en tableau simple
-    $data = [];
-    foreach ($Allskills as $skill) {
-        $data[] = [
-            'id' => $skill->getId(),
-            'name' => $skill->getName(),
-            'description' => $skill->getDescription(),
-            'duree' => $skill->getDuree()?->format('Y-m-d'),
-            'technoUtilisees' => $skill->getTechnoUtilisees(),
-        ];
-    }
-
-    return new JsonResponse($data);
-}
-
-
-#[Route('/api/user/skills/add', name: 'api_user_skills_add', methods: ['POST'])]
-public function addUserSkill(
-    Request $request,
-    Security $security,
-    EntityManagerInterface $em
-): JsonResponse {
-    // 1. Vérifier que l'utilisateur est connecté
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
-    }
-
-    // 2. Récupérer les données envoyées
-    $data = json_decode($request->getContent(), true);
-    $skillId = $data['skill_id'] ?? null;
-
-    // 3. Vérifier qu'un skill_id est bien envoyé
-    if (!$skillId) {
-        return new JsonResponse(['message' => 'ID de compétence manquant'], 400);
-    }
-
-    // 4. Chercher la compétence dans la base
-    $skill = $em->getRepository(Skills::class)->find($skillId);
-    if (!$skill) {
-        return new JsonResponse(['message' => 'Compétence non trouvée'], 404);
-    }
-
-    // 5. Vérifier si l'utilisateur a déjà cette compétence
-    if ($user->getSkills()->contains($skill)) {
-        return new JsonResponse(['message' => 'Vous avez déjà cette compétence'], 400);
-    }
-
-    // 6. AJOUTER LA COMPÉTENCE À LA COLLECTION
-    $user->addSkill($skill);
-
-    // 7. Sauvegarder dans la base
-    $em->persist($user);
-    $em->flush();
-
-    // 8. Réponse de succès
-    return new JsonResponse([
-        'success' => true,
-        'message' => 'Compétence ajoutée avec succès',
-        'skill_name' => $skill->getName()
-    ], 201);
-}
-
-
-
-#[Route('/api/user/availability', name: 'api_user_availability_change', methods: ['POST'])]
-public function changeAvailability(
-    Request $request,
-    Security $security,
-    EntityManagerInterface $em
-): JsonResponse {
-    // 1. Vérifier que l'utilisateur est connecté
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
-    }
-
-    // 2. Récupérer les données envoyées
-    $data = json_decode($request->getContent(), true);
-    $availabilityStart = $data['availabilityStart'] ?? null;
-    $availabilityEnd = $data['availabilityEnd'] ?? null;
-
-    // 3. Vérifier qu'un availability est bien envoyé
-    if (!$availabilityStart || !$availabilityEnd) {
-        return new JsonResponse(['message' => 'availability not sended'], 400);
-    }
-
-    // 4. Convertir les chaînes en DateTimeImmutable
-    try {
-        $startDate = new \DateTimeImmutable($availabilityStart);
-    } catch (\Exception $e) {
-        return new JsonResponse(['message' => 'Invalid availabilityStart date format'], 400);
-    }
-
-    try {
-        $endDate = new \DateTimeImmutable($availabilityEnd);
-    } catch (\Exception $e) {
-        return new JsonResponse(['message' => 'Invalid availabilityEnd date format'], 400);
-    }
-
-    // 5. Mettre à jour l'utilisateur
-    $user->setAvailabilityStart($startDate);
-    $user->setAvailabilityEnd($endDate);
-
-    // 6. Sauvegarder dans la base
-    $em->persist($user);
-    $em->flush();
-
-    // 7. Réponse de succès
-    return new JsonResponse([
-        'success' => true,
-        'message' => 'Availability updated successfully',
-        'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
-        'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d')
-    ], 200);
-}
-
-
-}
-
-

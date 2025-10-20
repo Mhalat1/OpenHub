@@ -60,11 +60,38 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: project::class, inversedBy: 'users')]
     private Collection $projects;
 
+    /**
+     * @var Collection<int, friends>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'friends')]
+    private Collection $friends;
+
     public function __construct()
     {
         $this->Skills = new ArrayCollection();
         $this->projects = new ArrayCollection();
+        $this->friends = new ArrayCollection();
     }
+
+    public function getFriends(): Collection
+    {
+        return $this->friends;
+    }
+    public function addFriend(project $friend): static
+    {
+        if (!$this->friends->contains($friend)) {
+            $this->friends->add($friend);
+        }
+
+        return $this;
+    }  
+    public function removeFriend(project $friend): static
+    {
+        $this->friends->removeElement($friend);
+
+        return $this;
+    }
+
 
 
     public function getAvailabilityStart(): ?DateTimeImmutable
