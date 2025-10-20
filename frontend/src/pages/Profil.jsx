@@ -187,13 +187,6 @@ const Profil = () => {
             <div className={styles.userInfo}>
               <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
             </div>
-            <button 
-              className={styles.addButton}
-              onClick={(e) => handleAddUser(user.id, e)}
-              aria-label={`Add ${user.firstName} ${user.lastName}`}
-            >
-              ✕
-            </button>
           </div>
         ))}
       </div>

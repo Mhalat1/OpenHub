@@ -87,7 +87,7 @@ const Home = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://127.0.0.1:8000/api/add/project", {
+      const response = await fetch("http://127.0.0.1:8000/api/user/add/project", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -504,7 +504,7 @@ const Home = () => {
                 <h2 className={styles.modalTitle}>{SelectedProject.name}</h2>
                 <div className={styles.modalInfo}>
                   <div>
-                    <h3>Contexte d'apprentissage</h3>
+                    <h3>Description</h3>
                     <p>{SelectedProject.description || "Non renseigné"}</p>
                   </div>
                   <div>
@@ -530,8 +530,8 @@ const Home = () => {
                 <h2 className={styles.modalTitle}>{selectedSkill.name}</h2>
                 <div className={styles.modalInfo}>
                   <div>
-                    <h3>Contexte d'apprentissage</h3>
-                    <p>{selectedSkill.contextApprentissage || "Non renseigné"}</p>
+                    <h3>Description</h3>
+                    <p>{selectedSkill.description || "Non renseigné"}</p>
                   </div>
                   <div>
                     <h3>Technologies utilisées</h3>

@@ -20,7 +20,7 @@ class Skills
     private ?string $Name = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $ContextApprentissage = null;
+    private ?string $Description = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $Duree = null;
@@ -46,14 +46,14 @@ class Skills
         return $this;
     }
 
-    public function getContextApprentissage(): ?string
+    public function getDescription(): ?string
     {
-        return $this->ContextApprentissage;
+        return $this->Description;
     }
 
-    public function setContextApprentissage(string $ContextApprentissage): static
+    public function setDescription(string $Description): static
     {
-        $this->ContextApprentissage = $ContextApprentissage;
+        $this->Description = $Description;
 
         return $this;
     }

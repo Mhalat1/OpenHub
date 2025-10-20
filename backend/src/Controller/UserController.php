@@ -145,7 +145,7 @@ public function getUserSkills(Security $security): JsonResponse
         $data[] = [
             'id' => $skill->getId(),
             'name' => $skill->getName(),
-            'contextApprentissage' => $skill->getContextApprentissage(),
+            'description' => $skill->getDescription(),
             'duree' => $skill->getDuree()?->format('Y-m-d'),
             'technoUtilisees' => $skill->getTechnoUtilisees(),
         ];
@@ -173,7 +173,7 @@ public function getAllSkills(Security $security): JsonResponse
         $data[] = [
             'id' => $skill->getId(),
             'name' => $skill->getName(),
-            'contextApprentissage' => $skill->getContextApprentissage(),
+            'description' => $skill->getDescription(),
             'duree' => $skill->getDuree()?->format('Y-m-d'),
             'technoUtilisees' => $skill->getTechnoUtilisees(),
         ];

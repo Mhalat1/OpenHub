@@ -19,8 +19,9 @@
       background: linear-gradient(135deg, #000000, #1d4ed8);
   position: relative;
   
-    padding: 50px;
+    padding: 20px 50px;
     margin: 20px 50px;
+        border-radius: 20px;
 }
 
 .searchInput {
@@ -172,8 +173,8 @@
 }
 
 .userAvatar {
-  width: 90px;
-  height: 90px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   overflow: hidden;
   margin-right: 25px;

@@ -66,7 +66,7 @@ final class ProjectsController extends AbstractController
         return new JsonResponse($data);
     }
 
-    #[Route('/api/add/project', name: 'app_add_project', methods: ['POST'])]
+    #[Route('/api/user/add/project', name: 'app_add_project', methods: ['POST'])]
     public function addProject(Request $request, Security $security): JsonResponse
     {
         $user = $security->getUser();
@@ -106,4 +106,38 @@ final class ProjectsController extends AbstractController
     ], 201);
 
     }
+
+    #[Route('/api/create/new/project', name: 'app_remove_project', methods: ['POST'])]
+    public function createProject(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        $name = $data['name'] ?? null;
+        $description = $data['description'] ?? null;
+        $requiredSkills = $data['requiredSkills'] ?? null;
+        $startDate = isset($data['startDate']) ? new \DateTimeImmutable($data['startDate']) : null;
+        $endDate = isset($data['endDate']) ? new \DateTimeImmutable($data['endDate']) : null;
+
+        if (!$name || !$description || !$requiredSkills || !$startDate || !$endDate) {
+            return new JsonResponse(['message' => 'Missing required fields'], 400);
+        }
+
+        $project = new Project();
+        $project->setName($name);
+        $project->setDescription($description);
+        $project->setRequiredSkills($requiredSkills);
+        $project->setStartDate($startDate);
+        $project->setEndDate($endDate);
+
+        $this->manager->persist($project);
+        $this->manager->flush();
+
+        return new JsonResponse(['message' => 'Project created successfully', 'project_id' => $project->getId()], 201);
+    }
+
+
+
+
+
+
 }
