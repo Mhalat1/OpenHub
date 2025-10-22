@@ -436,4 +436,126 @@ final class UserController extends AbstractController
             ], 500);
         }
     }
+
+
+
+    #[Route('/api/invitations/pending', name: 'api_pending_invitations', methods: ['GET'])]
+    public function getPendingInvitations(EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        if (!$user instanceof User) {
+            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
+        }
+
+        $pendingInvitations = $user->getInvitation();
+
+        $invitations = [];
+        foreach ($pendingInvitations as $inviter) {
+            $invitations[] = [
+                'id' => $inviter->getId(),
+                'firstName' => $inviter->getFirstName(),
+                'lastName' => $inviter->getLastName(),
+                'email' => $inviter->getEmail()
+            ];
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'invitations' => $invitations
+        ]);
+    }
+
+    #[Route('/api/invitations/accept', name: 'api_accept_invitation', methods: ['POST'])]
+    public function acceptInvitation(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        if (!$user instanceof User) {
+            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $inviterId = $data['inviter_id'] ?? null;
+
+        if (!$inviterId) {
+            return new JsonResponse(['success' => false, 'message' => 'ID invitant requis'], 400);
+        }
+
+        $inviter = $em->getRepository(User::class)->find($inviterId);
+        
+        if (!$inviter) {
+            return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+
+        // Vérifier si l'invitation existe
+        if (!$user->getInvitation()->contains($inviter)) {
+            return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
+        }
+
+        // Retirer des invitations
+        $user->removeInvitation($inviter);
+        $inviter->removePendingInvitationSent($user);
+
+        // Ajouter aux amis
+        $user->addFriend($inviter);
+        $inviter->addFriend($user);
+
+        $em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Invitation acceptée avec succès',
+            'friend' => [
+                'id' => $inviter->getId(),
+                'firstName' => $inviter->getFirstName(),
+                'lastName' => $inviter->getLastName()
+            ]
+        ]);
+    }
+
+    #[Route('/api/invitations/reject', name: 'api_reject_invitation', methods: ['POST'])]
+    public function rejectInvitation(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        if (!$user instanceof User) {
+            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $inviterId = $data['inviter_id'] ?? null;
+
+        if (!$inviterId) {
+            return new JsonResponse(['success' => false, 'message' => 'ID invitant requis'], 400);
+        }
+
+        $inviter = $em->getRepository(User::class)->find($inviterId);
+        
+        if (!$inviter) {
+            return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+
+        // Vérifier si l'invitation existe
+        if (!$user->getInvitation()->contains($inviter)) {
+            return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
+        }
+
+        // Retirer des invitations
+        $user->removeInvitation($inviter);
+        $inviter->removePendingInvitationSent($user);
+
+        $em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Invitation refusée'
+        ]);
+    }
+
+
+
+
+
+
 }

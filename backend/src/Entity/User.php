@@ -64,31 +64,59 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var Collection<int, User>
      */
     #[ORM\ManyToMany(targetEntity: User::class)]
+    #[ORM\JoinTable(name: 'user_invitations')]
+    private Collection $Invitation;
+
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: 'user_friends')]
-    private Collection $userFriends;
+    private Collection $Friends;
+
+
+
 
     public function __construct()
     {
         $this->Skills = new ArrayCollection();
         $this->projects = new ArrayCollection();
-        $this->userFriends = new ArrayCollection();
+        $this->Invitation = new ArrayCollection();
+        $this->Friends = new ArrayCollection();
     }
 
-    public function getUserfriends(): Collection
+    public function getFriends(): Collection
     {
-        return $this->userFriends;
+        return $this->Friends;
     }
-    public function addUserfriend(User $friend): static
+    public function addFriend(User $friend): static
     {
-        if (!$this->userFriends->contains($friend)) {
-            $this->userFriends->add($friend);
+        if (!$this->Friends->contains($friend)) {
+            $this->Friends->add($friend);
+        }       
+        return $this;
+    }  
+    public function removeFriend(User $friend): static
+    {
+        $this->Friends->removeElement($friend); 
+        return $this;
+    }
+
+    public function getInvitation(): Collection
+    {
+        return $this->Invitation;
+    }
+    public function addInvitation(User $invitation): static
+    {
+        if (!$this->Invitation->contains($invitation)) {
+            $this->Invitation->add($invitation);
         }
 
         return $this;
     }  
-    public function removeUserfriend(User $friend): static
+    public function removeInvitation(User $invitation): static
     {
-        $this->userFriends->removeElement($friend);
+        $this->Invitation->removeElement($invitation);
 
         return $this;
     }
