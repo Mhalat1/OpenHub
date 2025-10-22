@@ -65,7 +65,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: 'user_invitations')]
-    private Collection $Invitation;
+    private Collection $Invitations;
 
     /**
      * @var Collection<int, User>
@@ -81,7 +81,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->Skills = new ArrayCollection();
         $this->projects = new ArrayCollection();
-        $this->Invitation = new ArrayCollection();
+        $this->Invitations = new ArrayCollection();
         $this->Friends = new ArrayCollection();
     }
 
@@ -102,21 +102,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getInvitation(): Collection
+    public function getInvitations(): Collection
     {
-        return $this->Invitation;
+        return $this->Invitations;
     }
-    public function addInvitation(User $invitation): static
+    public function addInvitations(User $invitations): static
     {
-        if (!$this->Invitation->contains($invitation)) {
-            $this->Invitation->add($invitation);
+        if (!$this->Invitations->contains($invitations)) {
+            $this->Invitations->add($invitations);
         }
 
         return $this;
     }  
-    public function removeInvitation(User $invitation): static
+    public function removeInvitations(User $invitations): static
     {
-        $this->Invitation->removeElement($invitation);
+        $this->Invitations->removeElement($invitations);
 
         return $this;
     }
