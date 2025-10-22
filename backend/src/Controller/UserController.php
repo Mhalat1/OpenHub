@@ -553,6 +553,36 @@ final class UserController extends AbstractController
         ]);
     }
 
+    #[Route('/api/user/friends', name: 'api_user_friends', methods: ['GET'])]
+    public function getUserFriends(Security $security): JsonResponse
+    {
+        $user = $security->getUser();  
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $friends = $user->getFriends();
+
+            $data = [];
+            foreach ($friends as $friend) {
+                $data[] = [
+                    'id' => $friend->getId(),
+                    'firstName' => $friend->getFirstName(),
+                    'lastName' => $friend->getLastName(),
+                    'email' => $friend->getEmail()
+                ];
+            }
+
+            return new JsonResponse($data);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'Error fetching user friends',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 
 
