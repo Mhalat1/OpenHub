@@ -439,8 +439,8 @@ final class UserController extends AbstractController
 
 
 
-    #[Route('/api/invitations/pending', name: 'api_pending_invitations', methods: ['GET'])]
-    public function getPendingInvitations(EntityManagerInterface $em): JsonResponse
+    #[Route('/api/invitation/pending', name: 'api_pending_invitation', methods: ['GET'])]
+    public function getPendingInvitation(EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
         
@@ -448,11 +448,11 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
         }
 
-        $pendingInvitations = $user->getInvitation();
+        $pendingInvitation = $user->getInvitation();
 
-        $invitations = [];
-        foreach ($pendingInvitations as $inviter) {
-            $invitations[] = [
+        $invitation = [];
+        foreach ($pendingInvitation as $inviter) {
+            $invitation[] = [
                 'id' => $inviter->getId(),
                 'firstName' => $inviter->getFirstName(),
                 'lastName' => $inviter->getLastName(),
@@ -462,11 +462,11 @@ final class UserController extends AbstractController
 
         return new JsonResponse([
             'success' => true,
-            'invitations' => $invitations
+            'invitation' => $invitation
         ]);
     }
 
-    #[Route('/api/invitations/accept', name: 'api_accept_invitation', methods: ['POST'])]
+    #[Route('/api/invitation/accept', name: 'api_accept_invitation', methods: ['POST'])]
     public function acceptInvitation(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
@@ -493,9 +493,9 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
         }
 
-        // Retirer des invitations
+        // Retirer des invitation
         $user->removeInvitation($inviter);
-        $inviter->removePendingInvitationSent($user);
+        $inviter->removePendingInvitationent($user);
 
         // Ajouter aux amis
         $user->addFriend($inviter);
@@ -514,7 +514,7 @@ final class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/api/invitations/reject', name: 'api_reject_invitation', methods: ['POST'])]
+    #[Route('/api/invitation/reject', name: 'api_reject_invitation', methods: ['POST'])]
     public function rejectInvitation(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
@@ -541,9 +541,9 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
         }
 
-        // Retirer des invitations
+        // Retirer des invitation
         $user->removeInvitation($inviter);
-        $inviter->removePendingInvitationSent($user);
+        $inviter->removePendingInvitationent($user);
 
         $em->flush();
 
