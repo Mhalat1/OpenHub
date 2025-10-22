@@ -11,6 +11,68 @@ const Profil = () => {
   const [skills, setSkills] = useState([]); // Store skills
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
   const [userProjects, setUserProjects] = useState([]); // Store user projects
+  const [invitations, setInvitations] = useState([]); // Store pending invitations
+  const [friends, setFriends] = useState([]); // Store friends list
+  
+
+
+
+  const rejectInvitations = async (invitationsId) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/invitations/reject", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ inviter_id: invitationsId }),
+      });
+
+      if (response.ok) {
+        // Mettre à jour la liste des invitations après le refus
+        setInvitations(prevInvitations => 
+          prevInvitations.filter(inv => inv.id !== invitationsId)
+        );
+      } else {
+        console.error('Failed to refuse invitations');
+      }
+    } catch (error) {
+      console.error('Error refusing invitations:', error);
+    }
+  };
+
+  const acceptInvitations = async (invitationsId) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/invitations/accept", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ inviter_id: invitationsId }),
+      });
+
+      if (response.ok) {
+        // Mettre à jour la liste des invitations après l'acceptation
+        setInvitations(prevInvitations => 
+          prevInvitations.filter(inv => inv.id !== invitationsId)
+        );
+      } else {
+        console.error('Failed to accept invitations');
+      }
+    } catch (error) {
+      console.error('Error accepting invitations:', error);
+    }
+  };
+
+
+
+
+
+
+
 
   // Fetch users from API
   const fetchData = async () => {
@@ -65,6 +127,30 @@ const Profil = () => {
     }
   };
 
+  const fetchPendingInvitations = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/invitations/pending", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Invitations API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setInvitations(data.success ? data.invitations : []);
+      // Handle pending invitations data as needed
+    } catch (error) {
+      console.error('Error fetching pending invitations:', error);
+    }
+  };
+
   // Fonction pour récupérer les compétences
   const fetchUserProjects = async () => {
     const token = localStorage.getItem("token");
@@ -89,12 +175,33 @@ const Profil = () => {
     }
   };
 
+  const fetchUserFriends = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/user/friends", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setFriends(data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   useEffect(() => {
     fetchData();
     fetchSkills();
     fetchUserProjects();
+    fetchPendingInvitations();
+    fetchUserFriends();
   }, []);
 
 
@@ -142,28 +249,100 @@ const Profil = () => {
         </div>
       </div>
 
+{/* Sub-navigation */}
+<div className={styles.subNav}>
+  <button 
+    className={`${styles.subNavButton} ${activeTab === 'public' ? styles.active : ''}`}
+    onClick={() => setActiveTab('public')}
+  >
+    Public
+  </button>
+  <button 
+    className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
+    onClick={() => setActiveTab('friends')}
+  >
+    Friends
+  </button>
+  <button 
+    className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
+    onClick={() => setActiveTab('invitations')}
+  >
+    Invitations ({invitations.length})
+  </button>
+</div>
 
-      {/* Sub-navigation */}
-      <div className={styles.subNav}>
-        <button 
-          className={`${styles.subNavButton} ${activeTab === 'public' ? styles.active : ''}`}
-          onClick={() => setActiveTab('public')}
-        >
-          Public
-        </button>
-        <button 
-          className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
-          onClick={() => setActiveTab('friends')}
-        >
-          Friends
-        </button>
-        <button 
-          className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
-          onClick={() => setActiveTab('invitations')}
-        >
-          Invitations (2)
-        </button>
+{/* Section des invitations - affichage conditionnel */}
+{activeTab === 'invitations' && (
+  <div className={styles.invitationsContainer}>
+    <h3 className={styles.invitationsTitle}>Invitations en attente</h3>
+    
+    {invitations.length === 0 ? (
+      <div className={styles.noInvitations}>
+        <p>Aucune invitations en attente</p>
       </div>
+    ) : (
+      <div className={styles.invitationsGrid}>
+        {invitations.map((invitations) => (
+          <div key={invitations.id} className={styles.invitationsCard}>
+            <div className={styles.invitationsHeader}>
+              <div className={styles.invitationsAvatar}>
+              </div>
+              <div className={styles.invitationsInfo}>
+                <h4 className={styles.invitationsName}>
+                  {invitations.firstName} {invitations.lastName}
+                </h4>
+                <p className={styles.invitationsEmail}>{invitations.email}</p>
+              </div>
+            </div>
+            
+            <div className={styles.invitationsActions}>
+              <button 
+                className={styles.acceptBtn}
+                onClick={() => acceptInvitations(invitations.id)}
+              >
+                ✓ Accepter
+              </button>
+              <button 
+                className={styles.rejectBtn}
+                onClick={() => rejectInvitations(invitations.id)}
+              >
+                ✕ Refuser
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+{activeTab == 'friends' && (
+  <div className={styles.friendsContainer}>
+    <h3 className={styles.friendsTitle}>Friends List</h3>
+    {friends.length === 0 ? (
+      <div className={styles.noFriends}>
+        <p>No friends added yet.</p>
+      </div>
+    ) : (
+      <div className={styles.friendsGrid}>
+        {friends.map((friend) => (
+          <div key={friend.id} className={styles.friendCard}>
+            <div className={styles.friendAvatar}>
+            </div>
+            <div className={styles.friendInfo}>
+              <h4 className={styles.friendName}>{friend.firstName} {friend.lastName}</h4>
+              <p className={styles.friendEmail}>{friend.email}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+
+
+
 
       {/* Users grid */}
       <div className={styles.usersGrid}>
@@ -175,14 +354,7 @@ const Profil = () => {
             style={{ cursor: 'pointer' }}
           >
             <div className={styles.userAvatar}>
-              <img 
-                src={user.avatar || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`} 
-                alt={`${user.firstName} ${user.lastName}`}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=4F46E5`;
-                }}
-              />
+             
             </div>
             <div className={styles.userInfo}>
               <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>

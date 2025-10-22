@@ -116,7 +116,7 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   padding: 2rem 2.5rem;
   max-width: 420px;
-  width: 100%;
+      width: 13rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -169,6 +169,7 @@
 }
 
 .btnPrimary {
+      width: 13rem;
   padding: 0.9rem;
   border-radius: 12px;
   font-weight: 600;

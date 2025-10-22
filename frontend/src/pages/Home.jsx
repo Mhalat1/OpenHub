@@ -123,7 +123,7 @@ const Home = () => {
       setMessage(' ⏳ Adding skill...');
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://127.0.0.1:8000/api/user/skills/add", {
+      const response = await fetch("http://127.0.0.1:8000/api/user/add/skills", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -283,8 +283,6 @@ const Home = () => {
     fetchAvailableSkills();
     fetchAllProjects();
     fetchUserProjects();
-    addProject();
-
   }, []);
 
 
@@ -462,7 +460,7 @@ const Home = () => {
           <div className={styles.addSkillContainer}>
             <div className={styles.addSkillCard}>
               <h2 className={styles.addSkillTitle}>Contribuer a d'autres Projets ({projects.length})</h2>
-              <div className={styles.projectsSection}>
+              <div className={styles.addSkillForm}>
                 <h2>All Projects ({projects.length})</h2>
 
                 <select

@@ -17,6 +17,7 @@ const Projects = () => {
     endDate: ''
   });
 
+
   // Fetch projects from API
   const fetchProjects = async () => {
     const token = localStorage.getItem("token");
@@ -100,48 +101,50 @@ const Projects = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
         className={styles.searchInput}
       />
+      <div className={styles.projectscreationContainer}>
 
-        <h2>Project creation</h2>
-      <div className={styles.projectsContainer}>
-        
-        {/* ✅ Syntaxe correcte pour les inputs */}
-        <input
-          type="text"
-          placeholder="Project Name"
-          value={project.name}
-          onChange={(e) => setProject({ ...project, name: e.target.value })}
-        />
-        
-        <input
-          type="text"
-          placeholder="Description"
-          value={project.description}
-          onChange={(e) => setProject({ ...project, description: e.target.value })}
-        />
-        
-        <input
-          type="text"
-          placeholder="Required Skills"
-          value={project.requiredSkills}
-          onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
-        />
-        
-        <input
-          type="date"
-          placeholder="Start Date"
-          value={project.startDate}
-          onChange={(e) => setProject({ ...project, startDate: e.target.value })}
-        />
-        
-        <input
-          type="date"
-          placeholder="End Date"
-          value={project.endDate}
-          onChange={(e) => setProject({ ...project, endDate: e.target.value })}
-        />
-        
+        <h1>Project creation</h1>
+        <div className={styles.projectsContainer}>
+          {/* ✅ Syntaxe correcte pour les inputs */}
+          <input
+            type="text"
+            placeholder="Project Name"
+            value={project.name}
+            onChange={(e) => setProject({ ...project, name: e.target.value })}
+          />
+          
+          <input
+            type="text"
+            placeholder="Description"
+            value={project.description}
+            onChange={(e) => setProject({ ...project, description: e.target.value })}
+          />
+          
+          <input
+            type="text"
+            placeholder="Required Skills"
+            value={project.requiredSkills}
+            onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
+          />
+          
+          <input
+            type="date"
+            placeholder="Start Date"
+            value={project.startDate}
+            onChange={(e) => setProject({ ...project, startDate: e.target.value })}
+          />
+          
+          <input
+            type="date"
+            placeholder="End Date"
+            value={project.endDate}
+            onChange={(e) => setProject({ ...project, endDate: e.target.value })}
+          />
+          
+        </div>
         <button onClick={createProjectCard}>Create Project</button>
       </div>
+
 
       {/* Projects list */}
       <div className={styles.projectsContainer}>

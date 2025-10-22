@@ -41,6 +41,13 @@ h2 {
     justify-content: center;
 }
 
+h1 {
+    color: rgb(0, 0, 0);
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
+}
+
 /* Description text */
 .projectCard p {
   font-size: 0.95rem;
@@ -49,8 +56,9 @@ h2 {
   line-height: 1.4;
 }
 
-button  {
-
+button  {    
+    justify-content: center;
+    width: 80vw;
   background: linear-gradient(135deg, #000000, #1d4ed8);
     color: white;
     border: none;
@@ -58,22 +66,35 @@ button  {
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    width: 400px;
+    height: 50px;
 }
 
 button:hover {
     background: linear-gradient(135deg, #1d4ed8, #000000);   
 }
 
+
+
 /* Skills labels */
 .projectCard p strong {
   color: #111827; /* accent color for label */
 }
-
+input {
+  width: 60%;
+  max-width: 40vw;
+  padding: 10px 15px;
+  margin: 20px;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
 /* Search bar */
 .searchInput {
-  width: 90%;
-  max-width: 40%;
+  width: 60%;
+    max-width: 40vw;
   padding: 10px 15px;
   margin: 150px 30% 20px 30%;
   display: block;
@@ -90,6 +111,15 @@ body{
 .searchInput:focus {
   border-color: #4f46e5; /* modern purple */
   box-shadow: 0 0 5px rgba(79, 70, 229, 0.3);
+}
+
+.projectscreationContainer{
+  background-color: rgb(253, 253, 253);
+  margin: 0vw 5vw;
+      border-radius: 20px;
+          display: grid;
+    padding: 10px;
+    justify-content: center;
 }
 
 /* Responsive */
