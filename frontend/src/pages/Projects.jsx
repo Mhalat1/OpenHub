@@ -76,9 +76,29 @@ const Projects = () => {
     }
   };
 
+  const deleteProjectCard = async (projectId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/delete/project/${projectId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        // ✅ Recharger la liste des projets après suppression
+        fetchProjects();
+      } else {
+        console.error("Failed to delete project");
+      }
+    } catch (err) {
+      console.error("Error deleting project:", err);
+    }
+  };
+
   useEffect(() => {
     fetchProjects();
-    // ✅ Ne PAS appeler createProjectCard() ici
   }, []);
 
   // Filter projects by name or required skills
@@ -158,6 +178,9 @@ const Projects = () => {
               <p><strong>Skills:</strong> {proj.requiredSkills}</p>
               <p><strong>Start Date:</strong> {new Date(proj.startDate).toLocaleDateString()}</p>
               <p><strong>End Date:</strong> {new Date(proj.endDate).toLocaleDateString()}</p>
+
+              <button onClick={() => deleteProjectCard(proj.id)}>Delete Project</button>
+
             </div>
           ))
         )}
