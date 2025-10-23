@@ -9,6 +9,25 @@
     justify-content: center;
 }
 
+.projectsContainer > input {
+  width: 80%;
+    max-width: 40vw;
+}
+
+input
+  {
+    width: 80%;
+    max-width: 40vw;
+    padding: 10px 15px;
+    margin: 20px;
+    display: block;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+  }
+
 /* Each project card */
 .projectCard {
       grid-template-columns: 1fr 1fr;
@@ -79,18 +98,7 @@ button:hover {
 .projectCard p strong {
   color: #111827; /* accent color for label */
 }
-input {
-  width: 60%;
-  max-width: 40vw;
-  padding: 10px 15px;
-  margin: 20px;
-  display: block;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
+
 /* Search bar */
 .searchInput {
   width: 60%;
