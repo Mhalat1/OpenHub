@@ -136,6 +136,19 @@ final class ProjectsController extends AbstractController
     }
 
 
+    #[Route('/api/delete/project/{id}', name: 'app_delete_project', methods: ['DELETE'])]
+    public function deleteProject(int $id): JsonResponse
+    {
+        $project = $this->manager->getRepository(Project::class)->find($id);
+        if (!$project) {
+            return new JsonResponse(['message' => 'Project not found'], 404);
+        }
+        $this->manager->remove($project);
+        $this->manager->flush();
+        return new JsonResponse(['message' => 'Project deleted successfully'], 200);
+    }
+
+
 
 
 
