@@ -74,6 +74,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinTable(name: 'user_friends')]
     private Collection $Friends;
 
+    /**
+     * @var Collection<int, Conversation>
+     */
+    #[ORM\ManyToMany(targetEntity: Conversation::class, mappedBy: 'users')]
+    private Collection $conversations;
+
+    /**
+     * @var Collection<int, Message>
+     */
+    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'author')]
+    private Collection $createdat;
+
 
 
 
@@ -83,6 +95,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->projects = new ArrayCollection();
         $this->Invitations = new ArrayCollection();
         $this->Friends = new ArrayCollection();
+        $this->conversations = new ArrayCollection();
+        $this->createdat = new ArrayCollection();
     }
 
     public function getFriends(): Collection
@@ -277,6 +291,63 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeUserProject(project $userProject): static
     {
         $this->projects->removeElement($userProject);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Conversation>
+     */
+    public function getConversations(): Collection
+    {
+        return $this->conversations;
+    }
+
+    public function addConversation(Conversation $conversation): static
+    {
+        if (!$this->conversations->contains($conversation)) {
+            $this->conversations->add($conversation);
+            $conversation->addUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeConversation(Conversation $conversation): static
+    {
+        if ($this->conversations->removeElement($conversation)) {
+            $conversation->removeUser($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Message>
+     */
+    public function getCreatedat(): Collection
+    {
+        return $this->createdat;
+    }
+
+    public function addCreatedat(Message $createdat): static
+    {
+        if (!$this->createdat->contains($createdat)) {
+            $this->createdat->add($createdat);
+            $createdat->setAuthor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCreatedat(Message $createdat): static
+    {
+        if ($this->createdat->removeElement($createdat)) {
+            // set the owning side to null (unless already changed)
+            if ($createdat->getAuthor() === $this) {
+                $createdat->setAuthor(null);
+            }
+        }
 
         return $this;
     }

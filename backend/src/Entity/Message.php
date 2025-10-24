@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\MessageRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MessageRepository::class)]
@@ -13,46 +14,23 @@ class Message
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 25)]
-    private ?string $title = null;
-
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::TEXT)]
     private ?string $content = null;
 
+    #[ORM\ManyToOne(inversedBy: 'createdat')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $author = null;
+
     #[ORM\Column]
-    private ?\DateTimeImmutable $sentAt = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $sender = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $recipient = null;
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\ManyToOne(inversedBy: 'messages')]
-    private ?User $user = null;
-
-    // ---------------- Getters and Setters ---------------- //
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Conversation $conversation = null;
 
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function setId(int $id): static
-    {
-        $this->id = $id;
-        return $this;
-    }
-
-    public function getTitle(): ?string
-    {
-        return $this->title;
-    }
-
-    public function setTitle(string $title): static
-    {
-        $this->title = $title;
-        return $this;
     }
 
     public function getContent(): ?string
@@ -63,50 +41,43 @@ class Message
     public function setContent(string $content): static
     {
         $this->content = $content;
+
         return $this;
     }
 
-    public function getSentAt(): ?\DateTimeImmutable
+    public function getAuthor(): ?User
     {
-        return $this->sentAt;
+        return $this->author;
     }
 
-    public function setSentAt(\DateTimeImmutable $sentAt): static
+    public function setAuthor(?User $author): static
     {
-        $this->sentAt = $sentAt;
+        $this->author = $author;
+
         return $this;
     }
 
-    public function getSender(): ?string
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
-        return $this->sender;
+        return $this->createdAt;
     }
 
-    public function setSender(string $sender): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
-        $this->sender = $sender;
+        $this->createdAt = $createdAt;
+
         return $this;
     }
 
-    public function getRecipient(): ?string
+    public function getConversation(): ?Conversation
     {
-        return $this->recipient;
+        return $this->conversation;
     }
 
-    public function setRecipient(string $recipient): static
+    public function setConversation(?Conversation $conversation): static
     {
-        $this->recipient = $recipient;
-        return $this; 
-    }
+        $this->conversation = $conversation;
 
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
-
-    public function setUser(?User $user): static
-    {
-        $this->user = $user;
         return $this;
     }
 }
