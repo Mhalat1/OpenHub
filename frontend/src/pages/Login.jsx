@@ -39,36 +39,47 @@ const Login = () => {
   };
 
   return (
+
+
     <div className={styles.loginContainer}> 
-      <img src={logo} alt="logo" className={styles.logo} />
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Login</button>
-      </form>
+      <div className={styles.logo}>
+        <img src={logo} alt="logo" className={styles.logo} />
+      </div>
 
-      <p>Not registered yet?</p>
-      <button
-        className={styles.registerBtn}
-        onClick={() => navigate("/register")}
-      >
-        Register
-      </button>
+      <div className={styles.divider}>
+        
+        </div> 
 
-      {error && <p className={styles.error}>{error}</p>} {/* ✅ */}
+      <div className={styles.logincontent}>
+        <h2>Login</h2>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit">Login</button>
+        </form>
+
+        <p className={styles.loginpageText}>Not registered yet?</p>
+        <button
+          className={styles.registerBtn}
+          onClick={() => navigate("/register")}
+        >
+          Register
+        </button>
+
+        {error && <p className={styles.error}>{error}</p>} {/* ✅ */}
+      </div>
     </div>
   );
 };

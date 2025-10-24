@@ -115,19 +115,22 @@ const Register = () => {
           value={skills}
           onChange={(e) => setSkills(e.target.value)}
         />
-        <button type="submit">Create account</button>
-      </form>
+        <button className={styles.buttonregister}  type="submit">Create account</button>
 
-      {successMessage && <p className={styles.success}>{successMessage}</p>}
-      {errorMessage && <p className={styles.error}>{errorMessage}</p>}
 
-      <p>Already have an account?</p>
+              <p  className={styles.registerpageText}>Already have an account?</p>
       <button
         className={styles.loginBtn}
         onClick={() => navigate("/login")}
       >
         Log in
       </button>
+      </form>
+
+      {successMessage && <p className={styles.success}>{successMessage}</p>}
+      {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+
+
     </div>
   );
 };

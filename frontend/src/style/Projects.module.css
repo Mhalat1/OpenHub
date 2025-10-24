@@ -16,10 +16,8 @@
 
 input
   {
-    width: 80%;
     max-width: 40vw;
     padding: 10px 15px;
-    margin: 20px;
     display: block;
     border-radius: 8px;
     border: 1px solid #ccc;

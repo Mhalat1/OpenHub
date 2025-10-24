@@ -14,6 +14,7 @@ const Profil = () => {
   const [invitations, setInvitations] = useState([]); // Store pending invitations
   const [friends, setFriends] = useState([]); // Store friends list
   
+  
 
 
 
@@ -34,6 +35,10 @@ const Profil = () => {
         setInvitations(prevInvitations => 
           prevInvitations.filter(inv => inv.id !== invitationsId)
         );
+        setFriends(prevFriends => [
+          ...prevFriends, 
+          invitations.find(inv => inv.id === invitationsId)
+        ]);
       } else {
         console.error('Failed to refuse invitations');
       }
@@ -59,6 +64,11 @@ const Profil = () => {
         setInvitations(prevInvitations => 
           prevInvitations.filter(inv => inv.id !== invitationsId)
         );
+        setFriends(prevFriends => [
+          ...prevFriends, 
+          invitations.find(inv => inv.id === invitationsId)
+        ]);
+
       } else {
         console.error('Failed to accept invitations');
       }
@@ -145,6 +155,8 @@ const Profil = () => {
 
       const data = await response.json();
       setInvitations(data.success ? data.invitations : []);
+
+
       // Handle pending invitations data as needed
     } catch (error) {
       console.error('Error fetching pending invitations:', error);
@@ -194,6 +206,32 @@ const Profil = () => {
     }
   };
 
+  const sendInvitation = async (friend_id) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/send/invitation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ friend_id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Add Friend API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Invitation sended successfully:', data);
+
+
+      
+    } catch (error) {
+      console.error('Error adding friend:', error);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -224,12 +262,6 @@ const Profil = () => {
     setSelectedUser(null);
   };
 
-  // Handle add user action
-  const handleAddUser = (userId, e) => {
-    e.stopPropagation(); // Prevent modal from opening
-    console.log(`Add user ${userId}`);
-    // Add user logic here
-  };
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
   if (error) return <div className={styles.error}>Error: {error}</div>;
@@ -261,7 +293,7 @@ const Profil = () => {
     className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
     onClick={() => setActiveTab('friends')}
   >
-    Friends
+    Friends ({friends.length})
   </button>
   <button 
     className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
@@ -299,14 +331,15 @@ const Profil = () => {
               <button 
                 className={styles.acceptBtn}
                 onClick={() => acceptInvitations(invitations.id)}
+                
               >
-                ✓ Accepter
+                ✓ Accept
               </button>
               <button 
                 className={styles.rejectBtn}
                 onClick={() => rejectInvitations(invitations.id)}
               >
-                ✕ Refuser
+                ✕ Refuse
               </button>
             </div>
           </div>
@@ -379,10 +412,6 @@ const Profil = () => {
             
             <div className={styles.modalHeader}>
               <div className={styles.modalAvatar}>
-                <img 
-                  src={selectedUser.avatar || `https://ui-avatars.com/api/?name=${selectedUser.firstName}+${selectedUser.lastName}&background=random&size=120`} 
-                  alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
-                />
               </div>
               <h2 className={styles.modalTitle}>
                 {selectedUser.firstName} {selectedUser.lastName}
@@ -441,18 +470,25 @@ const Profil = () => {
               </div>
 
               <div className={styles.modalActions}>
-                <button 
-                  className={styles.modalButton}
-                  onClick={() => {
-                    handleAddUser(selectedUser.id, { stopPropagation: () => {} });
-                    handleCloseModal();
-                  }}
-                >
-                  Add Friend
-                </button>
+  <button 
+    className={styles.modalButton}
+    onClick={(e) => {
+
+
+      e.stopPropagation(); // Empêche la fermeture du modal si nécessaire
+      sendInvitation(selectedUser.id);
+      setInvitations([...invitations, selectedUser]);
+
+      handleCloseModal();
+      
+    }}
+  >
+    Add Friend
+  </button>
                 <button 
                   className={styles.modalButtonSecondary}
                   onClick={handleCloseModal}
+                  
                 >
                   Close
                 </button>

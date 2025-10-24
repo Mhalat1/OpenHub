@@ -1,105 +1,112 @@
-/* Main container */
+/* register.module.css */
+
 .registerContainer {
-  background: #02143a;
-  height: 100vh; /* takes full screen */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f6fa, #dcdde1);
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  gap: 1.5rem;
 }
 
-/* Logo */
 .logo {
-  width: 200px;
-  height: auto;
-  margin-bottom: 40px;
+  width: 120px;
+  margin-bottom: 1rem;
 }
 
-/* Title */
-h2 {
-  color: white;
-  margin-bottom: 20px;
-}
-
-/* Form */
 form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   width: 100%;
   max-width: 400px;
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Input fields */
 input {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 15px;
-  border: none;
+  padding: 0.75rem 1rem;
   border-radius: 8px;
-  background: #f2f2f2;
-  font-size: 15px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
 }
 
 input:focus {
-  outline: none;
-  box-shadow: 0 0 4px rgba(0, 86, 255, 0.8);
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
 }
-
-/* Create account button */
-button[type="submit"] {
+.loginBtn{
   width: 100%;
-  padding: 14px;
-  margin-top: 10px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
   border: none;
-  border-radius: 12px;
-  background: #00b341; /* green for account creation */
-  color: white;
-  font-size: 16px;
+  background-color: #f39c12;
+  color: #fff;
   font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.2s, transform 0.1s;
 }
 
-button[type="submit"]:hover {
-  background: #008c32;
+.registerpageText{
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
-/* Redirect text */
-p {
-  margin: 20px 0 10px;
-  color: #aaa;
-  font-size: 14px;
-}
-
-/* Login button */
-.loginBtn {
+.buttonregister {
   width: 100%;
-  max-width: 400px;
-  padding: 14px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
   border: none;
-  border-radius: 12px;
-  background: #0032ff;
-  color: white;
-  font-size: 16px;
+  background-color: #4a90e2;
+  color: #fff;
   font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.2s, transform 0.1s;
 }
 
-.loginBtn:hover {
-  background: #0020a5;
+.buttonregister:hover {
+  background-color: #357ab8;
+  transform: translateY(-2px);
 }
 
-/* Messages */
+.buttonregister:active {
+  transform: translateY(1px);
+}
+
 .success {
-  margin-top: 10px;
-  color: green;
-  font-size: 14px;
+  color: #27ae60;
+  font-weight: bold;
+  margin-top: 0.5rem;
 }
 
 .error {
-  margin-top: 10px;
-  color: red;
-  font-size: 14px;
+  color: #e74c3c;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.loginBtn {
+  margin-top: 0.5rem;
+  background-color: #f39c12;
+}
+
+.loginBtn:hover {
+  background-color: #d78c0d;
+}
+
+p {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.5rem;
 }
