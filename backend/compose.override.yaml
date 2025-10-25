@@ -1,10 +1,10 @@
-
 services:
 ###> doctrine/doctrine-bundle ###
   database:
     ports:
       - "5432"
 ###< doctrine/doctrine-bundle ###
+
 
 ###> symfony/mercure-bundle ###
   mercure:

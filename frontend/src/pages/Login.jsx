@@ -21,8 +21,13 @@ const Login = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server error: Invalid response format");
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Invalid credentials");

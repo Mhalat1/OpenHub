@@ -55,10 +55,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $Skills;
 
     /**
-     * @var Collection<int, project>
+     * @var Collection<int, Project>
      */
-    #[ORM\ManyToMany(targetEntity: project::class, inversedBy: 'users')]
-    private Collection $projects;
+    #[ORM\ManyToMany(targetEntity: Project::class, inversedBy: 'users')]
+    private Collection $Projects;
 
     /**
      * @var Collection<int, User>
@@ -92,7 +92,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __construct()
     {
         $this->Skills = new ArrayCollection();
-        $this->projects = new ArrayCollection();
+        $this->Projects = new ArrayCollection();
         $this->Invitations = new ArrayCollection();
         $this->Friends = new ArrayCollection();
         $this->conversations = new ArrayCollection();
@@ -272,25 +272,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, project>
+     * @return Collection<int, Project>
      */
     public function getProject(): Collection
     {
-        return $this->projects;
+        return $this->Projects;
     }
 
-    public function addProject(project $userProject): static
+    public function addProject(Project $userProject): static
     {
-        if (!$this->projects->contains($userProject)) {
-            $this->projects->add($userProject);
+        if (!$this->Projects->contains($userProject)) {
+            $this->Projects->add($userProject);
         }
 
         return $this;
     }
 
-    public function removeUserProject(project $userProject): static
+    public function removeUserProject(Project $userProject): static
     {
-        $this->projects->removeElement($userProject);
+        $this->Projects->removeElement($userProject);
 
         return $this;
     }

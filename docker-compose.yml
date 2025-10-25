@@ -1,0 +1,16 @@
+version: '3'
+services:
+  mercure:
+    image: dunglas/mercure
+    container_name: mercure
+    environment:
+      # Secret pour signer les JWT
+      MERCURE_PUBLISHER_JWT_KEY: '!ChangeMe!'
+      MERCURE_SUBSCRIBER_JWT_KEY: '!ChangeMe!'
+      # Active le CORS
+      ALLOW_ANONYMOUS: 1
+      CORS_ALLOWED_ORIGINS: '*'
+      # URL publique du hub
+      SERVER_NAME: ':80'
+    ports:
+      - "3000:80"
