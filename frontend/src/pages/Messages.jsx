@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Search, MoreVertical, Phone, Video, Paperclip, Smile } from 'lucide-react';
-import '../style/Messages.module.css';
+import styles from '../style/Message.module.css';
 
 const Messages = () => {
   const [selectedChat, setSelectedChat] = useState(null);
@@ -13,58 +12,48 @@ const Messages = () => {
       id: 1,
       name: 'Sarah Martin',
       avatar: 'https://i.pravatar.cc/150?img=1',
-      lastMessage: 'Hey! Comment va le projet?',
+      lastMessage: 'À tout à l’heure!',
       time: '10:30',
       unread: 3,
       online: true,
       messages: [
         { id: 1, sender: 'them', text: 'Salut! Tu as vu les dernières maquettes?', time: '09:15' },
-        { id: 2, sender: 'me', text: 'Oui je viens de les checker, elles sont top!', time: '09:20' },
-        { id: 3, sender: 'them', text: 'Super! On peut en discuter cet aprem?', time: '09:25' },
+        { id: 2, sender: 'me', text: 'Oui, elles sont top!', time: '09:20' },
+        { id: 3, sender: 'them', text: 'On peut en discuter cet aprem?', time: '09:25' },
         { id: 4, sender: 'me', text: 'Parfait, 15h ça te va?', time: '09:30' },
-        { id: 5, sender: 'them', text: 'Hey! Comment va le projet?', time: '10:30' }
-      ]
+        { id: 5, sender: 'them', text: 'À tout à l’heure!', time: '10:30' },
+      ],
     },
     {
       id: 2,
       name: 'Thomas Dubois',
       avatar: 'https://i.pravatar.cc/150?img=3',
-      lastMessage: 'La réunion est confirmée pour demain',
-      time: '09:45',
+      lastMessage: 'Merci pour la confirmation!',
+      time: '09:50',
       unread: 0,
       online: false,
       messages: [
         { id: 1, sender: 'them', text: 'La réunion est confirmée pour demain', time: '09:45' },
-        { id: 2, sender: 'me', text: 'Ok merci pour la confirmation!', time: '09:50' }
-      ]
+        { id: 2, sender: 'me', text: 'Merci pour la confirmation!', time: '09:50' },
+        { id: 3, sender: 'them', text: 'N’oublie pas d’apporter le rapport', time: '09:52' },
+      ],
     },
     {
       id: 3,
       name: 'Marie Lambert',
       avatar: 'https://i.pravatar.cc/150?img=5',
-      lastMessage: 'J\'ai envoyé les documents',
+      lastMessage: 'Super, merci!',
       time: 'Hier',
       unread: 1,
       online: true,
       messages: [
-        { id: 1, sender: 'them', text: 'J\'ai envoyé les documents par email', time: 'Hier 16:30' },
+        { id: 1, sender: 'them', text: 'J’ai envoyé les documents par email', time: 'Hier 16:30' },
         { id: 2, sender: 'me', text: 'Reçu, je regarde ça!', time: 'Hier 16:35' },
-        { id: 3, sender: 'them', text: 'Tu as pu les consulter?', time: '08:00' }
-      ]
+        { id: 3, sender: 'them', text: 'Tu as pu les consulter?', time: '08:00' },
+        { id: 4, sender: 'me', text: 'Oui, super boulot!', time: '08:15' },
+        { id: 5, sender: 'them', text: 'Super, merci!', time: '08:20' },
+      ],
     },
-    {
-      id: 4,
-      name: 'Alex Chen',
-      avatar: 'https://i.pravatar.cc/150?img=8',
-      lastMessage: 'On se voit au déjeuner?',
-      time: 'Hier',
-      unread: 0,
-      online: false,
-      messages: [
-        { id: 1, sender: 'them', text: 'On se voit au déjeuner?', time: 'Hier 11:30' },
-        { id: 2, sender: 'me', text: 'Désolé j\'ai déjà prévu quelque chose', time: 'Hier 11:45' }
-      ]
-    }
   ]);
 
   const filteredConversations = conversations.filter(conv =>
@@ -81,17 +70,18 @@ const Messages = () => {
       time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     };
 
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === selectedChat.id) {
-        return {
-          ...conv,
-          messages: [...conv.messages, newMessage],
-          lastMessage: messageInput,
-          time: 'Maintenant'
-        };
-      }
-      return conv;
-    }));
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === selectedChat.id
+          ? {
+              ...conv,
+              messages: [...conv.messages, newMessage],
+              lastMessage: messageInput,
+              time: 'Maintenant',
+            }
+          : conv
+      )
+    );
 
     setMessageInput('');
   };
@@ -108,133 +98,111 @@ const Messages = () => {
   }, [selectedChat?.messages]);
 
   useEffect(() => {
-    if (conversations.length > 0 && !selectedChat) {
+    if (!selectedChat && conversations.length > 0) {
       setSelectedChat(conversations[0]);
     }
   }, []);
 
   return (
-    <div className="messages-container">
-      {/* Sidebar - Liste des conversations */}
-      <div className="sidebar">
-        {/* Header */}
-        <div className="sidebar-header">
-          <h1 className="title">Messages</h1>
-          <div className="search-container">
-            <Search className="search-icon" size={20} />
+    <div className={styles['msg-container']}>
+      {/* Sidebar */}
+      <div className={styles['msg-sidebar']}>
+        <div className={styles['msg-sidebar-header']}>
+          <h1 className={styles['msg-title']}>Messages</h1>
+          <div className={styles['msg-search-container']}>
+            🔍
             <input
               type="text"
-              placeholder="Rechercher une conversation..."
-              className="search-input"
+              placeholder="Rechercher..."
+              className={styles['msg-search-input']}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Liste des conversations */}
-        <div className="conversations-list">
+        <div className={styles['msg-conversations-list']}>
           {filteredConversations.map(conv => (
             <div
               key={conv.id}
               onClick={() => setSelectedChat(conv)}
-              className={`conversation-item ${selectedChat?.id === conv.id ? 'active' : ''}`}
+              className={`${styles['msg-conversation-item']} ${
+                selectedChat?.id === conv.id ? styles['msg-active'] : ''
+              }`}
             >
-              <div className="conversation-content">
-                <div className="avatar-container">
-                  <img src={conv.avatar} alt={conv.name} className="avatar" />
-                  {conv.online && <div className="online-indicator"></div>}
+              <div className={styles['msg-conversation-content']}>
+                <div className={styles['msg-avatar-container']}>
+                  <img src={conv.avatar} alt={conv.name} className={styles['msg-avatar']} />
+                  {conv.online && <div className={styles['msg-online-indicator']}></div>}
                 </div>
-                <div className="conversation-info">
-                  <div className="conversation-header">
-                    <h3 className="conversation-name">{conv.name}</h3>
-                    <span className="conversation-time">{conv.time}</span>
+                <div className={styles['msg-conversation-info']}>
+                  <div className={styles['msg-conversation-header']}>
+                    <h3 className={styles['msg-conversation-name']}>{conv.name}</h3>
+                    <span className={styles['msg-conversation-time']}>{conv.time}</span>
                   </div>
-                  <p className="last-message">{conv.lastMessage}</p>
+                  <p className={styles['msg-last-message']}>{conv.lastMessage}</p>
                 </div>
-                {conv.unread > 0 && (
-                  <div className="unread-badge">{conv.unread}</div>
-                )}
+                {conv.unread > 0 && <div className={styles['msg-unread-badge']}>{conv.unread}</div>}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Zone de chat */}
+      {/* Chat */}
       {selectedChat ? (
-        <div className="chat-container">
-          {/* Header du chat */}
-          <div className="chat-header">
-            <div className="chat-header-left">
-              <div className="avatar-container">
-                <img src={selectedChat.avatar} alt={selectedChat.name} className="chat-avatar" />
-                {selectedChat.online && <div className="chat-online-indicator"></div>}
+        <div className={styles['msg-chat-container']}>
+          <div className={styles['msg-chat-header']}>
+            <div className={styles['msg-chat-header-left']}>
+              <div className={styles['msg-avatar-container']} style={{ position: 'relative' }}>
+                <img src={selectedChat.avatar} alt={selectedChat.name} className={styles['msg-chat-avatar']} />
+                {selectedChat.online && <div className={styles['msg-chat-online-indicator']}></div>}
               </div>
-              <div className="chat-user-info">
-                <h2 className="chat-user-name">{selectedChat.name}</h2>
-                <p className="chat-user-status">
-                  {selectedChat.online ? 'En ligne' : 'Hors ligne'}
-                </p>
+              <div className={styles['msg-chat-user-info']}>
+                <h2 className={styles['msg-chat-user-name']}>{selectedChat.name}</h2>
+                <p className={styles['msg-chat-user-status']}>{selectedChat.online ? 'En ligne' : 'Hors ligne'}</p>
               </div>
             </div>
-            <div className="chat-actions">
-              <button className="action-button">
-                <Phone size={20} />
-              </button>
-              <button className="action-button">
-                <Video size={20} />
-              </button>
-              <button className="action-button">
-                <MoreVertical size={20} />
-              </button>
+            <div className={styles['msg-chat-actions']}>
+              <button className={styles['msg-action-button']}>📞</button>
+              <button className={styles['msg-action-button']}>🎥</button>
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="messages-area">
-            {selectedChat.messages.map((msg) => (
-              <div key={msg.id} className={`message-wrapper ${msg.sender === 'me' ? 'me' : 'them'}`}>
-                <div className={`message-bubble ${msg.sender === 'me' ? 'me' : 'them'}`}>
-                  <p className="message-text">{msg.text}</p>
-                  <span className="message-time">{msg.time}</span>
+          <div className={styles['msg-messages-area']}>
+            {selectedChat.messages.map(msg => (
+              <div key={msg.id} className={`${styles['msg-message-wrapper']} ${msg.sender}`}>
+                <div className={`${styles['msg-message-bubble']} ${msg.sender}`}>
+                  <p className={styles['msg-message-text']}>{msg.text}</p>
+                  <span className={styles['msg-message-time']}>{msg.time}</span>
                 </div>
               </div>
             ))}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input de message */}
-          <div className="input-container">
-            <div className="input-wrapper">
-              <button type="button" className="input-action-button">
-                <Paperclip size={20} />
-              </button>
-              <button type="button" className="input-action-button">
-                <Smile size={20} />
-              </button>
+          <div className={styles['msg-input-container']}>
+            <div className={styles['msg-input-wrapper']}>
+              <button type="button" className={styles['msg-input-action-button']}>📎</button>
+              <button type="button" className={styles['msg-input-action-button']}>😊</button>
               <input
                 type="text"
                 placeholder="Écrivez votre message..."
-                className="message-input"
+                className={styles['msg-message-input']}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={handleKeyPress}
               />
-              <button onClick={handleSendMessage} className="send-button">
-                <Send size={20} />
-              </button>
+              <button onClick={handleSendMessage} className={styles['msg-send-button']}>📤</button>
             </div>
           </div>
         </div>
       ) : (
-        <div className="empty-state">
-          <div className="empty-state-content">
-            <div className="empty-state-icon">
-              <Send size={48} />
-            </div>
-            <h3 className="empty-state-title">Sélectionnez une conversation</h3>
-            <p className="empty-state-text">Choisissez une conversation pour commencer à discuter</p>
+        <div className={styles['msg-empty-state']}>
+          <div className={styles['msg-empty-state-content']}>
+            <div className={styles['msg-empty-state-icon']}>📤</div>
+            <h3 className={styles['msg-empty-state-title']}>Sélectionnez une conversation</h3>
+            <p className={styles['msg-empty-state-text']}>Choisissez une conversation pour commencer à discuter</p>
           </div>
         </div>
       )}
