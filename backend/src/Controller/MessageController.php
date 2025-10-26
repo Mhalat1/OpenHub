@@ -80,6 +80,11 @@ class MessageController extends AbstractController
         foreach ($conversations as $conversation) {
             $data[] = [
                 'id' => $conversation->getId(),
+                'title' => $conversation->getTitle(),
+                'description' => $conversation->getDescription(),
+                'createdBy' => $conversation->getCreatedBy()->getFirstName() . ' ' . $conversation->getCreatedBy()->getLastName(),
+                'createdAt' => $conversation->getCreatedAt()?->format('Y-m-d H:i:s'), 
+                'lastMessageAt' => $conversation->getLastMessageAt()?->format('Y-m-d H:i:s'),
             ];
         }
         
