@@ -13,16 +13,19 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\UserService;
 
 final class UserController extends AbstractController
 {
     private EntityManagerInterface $manager;
     private $userRepository;
+    private UserService $userService;
 
-    public function __construct(EntityManagerInterface $manager)
+    public function __construct(EntityManagerInterface $manager, UserService $userService)
     {
         $this->manager = $manager;
         $this->userRepository = $this->manager->getRepository(User::class);
+        $this->userService = $userService;
     }
 
     #[Route('/api/userCreate', name: 'user_create', methods: ['POST'])]
@@ -116,6 +119,8 @@ final class UserController extends AbstractController
             }
             $user = $userEntity;
         }
+        $userData = $this->userService->findAll($user);
+
 
         return new JsonResponse([
             'id' => $user->getId(),
@@ -124,6 +129,7 @@ final class UserController extends AbstractController
             'lastName' => $user->getLastName(),
             'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
             'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
+            'userData' => $userData,
         ]);
     }
 

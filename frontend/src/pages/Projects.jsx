@@ -110,6 +110,7 @@ const Projects = () => {
 
   if (loading) return <p>Loading projects...</p>;
   if (error) return <p>Error: {error}</p>;
+    const token = localStorage.getItem("token");
 
   return (
     <div>
@@ -122,6 +123,8 @@ const Projects = () => {
         className={styles.searchInput}
       />
       <div className={styles.projectscreationContainer}>
+        
+        <h1>{token}</h1>
 
         <h1>Project creation</h1>
         <div className={styles.projectsContainer}>

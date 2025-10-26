@@ -11,7 +11,7 @@ public function __construct(private readonly UserRepository $userRepository)
 
 public function findAll()
 {
-    return $this->userRepository->findby([], ['email' => 'ASC']);
+    return $this->userRepository->findby([], ['firstName' => 'ASC']);
 
 }
 }
