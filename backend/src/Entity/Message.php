@@ -17,7 +17,7 @@ class Message
     #[ORM\Column(type: Types::TEXT)]
     private ?string $content = null;
 
-    #[ORM\ManyToOne(inversedBy: 'createdat')]
+    #[ORM\ManyToOne(inversedBy: 'messages')] // ✅ corrigé: ce n'était pas 'createdat'
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
 
@@ -41,7 +41,6 @@ class Message
     public function setContent(string $content): static
     {
         $this->content = $content;
-
         return $this;
     }
 
@@ -53,7 +52,6 @@ class Message
     public function setAuthor(?User $author): static
     {
         $this->author = $author;
-
         return $this;
     }
 
@@ -65,7 +63,6 @@ class Message
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -77,7 +74,22 @@ class Message
     public function setConversation(?Conversation $conversation): static
     {
         $this->conversation = $conversation;
-
         return $this;
+    }
+
+    // ✅ Ajout : nom complet de l’auteur
+    public function getAuthorName(): ?string
+    {
+        if (!$this->author) {
+            return null;
+        }
+
+        return $this->author->getFirstName() . ' ' . $this->author->getLastName();
+    }
+
+    // ✅ Ajout : titre de la conversation
+    public function getConversationTitle(): ?string
+    {
+        return $this->conversation?->getTitle();
     }
 }

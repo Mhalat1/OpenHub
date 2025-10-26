@@ -90,4 +90,34 @@ class MessageController extends AbstractController
         
         return new JsonResponse($data);
     }
+
+    #[Route('/api/get/messages', name: 'get_messages', methods: ['GET'])]
+    public function getMessages(): JsonResponse
+    {
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        $conversations = $user->getConversations();
+
+        $messagesData = [];
+        foreach ($conversations as $conversation) {
+            foreach ($conversation->getMessages() as $message) {
+                $messagesData[] = [
+                    'id' => $message->getId(),
+                    'content' => $message->getContent(),
+                    'author' => $message->getAuthor()->getFirstName() . ' ' . $message->getAuthor()->getLastName(),
+                    'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
+                    'conversationId' => $conversation->getId(),
+                    'conversationTitle' => $conversation->getTitle(),
+                    'authorName' => $message->getAuthorName(),
+                ];
+            }
+        }
+
+        return new JsonResponse($messagesData);
+    }
+
 }
