@@ -3,19 +3,24 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Repository\UserRepository;
+use App\Repository\MessageRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Entity\Conversation;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
+
 
 class MessageController extends AbstractController
 {
-    private UserRepository $userRepository;
+    private MessageRepository $messageRepository;
 
-    public function __construct(UserRepository $userRepository)
+    public function __construct(MessageRepository $messageRepository)
     {
-        $this->userRepository = $userRepository;
+        $this->messageRepository = $messageRepository;
+
     }
 
     #[Route('/api/getConnectedUser', name: 'get_connected_user', methods: ['GET'])]
@@ -64,32 +69,34 @@ class MessageController extends AbstractController
             ], 500);
         }
     }
+#[Route('/api/get/conversations', name: 'user_conversations', methods: ['GET'])]
+public function getUserConversations(EntityManagerInterface $em): JsonResponse
+{
+    $user = $this->getUser();
 
-    #[Route('/api/get/conversations', name: 'user_conversations', methods: ['GET'])]
-    public function getUserConversations(): JsonResponse
-    {
-        $user = $this->getUser();
-
-        if (!$user instanceof User) {
-            return new JsonResponse(['message' => 'User not authenticated'], 401);
-        }
-
-        $conversations = $user->getConversations();
-
-        $data = [];
-        foreach ($conversations as $conversation) {
-            $data[] = [
-                'id' => $conversation->getId(),
-                'title' => $conversation->getTitle(),
-                'description' => $conversation->getDescription(),
-                'createdBy' => $conversation->getCreatedBy()->getFirstName() . ' ' . $conversation->getCreatedBy()->getLastName(),
-                'createdAt' => $conversation->getCreatedAt()?->format('Y-m-d H:i:s'), 
-                'lastMessageAt' => $conversation->getLastMessageAt()?->format('Y-m-d H:i:s'),
-            ];
-        }
-        
-        return new JsonResponse($data);
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
     }
+
+    // Récupère toutes les conversations créées par cet utilisateur
+    $conversations = $em->getRepository(Conversation::class)
+                        ->findBy(['createdBy' => $user], ['createdAt' => 'DESC']);
+
+    $data = [];
+    foreach ($conversations as $conversation) {
+        $data[] = [
+            'id' => $conversation->getId(),
+            'title' => $conversation->getTitle(),
+            'description' => $conversation->getDescription(),
+            'createdBy' => $conversation->getCreatedBy()->getFirstName() . ' ' . $conversation->getCreatedBy()->getLastName(),
+            'createdAt' => $conversation->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'lastMessageAt' => $conversation->getLastMessageAt()?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    return new JsonResponse($data);
+}
+
 
     #[Route('/api/get/messages', name: 'get_messages', methods: ['GET'])]
     public function getMessages(): JsonResponse
@@ -119,5 +126,35 @@ class MessageController extends AbstractController
 
         return new JsonResponse($messagesData);
     }
+
+#[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
+public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
+
+    $data = json_decode($request->getContent(), true);
+
+    $conversation = new Conversation();
+    $conversation->setTitle($data['title'] ?? 'Nouvelle Conversation');
+    $conversation->setDescription($data['description'] ?? '');
+    $conversation->setCreatedBy($user);
+    $conversation->setCreatedAt(new \DateTimeImmutable());
+    $conversation->setLastMessageAt(null); // pas encore de message
+
+    $em->persist($conversation);
+    $em->flush();
+
+    return new JsonResponse([
+        'id' => $conversation->getId(),
+        'title' => $conversation->getTitle(),
+        'description' => $conversation->getDescription(),
+        'createdBy' => $user->getFirstName() . ' ' . $user->getLastName(),
+        'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
+        'lastMessageAt' => $conversation->getLastMessageAt()
+    ]);
+}
 
 }

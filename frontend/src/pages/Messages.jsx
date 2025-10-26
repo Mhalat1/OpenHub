@@ -102,6 +102,51 @@ const fetchConversations = async () => {
     }
   };
 
+  const createConversation = async (title, description) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/create/conversation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, description }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `Create Conversation API error: ${response.status}`);
+      }
+      
+      return data;
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [success, setSuccess] = useState(null);
+
+  const handleCreateConversation = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const data = await createConversation(title, description);
+      if (data) {
+        setSuccess("Conversation created successfully!");
+        setTitle("");
+        setDescription("");
+        
+        fetchConversations(); // Refresh conversations list
+      }
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchUserFriends();
@@ -150,26 +195,58 @@ const fetchConversations = async () => {
         )}
       </section>
 
-     <section className={styles["msg-section"]}>
-      
+      <div className={styles["msg-container"]}>
+      {/* Formulaire création */}
+      <section className={styles["msg-section"]}>
+        <h2 className={styles["msg-section-title"]}>Créer une conversation</h2>
+        <form onSubmit={handleCreateConversation}>
+          <div>
+            <label>Titre :</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>Description :</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" disabled={loading}>
+            {loading ? "Création..." : "Créer"}
+          </button>
+        </form>
+        {success && <p style={{ color: "green" }}>{success}</p>}
+        {error && <p style={{ color: "red" }}>{error}</p>}
+      </section>
+
+      {/* Liste des conversations */}
+      <section className={styles["msg-section"]}>
         <h2 className={styles["msg-section-title"]}>Conversations</h2>
         {conversations.length > 0 ? (
           <ul className={styles["msg-conversationsList"]}>
             {conversations.map((conv) => (
               <li key={conv.id} className={styles["msg-conversationItem"]}>
-                <p><strong>ID:</strong> {conv.id}</p>
-                <p><strong>Title:</strong> {conv.title}</p>
-                <p><strong>Description:</strong> {conv.description}</p>
-                <p><strong>Created By:</strong> {conv.createdBy}</p>
-                <p><strong>Created At:</strong> {conv.createdAt}</p>
-                <p><strong>Last Message At:</strong> {conv.lastMessageAt}</p>
+                <p><strong>ID :</strong> {conv.id}</p>
+                <p><strong>Titre :</strong> {conv.title}</p>
+                <p><strong>Description :</strong> {conv.description}</p>
+                <p><strong>Créée par :</strong> {conv.createdBy}</p>
+                <p><strong>Créée le :</strong> {conv.createdAt}</p>
+                <p><strong>Dernier message :</strong> {conv.lastMessageAt || "Aucun"}</p>
               </li>
             ))}
           </ul>
         ) : (
-          <p>No conversation data available.</p>
+          <p>Aucune conversation disponible.</p>
         )}
       </section>
+    </div>
+
 
       {/* === Messages Info === */}
       <section className={styles["msg-section"]}>
@@ -179,8 +256,6 @@ const fetchConversations = async () => {
             {message.map((msg) => (
               <li key={msg.id} className={styles["msg-messageItem"]}>
                 <p><strong>conversationTitle:</strong> {msg.conversationTitle}</p>
-                <p>/</p>
-
                 <p><strong>content:</strong> {msg.content}</p>
                 <p><strong>author:</strong> {msg.author}</p>
                 <p><strong>createdAt:</strong> {msg.createdAt}</p>
