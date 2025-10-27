@@ -9,6 +9,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Entity\Conversation;
+use App\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -97,35 +98,32 @@ public function getUserConversations(EntityManagerInterface $em): JsonResponse
     return new JsonResponse($data);
 }
 
-
-    #[Route('/api/get/messages', name: 'get_messages', methods: ['GET'])]
-    public function getMessages(): JsonResponse
-    {
-        $user = $this->getUser();
-
-        if (!$user instanceof User) {
-            return new JsonResponse(['message' => 'User not authenticated'], 401);
-        }
-
-        $conversations = $user->getConversations();
-
-        $messagesData = [];
-        foreach ($conversations as $conversation) {
-            foreach ($conversation->getMessages() as $message) {
-                $messagesData[] = [
-                    'id' => $message->getId(),
-                    'content' => $message->getContent(),
-                    'author' => $message->getAuthor()->getFirstName() . ' ' . $message->getAuthor()->getLastName(),
-                    'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
-                    'conversationId' => $conversation->getId(),
-                    'conversationTitle' => $conversation->getTitle(),
-                    'authorName' => $message->getAuthorName(),
-                ];
-            }
-        }
-
-        return new JsonResponse($messagesData);
+#[Route('/api/get/messages', name: 'get_messages', methods: ['GET'])]
+public function getMessages(Security $security, MessageRepository $messageRepo): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
     }
+
+    // Récupérer tous les messages (ou filtrer par user si nécessaire)
+    $messages = $messageRepo->findAll(); // Ou ->findBy(['author' => $user])
+    
+    $data = [];
+    foreach ($messages as $message) {
+        $data[] = [
+            'id' => $message->getId(),
+            'content' => $message->getContent(),
+            'author' => $message->getAuthor()->getEmail(),
+            'authorName' => $message->getAuthorName(),
+            'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
+            'conversationId' => $message->getConversation()->getId(),
+            'conversationTitle' => $message->getConversationTitle(),
+        ];
+    }
+    
+    return new JsonResponse($data, 200);
+}
 
 #[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
 public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
@@ -155,6 +153,52 @@ public function createConversation(Request $request, Security $security, EntityM
         'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
         'lastMessageAt' => $conversation->getLastMessageAt()
     ]);
+}
+
+#[Route('/api/create/message', name: 'create_message', methods: ['POST'])]
+public function createMessage(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
+
+    $data = json_decode($request->getContent(), true);
+    
+    // Validate required fields
+    if (empty($data['content'])) {
+        return new JsonResponse(['message' => 'Content is required'], 400);
+    }
+    
+    if (empty($data['conversation_id'])) {
+        return new JsonResponse(['message' => 'Conversation ID is required'], 400);
+    }
+
+    // Fetch the Conversation entity
+    $conversation = $em->getRepository(Conversation::class)->find($data['conversation_id']);
+    
+    if (!$conversation) {
+        return new JsonResponse(['message' => 'Conversation not found'], 404);
+    }
+
+    $message = new Message();
+    $message->setContent($data['content']);
+    $message->setCreatedAt(new \DateTimeImmutable());
+    $message->setConversation($conversation);
+    $message->setAuthor($user); // ✅ Passe l'entité User, pas une string !
+
+    $em->persist($message);
+    $em->flush();
+
+    return new JsonResponse([
+        'id' => $message->getId(),
+        'author' => $message->getAuthor()->getEmail(), // Récupère l'email depuis l'entité User
+        'authorName' => $message->getAuthorName(), // Utilise ta méthode helper
+        'content' => $message->getContent(),
+        'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
+        'conversationId' => $conversation->getId(),
+        'conversationTitle' => $conversation->getTitle()
+    ], 201);
 }
 
 }

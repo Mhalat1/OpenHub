@@ -78,29 +78,28 @@ const fetchConversations = async () => {
 };
 
 
-
-  const fetchMessages = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/get/messages", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if  (!response.ok) {
-        throw new Error(data.message || `Messages API error: ${response.status}`);
-      }
-      if (data.length > 0) {
-        setMessage(data);
-      }
-      // Handle messages data as needed
-    } catch (error) {
-      setError(error.message);
+const fetchMessages = async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/get/messages", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Messages API error: ${response.status}`);
     }
-  };
+    // ✅ Toujours mettre à jour, même si vide
+    setMessage(data || []);
+  } catch (error) {
+    setError(error.message);
+  }
+};
+
+
 
   const createConversation = async (title, description) => {
     const token = localStorage.getItem("token");
@@ -146,6 +145,74 @@ const fetchConversations = async () => {
       setError(error.message);
     }
   };
+
+
+
+
+
+
+
+
+
+
+
+const [content, setContent] = useState("");
+const [conversation_id, setConversation] = useState("");
+const [messageLoading, setMessageLoading] = useState(false); // État séparé pour éviter conflit
+
+// Fonction pour créer un message
+const createMessage = async (content, conversation_id) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/create/message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content, conversation_id }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Create Message API error: ${response.status}`);
+    }
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+// Handler pour créer un message
+const handleCreateMessage = async (e) => {
+  e.preventDefault();
+  setError(null);
+  setSuccess(null);
+  setMessageLoading(true);
+
+  try {
+    const data = await createMessage(content, conversation_id);
+    if (data) {
+      setSuccess("Message created successfully!");
+      setContent("");
+      setConversation("");
+      
+      // ✅ Rafraîchir les messages ET les conversations
+      await fetchMessages();
+      await fetchConversations(); // Pour mettre à jour lastMessageAt
+    }
+  } catch (error) {
+    if (error.message.includes('404') || error.message.includes('not found')) {
+      setError(`Conversation ID "${conversation_id}" does not exist.`);
+    } else if (error.message.includes('401')) {
+      setError('You must be logged in to create a message.');
+    } else {
+      setError(error.message);
+    }
+  } finally {
+    setMessageLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();
@@ -224,6 +291,53 @@ const fetchConversations = async () => {
         {success && <p style={{ color: "green" }}>{success}</p>}
         {error && <p style={{ color: "red" }}>{error}</p>}
       </section>
+
+
+
+
+
+
+
+
+      {/* Formulaire création */}
+      <section className={styles["msg-section"]}>
+        <h2 className={styles["msg-section-title"]}>Create message</h2>
+        <form onSubmit={handleCreateMessage}>
+
+          <div>
+            <label>Content :</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+            />
+          </div>
+{/* Replace the conversation_id textarea with a select dropdown */}
+<div>
+  <label>Conversation :</label>
+  <select
+    value={conversation_id}
+    onChange={(e) => setConversation(e.target.value)}
+    required
+  >
+    <option value="">-- Select a conversation --</option>
+    {conversations.map((conv) => (
+      <option key={conv.id} value={conv.id}>
+        {conv.title || `Conversation #${conv.id}`}
+      </option>
+    ))}
+  </select>
+</div>
+          <button type="submit" disabled={loading}>
+            {loading ? "Création..." : "Créer"}
+          </button>
+        </form>
+        {success && <p style={{ color: "green" }}>{success}</p>}
+        {error && <p style={{ color: "red" }}>{error}</p>}
+      </section>
+
+
+
 
       {/* Liste des conversations */}
       <section className={styles["msg-section"]}>
