@@ -155,6 +155,37 @@ public function createConversation(Request $request, Security $security, EntityM
     ]);
 }
 
+
+#[Route('/api/delete/conversation/{id}', name: 'delete_conversation', methods: ['DELETE'])]
+public function deleteConversation(int $id, Security $security, EntityManagerInterface $em): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'User not authenticated'], 401);
+    }
+
+    $conversation = $em->getRepository(Conversation::class)->find($id);
+
+    if (!$conversation) {
+        return new JsonResponse(['success' => false, 'message' => 'Conversation not found'], 404);
+    }
+
+    // Vérifie que l'utilisateur est bien le créateur
+    if ($conversation->getCreatedBy() !== $user) {
+        return new JsonResponse(['success' => false, 'message' => 'Not authorized to delete this conversation'], 403);
+    }
+
+    $em->remove($conversation);
+    $em->flush();
+
+    return new JsonResponse([
+        'success' => true,
+        'message' => 'Conversation deleted successfully'
+    ]);
+}
+
+
+
 #[Route('/api/create/message', name: 'create_message', methods: ['POST'])]
 public function createMessage(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
 {

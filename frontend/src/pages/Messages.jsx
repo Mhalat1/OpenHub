@@ -84,6 +84,41 @@ const Messages = () => {
     }
   };
 
+
+  const handleDeleteConversation = async (conversationId) => {
+  const token = localStorage.getItem("token");
+
+  if (!window.confirm("Are you sure you want to delete this conversation?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/delete/conversation/${conversationId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+if (response.ok) {
+  setSuccess(data.message || "Conversation deleted successfully!");
+  setError(null);
+  setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+} else {
+  setError(data.message || "Error deleting conversation");
+  setSuccess(null);
+}
+
+  } catch (error) {
+    console.error("Error deleting conversation:", error);
+  }
+};
+
+
+
   const fetchMessages = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -287,7 +322,6 @@ const Messages = () => {
                   
                   return (
                     <div key={conv.id} className={styles["msg-conversation-wrapper"]}>
-                      {/* Conversation Header */}
                       <div 
                         className={`${styles["msg-conversation-item"]} ${isExpanded ? styles["msg-conversation-expanded"] : ""}`}
                         onClick={() => handleConversationClick(conv.id)}
@@ -295,6 +329,10 @@ const Messages = () => {
                         <div className={styles["msg-conversation-header"]}>
                           <h3 className={styles["msg-conversation-title"]}>
                             {conv.title}
+                            ++
+                            id : {conv.id}
+                            ++
+                            nombres de messages :
                             <span className={styles["msg-message-count"]}>
                               {getMessageCount(conv.id)}
                             </span>
@@ -303,6 +341,16 @@ const Messages = () => {
                             {new Date(conv.createdAt).toLocaleDateString()}
                           </span>
                         </div>
+                        
+    <div className={styles.conversationActions}>
+      <button
+        className={styles.deleteBtn}
+        onClick={() => handleDeleteConversation(conv.id)}
+      >
+        🗑 Delete
+      </button>
+    </div>
+
                         <p className={styles["msg-conversation-description"]}>{conv.description}</p>
                         <div className={styles["msg-conversation-footer"]}>
                           <span className={styles["msg-conversation-author"]}>By: {conv.createdBy}</span>
