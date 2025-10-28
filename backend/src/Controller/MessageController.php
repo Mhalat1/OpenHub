@@ -70,7 +70,8 @@ class MessageController extends AbstractController
             ], 500);
         }
     }
-#[Route('/api/get/conversations', name: 'user_conversations', methods: ['GET'])]
+
+    #[Route('/api/get/conversations', name: 'user_conversations', methods: ['GET'])]
 public function getUserConversations(EntityManagerInterface $em): JsonResponse
 {
     $user = $this->getUser();
@@ -79,12 +80,24 @@ public function getUserConversations(EntityManagerInterface $em): JsonResponse
         return new JsonResponse(['message' => 'User not authenticated'], 401);
     }
 
-    // Récupère toutes les conversations créées par cet utilisateur
     $conversations = $em->getRepository(Conversation::class)
                         ->findBy(['createdBy' => $user], ['createdAt' => 'DESC']);
 
     $data = [];
     foreach ($conversations as $conversation) {
+        // Récupérer tous les utilisateurs SAUF le créateur
+        $users = [];
+        foreach ($conversation->getUsers() as $convUser) {
+            // ✅ Exclure le créateur de la liste
+            if ($convUser->getId() !== $conversation->getCreatedBy()->getId()) {
+                $users[] = [
+                    'id' => $convUser->getId(),
+                    'name' => $convUser->getFirstName() . ' ' . $convUser->getLastName(),
+                    'email' => $convUser->getEmail()
+                ];
+            }
+        }
+
         $data[] = [
             'id' => $conversation->getId(),
             'title' => $conversation->getTitle(),
@@ -92,6 +105,8 @@ public function getUserConversations(EntityManagerInterface $em): JsonResponse
             'createdBy' => $conversation->getCreatedBy()->getFirstName() . ' ' . $conversation->getCreatedBy()->getLastName(),
             'createdAt' => $conversation->getCreatedAt()?->format('Y-m-d H:i:s'),
             'lastMessageAt' => $conversation->getLastMessageAt()?->format('Y-m-d H:i:s'),
+            'users' => $users, // ✅ Seulement les amis, sans le créateur
+            'userCount' => count($users) // ✅ Compte uniquement les amis
         ];
     }
 
@@ -123,9 +138,7 @@ public function getMessages(Security $security, MessageRepository $messageRepo):
     }
     
     return new JsonResponse($data, 200);
-}
-
-#[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
+}#[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
 public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
 {
     $user = $security->getUser();
@@ -140,7 +153,27 @@ public function createConversation(Request $request, Security $security, EntityM
     $conversation->setDescription($data['description'] ?? '');
     $conversation->setCreatedBy($user);
     $conversation->setCreatedAt(new \DateTimeImmutable());
-    $conversation->setLastMessageAt(null); // pas encore de message
+    $conversation->setLastMessageAt(null);
+
+    // ✅ Ajouter le créateur à la conversation
+    $conversation->addUser($user);
+
+    // ✅ Ajouter UNIQUEMENT les amis sélectionnés (sans le créateur)
+    $conversationUsers = [];
+    if (!empty($data['conv_users']) && is_array($data['conv_users'])) {
+        foreach ($data['conv_users'] as $userId) {
+            $friendUser = $em->getRepository(User::class)->find($userId);
+            // Vérifier que l'ami existe ET qu'il n'est pas le créateur
+            if ($friendUser && $friendUser->getId() !== $user->getId()) {
+                $conversation->addUser($friendUser);
+                $conversationUsers[] = [
+                    'id' => $friendUser->getId(),
+                    'name' => $friendUser->getFirstName() . ' ' . $friendUser->getLastName(),
+                    'email' => $friendUser->getEmail()
+                ];
+            }
+        }
+    }
 
     $em->persist($conversation);
     $em->flush();
@@ -151,40 +184,11 @@ public function createConversation(Request $request, Security $security, EntityM
         'description' => $conversation->getDescription(),
         'createdBy' => $user->getFirstName() . ' ' . $user->getLastName(),
         'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
-        'lastMessageAt' => $conversation->getLastMessageAt()
+        'lastMessageAt' => $conversation->getLastMessageAt(),
+        'users' => $conversationUsers, // ✅ Seulement les amis sélectionnés
+        'userCount' => count($conversationUsers) // ✅ Nombre d'amis (sans compter le créateur)
     ]);
 }
-
-
-#[Route('/api/delete/conversation/{id}', name: 'delete_conversation', methods: ['DELETE'])]
-public function deleteConversation(int $id, Security $security, EntityManagerInterface $em): JsonResponse
-{
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['success' => false, 'message' => 'User not authenticated'], 401);
-    }
-
-    $conversation = $em->getRepository(Conversation::class)->find($id);
-
-    if (!$conversation) {
-        return new JsonResponse(['success' => false, 'message' => 'Conversation not found'], 404);
-    }
-
-    // Vérifie que l'utilisateur est bien le créateur
-    if ($conversation->getCreatedBy() !== $user) {
-        return new JsonResponse(['success' => false, 'message' => 'Not authorized to delete this conversation'], 403);
-    }
-
-    $em->remove($conversation);
-    $em->flush();
-
-    return new JsonResponse([
-        'success' => true,
-        'message' => 'Conversation deleted successfully'
-    ]);
-}
-
-
 
 #[Route('/api/create/message', name: 'create_message', methods: ['POST'])]
 public function createMessage(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
@@ -230,33 +234,6 @@ public function createMessage(Request $request, Security $security, EntityManage
         'conversationId' => $conversation->getId(),
         'conversationTitle' => $conversation->getTitle()
     ], 201);
-}
-#[Route('/api/delete/message/{id}', name: 'delete_message', methods: ['DELETE'])]
-public function deleteMessage(int $id, Security $security, EntityManagerInterface $em): JsonResponse
-{
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['success' => false, 'message' => 'User not authenticated'], 401);
-    }
-
-    $message = $em->getRepository(Message::class)->find($id);
-
-    if (!$message) {
-        return new JsonResponse(['success' => false, 'message' => 'Message not found'], 404);
-    }
-
-    // Vérifie que l'utilisateur est bien l'auteur
-    if ($message->getAuthor() !== $user) {
-        return new JsonResponse(['success' => false, 'message' => 'Not authorized to delete this message'], 403);
-    }
-
-    $em->remove($message);
-    $em->flush();
-
-    return new JsonResponse([
-        'success' => true,
-        'message' => 'Message deleted successfully'
-    ]);
 }
 
 }

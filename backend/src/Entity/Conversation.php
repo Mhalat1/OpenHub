@@ -48,6 +48,8 @@ class Conversation
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
+    
+
     /**
      * Créateur de la conversation
      */
@@ -119,6 +121,12 @@ class Conversation
         $this->lastMessageAt = $lastMessageAt;
         return $this;
     }
+
+
+    
+
+
+    
     public function getCreatedBy(): ?User
     {
         return $this->createdBy;
