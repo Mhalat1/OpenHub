@@ -13,6 +13,7 @@ const Profil = () => {
   const [userProjects, setUserProjects] = useState([]); // Store user projects
   const [invitations, setInvitations] = useState([]); // Store pending invitations
   const [friends, setFriends] = useState([]); // Store friends list
+  const [connectedUser, setUser] = useState([]);
   
   
 
@@ -85,7 +86,7 @@ const Profil = () => {
 
 
   // Fetch users from API
-  const fetchData = async () => {
+  const fetchAllUsers = async () => {
     const token = localStorage.getItem("token");
     try {
       const response = await fetch("http://127.0.0.1:8000/api/getAllUsers", {
@@ -234,21 +235,58 @@ const Profil = () => {
 
 
 
+  const fetchConnectedUser = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      // Récupérer l'utilisateur
+      const userResponse = await fetch("http://127.0.0.1:8000/api/getConnectedUser", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(`User API error: ${userResponse.status}`);
+      }
+
+      const dataUser = await userResponse.json();
+      setUser(dataUser);
+
+      // Récupérer les compétences
+      await fetchSkills();
+
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchData();
     fetchSkills();
     fetchUserProjects();
     fetchPendingInvitations();
     fetchUserFriends();
+    fetchConnectedUser();
+    fetchAllUsers();
   }, []);
 
 
 
-  // Filter users by name or email
-  const filteredUsers = users.filter(user =>
+const filteredUsers = users.filter(user => {
+  const matchesSearch =
     `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    user.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const isNotCurrentUser = connectedUser && user.id !== connectedUser.id;
+
+  return matchesSearch && isNotCurrentUser;
+});
+
 
   // Open modal with user data
   const handleOpenModal = (user) => {
@@ -261,6 +299,9 @@ const Profil = () => {
     setIsModalOpen(false);
     setSelectedUser(null);
   };
+
+
+  
 
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
@@ -374,27 +415,30 @@ const Profil = () => {
 )}
 
 
+<div className={styles.userconnected}>
+  <p>You are connected as:</p>
+  <span>{connectedUser.firstName} {connectedUser.lastName}</span>
+</div>
 
 
-
-      {/* Users grid */}
-      <div className={styles.usersGrid}>
-        {filteredUsers.map((user) => (
-          <div 
-            key={user.id} 
-            className={styles.userCard}
-            onClick={() => handleOpenModal(user)}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className={styles.userAvatar}>
-             
-            </div>
-            <div className={styles.userInfo}>
-              <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
-            </div>
-          </div>
-        ))}
+{/* Users grid */}
+<div className={styles.usersGrid}>
+  {filteredUsers.map((user) => (
+    <div 
+      key={user.id} 
+      className={styles.userCard}
+      onClick={() => handleOpenModal(user)}
+      style={{ cursor: 'pointer' }}
+    >
+      <div className={styles.userAvatar}>
+       
       </div>
+      <div className={styles.userInfo}>
+        <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
+      </div>
+    </div>
+  ))}
+</div>
 
       {filteredUsers.length === 0 && !loading && (
         <div className={styles.noResults}>

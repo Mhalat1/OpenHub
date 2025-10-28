@@ -247,6 +247,8 @@ const Home = () => {
     }
   };
 
+  
+
   const fetchData = async () => {
     const token = localStorage.getItem("token");
 

@@ -1,4 +1,7 @@
 /* Profile container */
+
+
+
 .profileContainer {
   width: 100%;
   min-height: 100vh;
@@ -587,6 +590,53 @@
   background: #dc2626;
   transform: scale(1.05);
 }
+
+
+
+
+.userconnected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(135deg, #2b2d42, #1e1f2f);
+  color: #fff;
+  border-radius: 16px;
+  padding: 1.2rem 2rem;
+  margin: 1.5rem auto;
+  width: fit-content;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  cursor: default;
+}
+
+.userconnected p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #cfcfcf;
+  letter-spacing: 0.5px;
+}
+
+.userconnected span {
+  margin-top: 0.3rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #00fffb;
+  transition: color 0.3s ease;
+}
+
+
+
+/* 🧩 Adaptation mobile */
+@media (max-width: 600px) {
+  .userconnected {
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
 
 /* Responsive */
 @media (max-width: 768px) {
