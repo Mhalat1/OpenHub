@@ -16,8 +16,7 @@ const Messages = () => {
   // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [conversationId, setConversationId] = useState("");
+  const [messageContents, setMessageContents] = useState({}); // Un contenu par conversation
   const [messageLoading, setMessageLoading] = useState(false);
 
   // ========== FETCH FUNCTIONS ==========
@@ -167,18 +166,23 @@ const Messages = () => {
     }
   };
 
-  const handleCreateMessage = async (e) => {
+  const handleCreateMessage = async (e, conversationId) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setMessageLoading(true);
 
+    const content = messageContents[conversationId] || "";
+
     try {
       const data = await createMessage(content, conversationId);
       if (data) {
         setSuccess("Message sent successfully!");
-        setContent("");
-        setConversationId("");
+        // Clear only this conversation's message content
+        setMessageContents(prev => ({
+          ...prev,
+          [conversationId]: ""
+        }));
         await fetchMessages();
         await fetchConversations();
       }
@@ -197,6 +201,13 @@ const Messages = () => {
 
   const handleConversationClick = (convId) => {
     setSelectedConversationId(selectedConversationId === convId ? null : convId);
+  };
+
+  const handleMessageContentChange = (conversationId, value) => {
+    setMessageContents(prev => ({
+      ...prev,
+      [conversationId]: value
+    }));
   };
 
   // ========== COMPUTED DATA ==========
@@ -326,6 +337,32 @@ const Messages = () => {
                           ) : (
                             <p className={styles["msg-empty"]}>No messages in this conversation yet</p>
                           )}
+
+                          {/* Message Form inline in conversation */}
+                          <form 
+                            onSubmit={(e) => handleCreateMessage(e, conv.id)} 
+                            className={styles["msg-form"]}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className={styles["msg-form-group"]}>
+                              <label className={styles["msg-form-label"]}>New Message</label>
+                              <textarea
+                                value={messageContents[conv.id] || ""}
+                                onChange={(e) => handleMessageContentChange(conv.id, e.target.value)}
+                                required
+                                className={styles["msg-form-textarea"]}
+                                placeholder="Type your message"
+                                rows="3"
+                              />
+                            </div>
+                            <button 
+                              type="submit" 
+                              className={styles["msg-form-button"]}
+                              disabled={messageLoading}
+                            >
+                              {messageLoading ? "Sending..." : "Send Message"}
+                            </button>
+                          </form>
                         </div>
                       )}
                     </div>
@@ -372,47 +409,6 @@ const Messages = () => {
               </div>
               <button type="submit" className={styles["msg-form-button"]}>
                 Create Conversation
-              </button>
-            </form>
-          </section>
-
-          {/* Create Message Form */}
-          <section className={styles["msg-card"]}>
-            <h2 className={styles["msg-card-title"]}>New Message</h2>
-            <form onSubmit={handleCreateMessage} className={styles["msg-form"]}>
-              <div className={styles["msg-form-group"]}>
-                <label className={styles["msg-form-label"]}>Conversation</label>
-                <select
-                  value={conversationId}
-                  onChange={(e) => setConversationId(e.target.value)}
-                  required
-                  className={styles["msg-form-select"]}
-                >
-                  <option value="">Select a conversation</option>
-                  {conversations.map((conv) => (
-                    <option key={conv.id} value={conv.id}>
-                      {conv.title} ({getMessageCount(conv.id)} messages)
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={styles["msg-form-group"]}>
-                <label className={styles["msg-form-label"]}>Message</label>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  required
-                  className={styles["msg-form-textarea"]}
-                  placeholder="Type your message"
-                  rows="4"
-                />
-              </div>
-              <button 
-                type="submit" 
-                className={styles["msg-form-button"]}
-                disabled={messageLoading}
-              >
-                {messageLoading ? "Sending..." : "Send Message"}
               </button>
             </form>
           </section>
