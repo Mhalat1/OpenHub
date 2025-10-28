@@ -117,6 +117,32 @@ if (response.ok) {
   }
 };
 
+const handleDeleteMessage = async (messageId) => {
+  const token = localStorage.getItem("token");
+
+  if (!window.confirm("Are you sure you want to delete this message?")) return;
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/delete/message/${messageId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // Met à jour la liste localement
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+    } else {
+      alert(data.message || "Error deleting message");
+    }
+  } catch (error) {
+    console.error("Error deleting message:", error);
+  }
+};
 
 
   const fetchMessages = async () => {
@@ -377,6 +403,18 @@ if (response.ok) {
                                     <span className={styles["msg-message-date"]}>
                                       {new Date(msg.createdAt).toLocaleString()}
                                     </span>
+
+                                    
+        <button
+          className={styles.deleteBtn}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteMessage(msg.id);
+          }}
+        >
+          🗑 Delete
+        </button>
+
                                   </div>
                                   <p className={styles["msg-message-content"]}>{msg.content}</p>
                                 </li>
@@ -385,6 +423,8 @@ if (response.ok) {
                           ) : (
                             <p className={styles["msg-empty"]}>No messages in this conversation yet</p>
                           )}
+
+                          
 
                           {/* Message Form inline in conversation */}
                           <form 
