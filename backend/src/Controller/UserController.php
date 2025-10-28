@@ -590,6 +590,44 @@ public function pendingInvitations(EntityManagerInterface $em, Security $securit
             ], 500);
         }
     }
+
+
+
+
+    #[Route('/api/delete/friends/{id}', name: 'api_delete_friend', methods: ['DELETE'])]
+public function deleteFriend(int $id, Security $security, EntityManagerInterface $em): JsonResponse
+{
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
+    }
+
+    $friend = $em->getRepository(User::class)->find($id);
+
+    if (!$friend) {
+        return new JsonResponse(['success' => false, 'message' => 'Ami introuvable'], 404);
+    }
+
+    // Vérifie si c’est bien un ami
+    if (!$user->getFriends()->contains($friend)) {
+        return new JsonResponse(['success' => false, 'message' => 'Cet utilisateur n’est pas dans votre liste d’amis'], 400);
+    }
+
+    // Supprime la relation d’amitié dans les deux sens
+    $user->removeFriend($friend);
+    $friend->removeFriend($user);
+
+    $em->flush();
+
+    return new JsonResponse([
+        'success' => true,
+        'message' => 'Ami supprimé avec succès'
+    ]);
+}
+
+
+
 #[Route('api/send/invitation', name: 'api_send_invitation', methods: ['POST'])]
 public function sendInvitation(Request $request, EntityManagerInterface $em, Security $security): JsonResponse
 {

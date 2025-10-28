@@ -1,6 +1,7 @@
 /* Home.module.css */
 
 /* Main container */
+
 .projectsContainer {
       grid-template-columns: 1fr 1fr;
     display: grid;
@@ -111,7 +112,7 @@ button:hover {
   transition: border-color 0.3s ease;
 }
 body{
-      background-color: #273858;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .searchInput:focus {

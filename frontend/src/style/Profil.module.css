@@ -5,7 +5,7 @@
 .profileContainer {
   width: 100%;
   min-height: 100vh;
-  background: #273858;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -107,7 +107,6 @@
 
 /* Sub-navigation */
 .subNav {
-  background: #273858;
   display: flex;
   justify-content: flex-start;
   gap: 80px;
@@ -147,7 +146,6 @@
 
 /* Users grid */
 .usersGrid {
-  background: #273858;
   padding: 30px 50px;
   display: grid;
   grid-template-columns: 1fr 1fr;

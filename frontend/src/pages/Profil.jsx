@@ -227,6 +227,31 @@ const fetchPendingInvitations = async () => {
     }
   };
 
+const deleteFriend = async (friendId) => {
+  const token = localStorage.getItem("token");
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/delete/friends/${friendId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+      if (response.ok) {
+      await fetchUserFriends();
+      return
+    
+    } else {
+      console.error("Erreur :", data.message);
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+  }
+};
+
 
 
 
@@ -441,29 +466,43 @@ useEffect(() => {
 )}
 
 
-      {activeTab == 'friends' && (
-        <div className={styles.friendsContainer}>
-          <h3 className={styles.friendsTitle}>Friends List</h3>
-          {friends.length === 0 ? (
-            <div className={styles.noFriends}>
-              <p>No friends added yet.</p>
+{activeTab === 'friends' && (
+  <div className={styles.friendsContainer}>
+    <h3 className={styles.friendsTitle}>Friends List</h3>
+
+    {friends.length === 0 ? (
+      <div className={styles.noFriends}>
+        <p>No friends added yet.</p>
+      </div>
+    ) : (
+      <div className={styles.friendsGrid}>
+        {friends.map((friend) => (
+          <div key={friend.id} className={styles.friendCard}>
+            <div className={styles.friendAvatar}></div>
+
+            <div className={styles.friendInfo}>
+              <h4 className={styles.friendName}>
+                {friend.firstName} {friend.lastName}
+              </h4>
+              <p className={styles.friendEmail}>{friend.email}</p>
             </div>
-          ) : (
-            <div className={styles.friendsGrid}>
-              {friends.map((friend) => (
-                <div key={friend.id} className={styles.friendCard}>
-                  <div className={styles.friendAvatar}>
-                  </div>
-                  <div className={styles.friendInfo}>
-                    <h4 className={styles.friendName}>{friend.firstName} {friend.lastName}</h4>
-                    <p className={styles.friendEmail}>{friend.email}</p>
-                  </div>
-                </div>
-              ))}
+
+            {/* Bouton pour supprimer l’ami */}
+            <div className={styles.friendActions}>
+              <button
+                className={styles.unfriendBtn}
+                onClick={() => deleteFriend(friend.id)}
+              >
+                ❌ Unfriend
+              </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
 
 
       <div className={styles.userconnected}>
