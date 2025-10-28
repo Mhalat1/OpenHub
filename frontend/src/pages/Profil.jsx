@@ -14,8 +14,9 @@ const Profil = () => {
   const [invitations, setInvitations] = useState([]); // Store pending invitations
   const [friends, setFriends] = useState([]); // Store friends list
   const [connectedUser, setUser] = useState([]);
-  
-  
+  const [notification, setNotification] = useState({ message: "", type: "" });
+
+
 
 
 
@@ -33,11 +34,11 @@ const Profil = () => {
 
       if (response.ok) {
         // Mettre à jour la liste des invitations après le refus
-        setInvitations(prevInvitations => 
+        setInvitations(prevInvitations =>
           prevInvitations.filter(inv => inv.id !== invitationsId)
         );
         setFriends(prevFriends => [
-          ...prevFriends, 
+          ...prevFriends,
           invitations.find(inv => inv.id === invitationsId)
         ]);
       } else {
@@ -50,6 +51,11 @@ const Profil = () => {
 
   const acceptInvitations = async (invitationsId) => {
     const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token missing");
+      return;
+    }
+
     try {
       const response = await fetch("http://127.0.0.1:8000/api/invitations/accept", {
         method: "POST",
@@ -60,21 +66,25 @@ const Profil = () => {
         body: JSON.stringify({ inviter_id: invitationsId }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         // Mettre à jour la liste des invitations après l'acceptation
-        setInvitations(prevInvitations => 
+        setInvitations(prevInvitations =>
           prevInvitations.filter(inv => inv.id !== invitationsId)
         );
         setFriends(prevFriends => [
-          ...prevFriends, 
+          ...prevFriends,
           invitations.find(inv => inv.id === invitationsId)
         ]);
 
+        console.log("Invitation accepted:", data);
       } else {
-        console.error('Failed to accept invitations');
+        console.error("Failed to accept invitation:", response.status, data);
       }
+
     } catch (error) {
-      console.error('Error accepting invitations:', error);
+      console.error("Error accepting invitation:", error);
     }
   };
 
@@ -97,12 +107,12 @@ const Profil = () => {
         },
       });
       const data = await response.json();
-      
+
       // Dédoublonner les utilisateurs par ID
       const uniqueUsers = Array.from(
         new Map(data.map(user => [user.id, user])).values()
       );
-      
+
       setUsers(uniqueUsers);
     } catch (error) {
       setError(error.message);
@@ -114,7 +124,7 @@ const Profil = () => {
 
 
 
-  
+
   const fetchSkills = async () => {
     const token = localStorage.getItem("token");
 
@@ -138,31 +148,41 @@ const Profil = () => {
     }
   };
 
-  const fetchPendingInvitations = async () => {
-    const token = localStorage.getItem("token");
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/invitations/pending", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
+const fetchPendingInvitations = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-      if (!response.ok) {
-        throw new Error(`Invitations API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setInvitations(data.success ? data.invitations : []);
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/invitations/pending", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
 
 
-      // Handle pending invitations data as needed
-    } catch (error) {
-      console.error('Error fetching pending invitations:', error);
-    }
-  };
+    if (!response.ok) throw new Error(`Invitations API error: ${response.status}`);
+
+    const data = await response.json();
+
+    // Filtrer les invitations déjà amis
+    const friendIds = new Set(friends.map(f => f.id));
+
+    const filteredInvitations = (Array.isArray(data) ? data : data.invitations || [])
+      .filter(inv => inv && inv.id && !friendIds.has(inv.id));
+
+    setInvitations(filteredInvitations);
+  } catch (error) {
+    console.error('Error fetching pending invitations:', error);
+    setInvitations([]);
+  }
+};
+
+
+
+
 
   // Fonction pour récupérer les compétences
   const fetchUserProjects = async () => {
@@ -207,31 +227,44 @@ const Profil = () => {
     }
   };
 
-  const sendInvitation = async (friend_id) => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/send/invitation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ friend_id }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Add Friend API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Invitation sended successfully:', data);
 
 
-      
-    } catch (error) {
-      console.error('Error adding friend:', error);
+
+const sendInvitation = async (friend_id) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const friendIds = new Set(friends.map(f => f.id));
+
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/send/invitation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ friend_id }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setNotification({ message: data.message || "Erreur lors de l'envoi de l'invitation.", type: "error" });
+      await fetchPendingInvitations();
+      await fetchUserFriends();
+      return
     }
-  };
+    if (response.ok) {
+    setNotification({ message: "Invitation envoyée avec succès !", type: "success" });
+    }
+
+
+  } catch (error) {
+    setNotification({ message: "Erreur réseau : impossible d'envoyer l'invitation.", type: "error" });
+    console.error("Error adding friend:", error);
+  }
+};
 
 
 
@@ -269,23 +302,32 @@ const Profil = () => {
   useEffect(() => {
     fetchSkills();
     fetchUserProjects();
-    fetchPendingInvitations();
-    fetchUserFriends();
+  const init = async () => {
+    await fetchUserFriends(); // attend que friends soit rempli
+    await fetchPendingInvitations(); // maintenant friends est disponible
+  };
     fetchConnectedUser();
     fetchAllUsers();
-  }, []);
+  init();
+}, []);
 
 
+useEffect(() => {
+  if (friends.length > 0) {
+    fetchPendingInvitations();
+  }
+}, [friends]);
 
-const filteredUsers = users.filter(user => {
-  const matchesSearch =
-    `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const isNotCurrentUser = connectedUser && user.id !== connectedUser.id;
+  const filteredUsers = users.filter(user => {
+    const matchesSearch =
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-  return matchesSearch && isNotCurrentUser;
-});
+    const isNotCurrentUser = connectedUser && user.id !== connectedUser.id;
+
+    return matchesSearch && isNotCurrentUser;
+  });
 
 
   // Open modal with user data
@@ -301,7 +343,7 @@ const filteredUsers = users.filter(user => {
   };
 
 
-  
+
 
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
@@ -322,63 +364,71 @@ const filteredUsers = users.filter(user => {
         </div>
       </div>
 
-{/* Sub-navigation */}
-<div className={styles.subNav}>
-  <button 
-    className={`${styles.subNavButton} ${activeTab === 'public' ? styles.active : ''}`}
-    onClick={() => setActiveTab('public')}
-  >
-    Public
-  </button>
-  <button 
-    className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
-    onClick={() => setActiveTab('friends')}
-  >
-    Friends ({friends.length})
-  </button>
-  <button 
-    className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
-    onClick={() => setActiveTab('invitations')}
-  >
-    Invitations ({invitations.length})
-  </button>
-</div>
+      {/* Sub-navigation */}
+      <div className={styles.subNav}>
+        <button
+          className={`${styles.subNavButton} ${activeTab === 'public' ? styles.active : ''}`}
+          onClick={() => setActiveTab('public')}
+        >
+          Public
+        </button>
+        <button
+          className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
+          onClick={() => setActiveTab('friends')}
+        >
+          Friends ({friends.length})
+        </button>
+        <button
+          className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
+          onClick={() => setActiveTab('invitations')}
+        >
+          Invitations ({invitations.length})
+        </button>
+      </div>
+
+      
+
+
 
 {/* Section des invitations - affichage conditionnel */}
 {activeTab === 'invitations' && (
   <div className={styles.invitationsContainer}>
     <h3 className={styles.invitationsTitle}>Invitations en attente</h3>
-    
+
     {invitations.length === 0 ? (
       <div className={styles.noInvitations}>
         <p>Aucune invitations en attente</p>
       </div>
     ) : (
       <div className={styles.invitationsGrid}>
-        {invitations.map((invitations) => (
-          <div key={invitations.id} className={styles.invitationsCard}>
+        {invitations.map(invitation => (
+          <div key={invitation.id} className={styles.invitationsCard}>
             <div className={styles.invitationsHeader}>
-              <div className={styles.invitationsAvatar}>
-              </div>
+              <div className={styles.invitationsAvatar}></div>
               <div className={styles.invitationsInfo}>
                 <h4 className={styles.invitationsName}>
-                  {invitations.firstName} {invitations.lastName}
+                  {invitation.firstName} {invitation.lastName}
                 </h4>
-                <p className={styles.invitationsEmail}>{invitations.email}</p>
+                <p className={styles.invitationsEmail}>{invitation.email}</p>
               </div>
             </div>
-            
+
             <div className={styles.invitationsActions}>
-              <button 
+              <button
                 className={styles.acceptBtn}
-                onClick={() => acceptInvitations(invitations.id)}
-                
+                onClick={async () => {
+                  await acceptInvitations(invitation.id);
+                  await fetchPendingInvitations(); // rafraîchit depuis la BDD
+                }}
               >
                 ✓ Accept
               </button>
-              <button 
+              <button
                 className={styles.rejectBtn}
-                onClick={() => rejectInvitations(invitations.id)}
+                onClick={async () => {
+                  await rejectInvitations(invitation.id);
+                  await fetchPendingInvitations(); // rafraîchit depuis la BDD
+                }}
               >
                 ✕ Refuse
               </button>
@@ -390,55 +440,66 @@ const filteredUsers = users.filter(user => {
   </div>
 )}
 
-{activeTab == 'friends' && (
-  <div className={styles.friendsContainer}>
-    <h3 className={styles.friendsTitle}>Friends List</h3>
-    {friends.length === 0 ? (
-      <div className={styles.noFriends}>
-        <p>No friends added yet.</p>
-      </div>
-    ) : (
-      <div className={styles.friendsGrid}>
-        {friends.map((friend) => (
-          <div key={friend.id} className={styles.friendCard}>
-            <div className={styles.friendAvatar}>
+
+      {activeTab == 'friends' && (
+        <div className={styles.friendsContainer}>
+          <h3 className={styles.friendsTitle}>Friends List</h3>
+          {friends.length === 0 ? (
+            <div className={styles.noFriends}>
+              <p>No friends added yet.</p>
             </div>
-            <div className={styles.friendInfo}>
-              <h4 className={styles.friendName}>{friend.firstName} {friend.lastName}</h4>
-              <p className={styles.friendEmail}>{friend.email}</p>
+          ) : (
+            <div className={styles.friendsGrid}>
+              {friends.map((friend) => (
+                <div key={friend.id} className={styles.friendCard}>
+                  <div className={styles.friendAvatar}>
+                  </div>
+                  <div className={styles.friendInfo}>
+                    <h4 className={styles.friendName}>{friend.firstName} {friend.lastName}</h4>
+                    <p className={styles.friendEmail}>{friend.email}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
+          )}
+        </div>
+      )}
+
+
+      <div className={styles.userconnected}>
+        <p>You are connected as:</p>
+        <span>{connectedUser.firstName} {connectedUser.lastName}</span>
       </div>
-    )}
+
+{notification.message && (
+  <div
+    className={notification.type === "success" ? styles.successMsg : styles.errorMsg}
+  >
+    {notification.message}
   </div>
 )}
 
 
-<div className={styles.userconnected}>
-  <p>You are connected as:</p>
-  <span>{connectedUser.firstName} {connectedUser.lastName}</span>
-</div>
+      {/* Users grid */}
+      <div className={styles.usersGrid}>
 
+        
+        {filteredUsers.map((user) => (
+          <div
+            key={user.id}
+            className={styles.userCard}
+            onClick={() => handleOpenModal(user)}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className={styles.userAvatar}>
 
-{/* Users grid */}
-<div className={styles.usersGrid}>
-  {filteredUsers.map((user) => (
-    <div 
-      key={user.id} 
-      className={styles.userCard}
-      onClick={() => handleOpenModal(user)}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className={styles.userAvatar}>
-       
+            </div>
+            <div className={styles.userInfo}>
+              <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
+            </div>
+          </div>
+        ))}
       </div>
-      <div className={styles.userInfo}>
-        <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
-      </div>
-    </div>
-  ))}
-</div>
 
       {filteredUsers.length === 0 && !loading && (
         <div className={styles.noResults}>
@@ -453,7 +514,7 @@ const filteredUsers = users.filter(user => {
             <button className={styles.modalClose} onClick={handleCloseModal}>
               ✕
             </button>
-            
+
             <div className={styles.modalHeader}>
               <div className={styles.modalAvatar}>
               </div>
@@ -468,7 +529,7 @@ const filteredUsers = users.filter(user => {
                   <span className={styles.infoLabel}>📧 Email:</span>
                   <span className={styles.infoValue}>{selectedUser.email}</span>
                 </div>
-                
+
 
                 {selectedUser.availabilityStart && (
                   <div className={styles.infoRow}>
@@ -476,14 +537,14 @@ const filteredUsers = users.filter(user => {
                     <span className={styles.infoValue}>{selectedUser.availabilityStart}</span>
                   </div>
                 )}
-                
+
                 {selectedUser.availabilityEnd && (
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>💬 availabilityEnd:</span>
                     <span className={styles.infoValue}>{selectedUser.availabilityEnd}</span>
                   </div>
                 )}
-              
+
 
                 {userProjects.length > 0 && (
                   <div className={styles.infoRow}>
@@ -510,29 +571,29 @@ const filteredUsers = users.filter(user => {
                     </ul>
                   </div>
                 )}
-                
+
               </div>
 
               <div className={styles.modalActions}>
-  <button 
-    className={styles.modalButton}
-    onClick={(e) => {
+                <button
+                  className={styles.modalButton}
+                  onClick={(e) => {
 
 
-      e.stopPropagation(); // Empêche la fermeture du modal si nécessaire
-      sendInvitation(selectedUser.id);
-      setInvitations([...invitations, selectedUser]);
+                    e.stopPropagation(); // Empêche la fermeture du modal si nécessaire
+                    sendInvitation(selectedUser.id);
+                    setInvitations([...invitations, selectedUser]);
 
-      handleCloseModal();
-      
-    }}
-  >
-    Add Friend
-  </button>
-                <button 
+                    handleCloseModal();
+
+                  }}
+                >
+                  Add Friend
+                </button>
+                <button
                   className={styles.modalButtonSecondary}
                   onClick={handleCloseModal}
-                  
+
                 >
                   Close
                 </button>

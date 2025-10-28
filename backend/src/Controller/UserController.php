@@ -442,35 +442,37 @@ final class UserController extends AbstractController
             ], 500);
         }
     }
-
-
-
-    #[Route('/api/invitations/pending', name: 'api_pending_invitations', methods: ['GET'])]
-    public function getInvitations(EntityManagerInterface $em): JsonResponse
-    {
-        $user = $this->getUser();
-        
-        if (!$user instanceof User) {
-            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
-        }
-
-        $Invitations = $user->getInvitations();
-
-        $invitations = [];
-        foreach ($Invitations as $inviter) {
-            $invitations[] = [
-                'id' => $inviter->getId(),
-                'firstName' => $inviter->getFirstName(),
-                'lastName' => $inviter->getLastName(),
-                'email' => $inviter->getEmail()
-            ];
-        }
-
-        return new JsonResponse([
-            'success' => true,
-            'invitations' => $invitations
-        ]);
+#[Route('/api/invitations/pending', name: 'api_pending_invitations', methods: ['GET'])]
+public function pendingInvitations(EntityManagerInterface $em, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
     }
+
+    $conn = $em->getConnection();
+    $sql = "SELECT u.id, u.first_name, u.last_name
+            FROM user_invitations ui
+            INNER JOIN user u ON ui.user_source = u.id
+            WHERE ui.user_target = :userId";
+    
+    // executeQuery() renvoie un Result qui a fetchAllAssociative()
+    $result = $conn->executeQuery($sql, ['userId' => $user->getId()]);
+    $invitations = $result->fetchAllAssociative();
+
+    // Filtrer les invitations qui sont déjà amis
+    $validInvitations = array_filter($invitations, function($inv) use ($user) {
+        foreach ($user->getFriends() as $friend) {
+            if ($friend->getId() === $inv['id']) {
+                return false; // déjà ami, on ignore
+            }
+        }
+        return true; // invitation valide
+    });
+
+    return new JsonResponse(['invitations' => array_values($validInvitations)], 200);
+}
+
 
     #[Route('/api/invitations/accept', name: 'api_accept_invitations', methods: ['POST'])]
     public function acceptInvitations(Request $request, EntityManagerInterface $em): JsonResponse
@@ -588,47 +590,55 @@ final class UserController extends AbstractController
             ], 500);
         }
     }
-
-    #[Route('api/send/invitation', name: 'api_send_invitation', methods: ['POST'])]
-    public function sendInvitation(Request $request, EntityManagerInterface $em, Security $security): JsonResponse
-    {
-        $user = $security->getUser();  
-        if (!$user instanceof User) {
-            return new JsonResponse(['message' => 'User not authenticated'], 401);  
-        }
-        try {
-            $data = json_decode($request->getContent(), true);
-            $friendId = $data['friend_id'] ?? null;
-
-            if (!$friendId) {
-                return new JsonResponse(['success' => false, 'message' => 'Friend ID required'], 400);
-            }
-
-            $friend = $em->getRepository(User::class)->find($friendId);
-            if (!$friend) {
-                return new JsonResponse(['success' => false, 'message' => 'User not found'], 404);
-            }
-
-            // Vérifier si l'invitation existe déjà
-            if ($friend->getInvitations()->contains($user)) {
-                return new JsonResponse(['success' => false, 'message' => 'Invitation already sent'], 400);
-            }
-
-            // Ajouter l'invitation
-            $friend->addInvitations($user);
-            $em->flush();
-
-            return new JsonResponse([
-                'success' => true,
-                'message' => 'Invitation sent successfully'
-            ], 200);
-        } catch (\Exception $e) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
-        }
+#[Route('api/send/invitation', name: 'api_send_invitation', methods: ['POST'])]
+public function sendInvitation(Request $request, EntityManagerInterface $em, Security $security): JsonResponse
+{
+    $user = $security->getUser();  
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);  
     }
+
+    try {
+        $data = json_decode($request->getContent(), true);
+        $friendId = $data['friend_id'] ?? null;
+
+        if (!$friendId) {
+            return new JsonResponse(['success' => false, 'message' => 'Friend ID required'], 400);
+        }
+
+        $friend = $em->getRepository(User::class)->find($friendId);
+        if (!$friend) {
+            return new JsonResponse(['success' => false, 'message' => 'User not found'], 404);
+        }
+
+        // Vérifier si déjà amis
+        if ($user->getFriends()->contains($friend)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous êtes déjà amis'], 400);
+        }
+
+        // Vérifier si invitation déjà envoyée
+        if ($user->getInvitations()->contains($friend)) {
+            return new JsonResponse(['success' => false, 'message' => 'Invitation déjà envoyée'], 400);
+        }
+
+        // Ajouter l'invitation correctement : user -> friend
+        $user->addInvitations($friend);  // user_source = $user, user_target = $friend
+        $em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Invitation envoyée avec succès'
+        ], 200);
+
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
 
 
 

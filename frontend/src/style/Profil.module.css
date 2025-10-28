@@ -550,6 +550,7 @@
 }
 
 .acceptBtn {
+      width: 100px;
   background: #10b981;
   color: white;
   border: none;
@@ -571,6 +572,7 @@
 }
 
 .rejectBtn {
+      width: 100px;
   background: #ef4444;
   color: white;
   border: none;
@@ -627,6 +629,26 @@
   transition: color 0.3s ease;
 }
 
+
+
+
+.successMsg {
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.errorMsg {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
 
 
 /* 🧩 Adaptation mobile */
