@@ -10,6 +10,8 @@ const Projects = () => {
   
   const [userProjects, setUserProjects] = useState([]);
   const [availableSkills, setAvailableSkills] = useState([]);
+  
+  // States pour les projets
   const [project, setProject] = useState({
     name: '',
     description: '',
@@ -18,6 +20,18 @@ const Projects = () => {
     endDate: ''
   });
 
+  // States pour les skills
+  const [newSkill, setNewSkill] = useState({
+    name: '',
+    description: '',
+    technoUtilisees: '',
+    duree: ''
+  });
+
+  const [editingSkill, setEditingSkill] = useState(null);
+  const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+
+  // ===== PROJECTS FUNCTIONS =====
   const fetchProjects = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -98,8 +112,7 @@ const Projects = () => {
     }
   };
 
-
-  
+  // ===== SKILLS FUNCTIONS =====
   const fetchAvailableSkills = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -123,8 +136,117 @@ const Projects = () => {
     }
   };
 
+  const createSkill = async () => {
+    // Validation
+    if (!newSkill.name || !newSkill.description || !newSkill.technoUtilisees || !newSkill.duree) {
+      setMessage("❌ All fields are required for skill creation");
+      return;
+    }
 
-  // Fonction pour récupérer les compétences
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/skills/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(newSkill),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage(`✅ ${result.message}`);
+        setTimeout(() => setMessage(''), 3000);
+        
+        // Réinitialiser le formulaire
+        setNewSkill({
+          name: '',
+          description: '',
+          technoUtilisees: '',
+          duree: ''
+        });
+        
+        // Recharger les compétences
+        await fetchAvailableSkills();
+        setIsSkillModalOpen(false);
+      } else {
+        setMessage(`❌ ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Error creating skill:", err);
+      setMessage("❌ Error creating skill");
+    }
+  };
+
+  const updateSkill = async (skillId) => {
+    if (!editingSkill) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/skills/update/${skillId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(editingSkill),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage(`✅ ${result.message}`);
+        setTimeout(() => setMessage(''), 3000);
+        
+        // Recharger les compétences
+        await fetchAvailableSkills();
+        setEditingSkill(null);
+      } else {
+        setMessage(`❌ ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Error updating skill:", err);
+      setMessage("❌ Error updating skill");
+    }
+  };
+
+  const deleteSkill = async (skillId, skillName) => {
+    if (!window.confirm(`Are you sure you want to delete the skill "${skillName}"?`)) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/skills/delete/${skillId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage(`✅ ${result.message}`);
+        setTimeout(() => setMessage(''), 3000);
+        await fetchAvailableSkills();
+      } else {
+        setMessage(`❌ ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Error deleting skill:", err);
+      setMessage("❌ Error deleting skill");
+    }
+  };
+
+  const openEditSkillModal = (skill) => {
+    setEditingSkill({
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+      technoUtilisees: skill.technoUtilisees,
+      duree: skill.duree
+    });
+  };
+
   const fetchUserProjects = async () => {
     const token = localStorage.getItem("token");
 
@@ -147,7 +269,6 @@ const Projects = () => {
       console.error('Error fetching skills:', error);
     }
   };
-
 
   useEffect(() => {
     fetchProjects();
@@ -184,46 +305,40 @@ const Projects = () => {
         />
       </div>
 
-
+      {/* User Projects Section */}
       <div className={styles.projectDashboardSection}>
+        <div className={styles.projectUserProjectsSection}>
+          <h2 className={styles.projectSectionTitle}>📁 My Projects</h2>
 
-  {/* 🔹 User Projects Section */}
-  <div className={styles.projectUserProjectsSection}>
-    <h2 className={styles.projectSectionTitle}>📁 My Projects</h2>
-
-    {userProjects.length === 0 ? (
-      <p className={styles.projectEmptyMessage}>You don't have any projects yet.</p>
-    ) : (
-      <div className={styles.projectGridContainer}>
-        {userProjects.map((project) => (
-          <div key={project.id} className={styles.projectCard}>
-            <div className={styles.projectCardHeader}>
-              <h3 className={styles.projectCardTitle}>{project.name}</h3>
+          {userProjects.length === 0 ? (
+            <p className={styles.projectEmptyMessage}>You don't have any projects yet.</p>
+          ) : (
+            <div className={styles.projectGridContainer}>
+              {userProjects.map((project) => (
+                <div key={project.id} className={styles.projectCard}>
+                  <div className={styles.projectCardHeader}>
+                    <h3 className={styles.projectCardTitle}>{project.name}</h3>
+                  </div>
+                  <div className={styles.projectCardContent}>
+                    <p className={styles.projectCardDescription}>{project.description}</p>
+                    {project.requiredSkills && (
+                      <p className={styles.projectCardSkills}>
+                        <strong>Required Skills:</strong> {project.requiredSkills}
+                      </p>
+                    )}
+                    <div className={styles.projectCardDates}>
+                      <span>📅 Start: {new Date(project.startDate).toLocaleDateString()}</span>
+                      <span>🏁 End: {new Date(project.endDate).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className={styles.projectCardContent}>
-              <p className={styles.projectCardDescription}>{project.description}</p>
-              {project.requiredSkills && (
-                <p className={styles.projectCardSkills}>
-                  <strong>Required Skills:</strong> {project.requiredSkills}
-                </p>
-              )}
-              <div className={styles.projectCardDates}>
-                <span>📅 Start: {new Date(project.startDate).toLocaleDateString()}</span>
-                <span>🏁 End: {new Date(project.endDate).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
-    )}
-  </div>
-</div>
 
-
-
-
-
-      {/* Creation form */}
+      {/* Create Project Form */}
       <div className={styles.projectCreationContainer}>
         <h2 className={styles.projectCreationTitle}>Create New Project</h2>
         <div className={styles.projectFormGrid}>
@@ -277,44 +392,61 @@ const Projects = () => {
         </button>
       </div>
 
-
-
-
-
-      {/* skills list */}
+      {/* Skills Management Section */}
       <div className={styles.projectListContainer}>
-        <h2 className={styles.projectListTitle}>
-          All Skills ({availableSkills.length})
-        </h2>
+        <div className={styles.skillsHeaderContainer}>
+          <h2 className={styles.projectListTitle}>
+            🛠️ All Skills ({availableSkills.length})
+          </h2>
+          <button 
+            onClick={() => setIsSkillModalOpen(true)}
+            className={styles.projectCreateBtn}
+          >
+            ➕ Add New Skill
+          </button>
+        </div>
         
         {availableSkills.length === 0 ? (
-          <p className={styles.projectEmpty}>No projects found.</p>
+          <p className={styles.projectEmpty}>No skills available.</p>
         ) : (
-  <div className={styles.projectSkillsSection}>
-    <h2 className={styles.projectSectionTitle}>🛠️ Available Skills</h2>
-
-    {availableSkills.length === 0 ? (
-      <p className={styles.projectEmptyMessage}>No skills available yet.</p>
-    ) : (
-      <div className={styles.projectGridContainer}>
-        {availableSkills.map((skill) => (
-          <div key={skill.id} className={styles.projectCard}>
-            <div className={styles.projectCardContent}>
-              <h3 className={styles.projectCardTitle}>{skill.name}</h3>
-              <p className={styles.projectCardSubtitle}>
-                {skill.category ? `Category: ${skill.category}` : "No category"}
-              </p>
-            </div>
+          <div className={styles.projectGridContainer}>
+            {availableSkills.map((skill) => (
+              <div key={skill.id} className={styles.projectCard}>
+                <div className={styles.projectCardHeader}>
+                  <h3 className={styles.projectCardTitle}>{skill.name}</h3>
+                  <div className={styles.skillActions}>
+                    <button 
+                      onClick={() => openEditSkillModal(skill)}
+                      className={styles.projectEditBtn}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={() => deleteSkill(skill.id, skill.name)}
+                      className={styles.projectDeleteBtn}
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.projectCardContent}>
+                  <p className={styles.projectCardDescription}>{skill.description}</p>
+                  <p className={styles.projectCardSkills}>
+                    <strong>Technologies:</strong> {skill.technoUtilisees}
+                  </p>
+                  <p className={styles.projectCardSubtitle}>
+                    <strong>Duration:</strong> {skill.duree || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    )}
-  </div>
         )}
       </div>
 
-
-      {/* Projects list */}
+      {/* All Projects List */}
       <div className={styles.projectListContainer}>
         <h2 className={styles.projectListTitle}>
           All Projects ({filteredProjects.length})
@@ -361,6 +493,108 @@ const Projects = () => {
           </div>
         )}
       </div>
+
+      {/* Modal for Creating New Skill */}
+      {isSkillModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsSkillModalOpen(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={() => setIsSkillModalOpen(false)}>×</button>
+            <h2 className={styles.modalTitle}>Create New Skill</h2>
+            
+            <div className={styles.projectFormGrid}>
+              <input
+                type="text"
+                placeholder="Skill Name"
+                value={newSkill.name}
+                onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
+                className={styles.projectInput}
+              />
+              
+              <textarea
+                placeholder="Description (max 50 chars)"
+                value={newSkill.description}
+                onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
+                className={styles.projectTextarea}
+                maxLength={50}
+                rows="2"
+              />
+              
+              <input
+                type="text"
+                placeholder="Technologies Used"
+                value={newSkill.technoUtilisees}
+                onChange={(e) => setNewSkill({ ...newSkill, technoUtilisees: e.target.value })}
+                className={styles.projectInput}
+              />
+              
+              <div className={styles.projectDateGroup}>
+                <label className={styles.projectLabel}>Duration Date</label>
+                <input
+                  type="date"
+                  value={newSkill.duree}
+                  onChange={(e) => setNewSkill({ ...newSkill, duree: e.target.value })}
+                  className={styles.projectInput}
+                />
+              </div>
+            </div>
+            
+            <button onClick={createSkill} className={styles.projectCreateBtn}>
+              ✨ Create Skill
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Editing Skill */}
+      {editingSkill && (
+        <div className={styles.modalOverlay} onClick={() => setEditingSkill(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={() => setEditingSkill(null)}>×</button>
+            <h2 className={styles.modalTitle}>Edit Skill</h2>
+            
+            <div className={styles.projectFormGrid}>
+              <input
+                type="text"
+                placeholder="Skill Name"
+                value={editingSkill.name}
+                onChange={(e) => setEditingSkill({ ...editingSkill, name: e.target.value })}
+                className={styles.projectInput}
+              />
+              
+              <textarea
+                placeholder="Description (max 50 chars)"
+                value={editingSkill.description}
+                onChange={(e) => setEditingSkill({ ...editingSkill, description: e.target.value })}
+                className={styles.projectTextarea}
+                maxLength={50}
+                rows="2"
+              />
+              
+              <input
+                type="text"
+                placeholder="Technologies Used"
+                value={editingSkill.technoUtilisees}
+                onChange={(e) => setEditingSkill({ ...editingSkill, technoUtilisees: e.target.value })}
+                className={styles.projectInput}
+              />
+              
+              <div className={styles.projectDateGroup}>
+                <label className={styles.projectLabel}>Duration Date</label>
+                <input
+                  type="date"
+                  value={editingSkill.duree}
+                  onChange={(e) => setEditingSkill({ ...editingSkill, duree: e.target.value })}
+                  className={styles.projectInput}
+                />
+              </div>
+            </div>
+            
+            <button onClick={() => updateSkill(editingSkill.id)} className={styles.projectCreateBtn}>
+              💾 Update Skill
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
