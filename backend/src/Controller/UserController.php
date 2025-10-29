@@ -222,6 +222,227 @@ final class UserController extends AbstractController
         }
     }
 
+    #[Route('/api/skills/create', name: 'api_create_skill', methods: ['POST'])]
+    public function createSkill(Request $request, Security $security): JsonResponse
+    {
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            // Validation des données
+            if (empty($data['name'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Skill name is required'
+                ], 400);
+            }
+
+            if (empty($data['description'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Description is required'
+                ], 400);
+            }
+
+            if (empty($data['technoUtilisees'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Technologies used is required'
+                ], 400);
+            }
+
+            if (empty($data['duree'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Duration is required'
+                ], 400);
+            }
+
+            // Vérifier si la compétence existe déjà
+            $skillsRepo = $this->manager->getRepository(Skills::class);
+            $existingSkill = $skillsRepo->findOneBy(['Name' => $data['name']]);
+
+            if ($existingSkill) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'A skill with this name already exists'
+                ], 409);
+            }
+
+            // Créer la nouvelle compétence
+            $skill = new Skills();
+            $skill->setName($data['name']);
+            $skill->setDescription($data['description']);
+            $skill->setTechnoUtilisees($data['technoUtilisees']);
+            
+            // Convertir la date en DateTimeImmutable
+            try {
+                $duree = new \DateTimeImmutable($data['duree']);
+                $skill->setDuree($duree);
+            } catch (\Exception $e) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Invalid date format. Use YYYY-MM-DD'
+                ], 400);
+            }
+
+            // Persister en base de données
+            $this->manager->persist($skill);
+            $this->manager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Skill created successfully',
+                'skill' => [
+                    'id' => $skill->getId(),
+                    'name' => $skill->getName(),
+                    'description' => $skill->getDescription(),
+                    'technoUtilisees' => $skill->getTechnoUtilisees(),
+                    'duree' => $skill->getDuree()->format('Y-m-d')
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            error_log("Error creating skill: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Error creating skill',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+     #[Route('/api/skills/update/{id}', name: 'api_update_skill', methods: ['PUT', 'PATCH'])]
+    public function updateSkill(int $id, Request $request, Security $security): JsonResponse
+    {
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $skillsRepo = $this->manager->getRepository(Skills::class);
+            $skill = $skillsRepo->find($id);
+
+            if (!$skill) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Skill not found'
+                ], 404);
+            }
+
+            $data = json_decode($request->getContent(), true);
+
+            // Mise à jour des champs
+            if (isset($data['name'])) {
+                // Vérifier l'unicité du nouveau nom
+                $existingSkill = $skillsRepo->findOneBy(['Name' => $data['name']]);
+                if ($existingSkill && $existingSkill->getId() !== $id) {
+                    return new JsonResponse([
+                        'success' => false,
+                        'message' => 'A skill with this name already exists'
+                    ], 409);
+                }
+                $skill->setName($data['name']);
+            }
+
+            if (isset($data['description'])) {
+                $skill->setDescription($data['description']);
+            }
+
+            if (isset($data['technoUtilisees'])) {
+                $skill->setTechnoUtilisees($data['technoUtilisees']);
+            }
+
+            if (isset($data['duree'])) {
+                try {
+                    $duree = new \DateTimeImmutable($data['duree']);
+                    $skill->setDuree($duree);
+                } catch (\Exception $e) {
+                    return new JsonResponse([
+                        'success' => false,
+                        'message' => 'Invalid date format. Use YYYY-MM-DD'
+                    ], 400);
+                }
+            }
+
+            $this->manager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Skill updated successfully',
+                'skill' => [
+                    'id' => $skill->getId(),
+                    'name' => $skill->getName(),
+                    'description' => $skill->getDescription(),
+                    'technoUtilisees' => $skill->getTechnoUtilisees(),
+                    'duree' => $skill->getDuree()->format('Y-m-d')
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error updating skill: " . $e->getMessage());
+            
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Error updating skill',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+     #[Route('/api/skills/delete/{id}', name: 'api_delete_skill', methods: ['DELETE'])]
+    public function deleteSkill(int $id, Security $security): JsonResponse
+    {
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        try {
+            $skillsRepo = $this->manager->getRepository(Skills::class);
+            $skill = $skillsRepo->find($id);
+
+            if (!$skill) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Skill not found'
+                ], 404);
+            }
+
+            $skillName = $skill->getName();
+
+            $this->manager->remove($skill);
+            $this->manager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => "Skill '$skillName' deleted successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error deleting skill: " . $e->getMessage());
+            
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Error deleting skill',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     #[Route('/api/user/add/skills', name: 'api_user_skills_add', methods: ['POST'])]
     public function addUserSkill(
         Request $request,
