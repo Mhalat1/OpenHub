@@ -6,9 +6,8 @@ const Projects = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-    const [message, setMessage] = useState('');
+  const [message, setMessage] = useState('');
   
-  // ✅ Initialiser project comme un objet
   const [project, setProject] = useState({
     name: '',
     description: '',
@@ -17,8 +16,6 @@ const Projects = () => {
     endDate: ''
   });
 
-
-  // Fetch projects from API
   const fetchProjects = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -51,17 +48,16 @@ const Projects = () => {
         body: JSON.stringify(project),
       });
 
-
       if (response.ok) {
         setMessage("✅ Project created successfully!");
+        setTimeout(() => setMessage(''), 3000);
       } else {
+        const result = await response.json();
         setMessage(`❌ ${result.message}`);
       }
 
-      // ✅ Recharger la liste des projets après création
       fetchProjects();
       
-      // ✅ Réinitialiser le formulaire
       setProject({
         name: '',
         description: '',
@@ -69,14 +65,15 @@ const Projects = () => {
         startDate: '',
         endDate: ''
       });
-      
-      return data;
     } catch (err) {
       console.error("Error creating project:", err);
+      setMessage("❌ Error creating project");
     }
   };
 
   const deleteProjectCard = async (projectId) => {
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    
     try {
       const response = await fetch(`http://127.0.0.1:8000/api/delete/project/${projectId}`, {
         method: "DELETE",
@@ -87,13 +84,15 @@ const Projects = () => {
       });
 
       if (response.ok) {
-        // ✅ Recharger la liste des projets après suppression
+        setMessage("✅ Project deleted successfully!");
+        setTimeout(() => setMessage(''), 3000);
         fetchProjects();
       } else {
-        console.error("Failed to delete project");
+        setMessage("❌ Failed to delete project");
       }
     } catch (err) {
       console.error("Error deleting project:", err);
+      setMessage("❌ Error deleting project");
     }
   };
 
@@ -101,91 +100,134 @@ const Projects = () => {
     fetchProjects();
   }, []);
 
-  // Filter projects by name or required skills
   const filteredProjects = projects.filter(
     (proj) =>
       proj.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (proj.requiredSkills && proj.requiredSkills.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (loading) return <p>Loading projects...</p>;
-  if (error) return <p>Error: {error}</p>;
-    const token = localStorage.getItem("token");
+  if (loading) return <p className={styles.projectLoading}>Loading projects...</p>;
+  if (error) return <p className={styles.projectError}>Error: {error}</p>;
 
   return (
-    <div>
-      {/* Search bar */}
-      <input
-        type="text"
-        placeholder="Search project or skill..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className={styles.searchInput}
-      />
-      <div className={styles.projectscreationContainer}>
-        
-        <h1>{token}</h1>
+    <div className={styles.projectPage}>
+      {/* Notifications */}
+      {message && (
+        <div className={message.startsWith('✅') ? styles.projectNotificationSuccess : styles.projectNotificationError}>
+          {message}
+        </div>
+      )}
 
-        <h1>Project creation</h1>
-        <div className={styles.projectsContainer}>
-          {/* ✅ Syntaxe correcte pour les inputs */}
+      {/* Search bar */}
+      <div className={styles.projectSearchContainer}>
+        <input
+          type="text"
+          placeholder="🔍 Search project or skill..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={styles.projectSearchInput}
+        />
+      </div>
+
+      {/* Creation form */}
+      <div className={styles.projectCreationContainer}>
+        <h2 className={styles.projectCreationTitle}>Create New Project</h2>
+        <div className={styles.projectFormGrid}>
           <input
             type="text"
             placeholder="Project Name"
             value={project.name}
             onChange={(e) => setProject({ ...project, name: e.target.value })}
+            className={styles.projectInput}
           />
           
-          <input
-            type="text"
+          <textarea
             placeholder="Description"
             value={project.description}
             onChange={(e) => setProject({ ...project, description: e.target.value })}
+            className={styles.projectTextarea}
+            rows="3"
           />
           
           <input
             type="text"
-            placeholder="Required Skills"
+            placeholder="Required Skills (e.g., React, Node.js)"
             value={project.requiredSkills}
             onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
+            className={styles.projectInput}
           />
           
-          <input
-            type="date"
-            placeholder="Start Date"
-            value={project.startDate}
-            onChange={(e) => setProject({ ...project, startDate: e.target.value })}
-          />
+          <div className={styles.projectDateGroup}>
+            <label className={styles.projectLabel}>Start Date</label>
+            <input
+              type="date"
+              value={project.startDate}
+              onChange={(e) => setProject({ ...project, startDate: e.target.value })}
+              className={styles.projectInput}
+            />
+          </div>
           
-          <input
-            type="date"
-            placeholder="End Date"
-            value={project.endDate}
-            onChange={(e) => setProject({ ...project, endDate: e.target.value })}
-          />
-          
+          <div className={styles.projectDateGroup}>
+            <label className={styles.projectLabel}>End Date</label>
+            <input
+              type="date"
+              value={project.endDate}
+              onChange={(e) => setProject({ ...project, endDate: e.target.value })}
+              className={styles.projectInput}
+            />
+          </div>
         </div>
-        <button onClick={createProjectCard}>Create Project</button>
+        
+        <button onClick={createProjectCard} className={styles.projectCreateBtn}>
+          ✨ Create Project
+        </button>
       </div>
 
-
       {/* Projects list */}
-      <div className={styles.projectsContainer}>
+      <div className={styles.projectListContainer}>
+        <h2 className={styles.projectListTitle}>
+          All Projects ({filteredProjects.length})
+        </h2>
+        
         {filteredProjects.length === 0 ? (
-          <p>No projects found.</p>
+          <p className={styles.projectEmpty}>No projects found.</p>
         ) : (
-          filteredProjects.map((proj) => (
-            <div key={proj.id} className={styles.projectCard}>
-              <h2>{proj.name}</h2>
-              <p>{proj.description}</p>
-              <p><strong>Skills:</strong> {proj.requiredSkills}</p>
-              <p><strong>Start Date:</strong> {new Date(proj.startDate).toLocaleDateString()}</p>
-              <p><strong>End Date:</strong> {new Date(proj.endDate).toLocaleDateString()}</p>
-
-              <button onClick={() => deleteProjectCard(proj.id)}>Delete Project</button>
-
-            </div>
-          ))
+          <div className={styles.projectGrid}>
+            {filteredProjects.map((proj) => (
+              <div key={proj.id} className={styles.projectCard}>
+                <div className={styles.projectCardHeader}>
+                  <h3 className={styles.projectCardTitle}>{proj.name}</h3>
+                  <button 
+                    onClick={() => deleteProjectCard(proj.id)}
+                    className={styles.projectDeleteBtn}
+                  >
+                    🗑️
+                  </button>
+                </div>
+                
+                <p className={styles.projectCardDescription}>{proj.description}</p>
+                
+                <div className={styles.projectCardSkills}>
+                  <strong>Skills:</strong> {proj.requiredSkills}
+                </div>
+                
+                <div className={styles.projectCardDates}>
+                  <div className={styles.projectDateItem}>
+                    <span className={styles.projectDateLabel}>Start:</span>
+                    <span className={styles.projectDateValue}>
+                      {new Date(proj.startDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className={styles.projectDateItem}>
+                    <span className={styles.projectDateLabel}>End:</span>
+                    <span className={styles.projectDateValue}>
+                      {new Date(proj.endDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

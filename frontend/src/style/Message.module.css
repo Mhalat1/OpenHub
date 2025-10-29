@@ -72,7 +72,7 @@
 .msg-page {
   min-height: 100vh;
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);  background-attachment: fixed;
-  padding: 2rem;
+  padding: 6rem;
   padding-top: calc(150px + 2rem); /* Espace pour le header + padding */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }

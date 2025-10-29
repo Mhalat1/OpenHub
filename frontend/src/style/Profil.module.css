@@ -1,796 +1,432 @@
-/* Profile container */
-
-
-
+/* 🌍 Container principal */
 .profileContainer {
-  width: 100%;
+  padding: 6rem 6rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: "Inter", sans-serif;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-/* Header with search bar */
+/* 🔍 Barre de recherche */
 .header {
-  padding: 75px 0px 0px 0px;
-  width: 100%;
-  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
 }
 
 .searchContainer {
-      background: linear-gradient(135deg, #000000, #1d4ed8);
-  position: relative;
-  
-    padding: 20px 50px;
-    margin: 20px 50px;
-        border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
 }
 
 .searchInput {
-  width: 80%;
-  padding: 20px 25px 20px 60px;
-  border: none;
-  border-radius: 30px;
-  font-size: 18px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ffffff;
+  background: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
   outline: none;
-  color: white;
-  box-sizing: border-box;
 }
 
-.searchInput::placeholder {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 18px;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 20px;
-}
-
-/* Navigation tabs */
-.navTabs {
-  background: linear-gradient(135deg, #000000, #4472c4);
-  padding: 0 50px;
-  margin-top: -50px;
-  display: flex;
-  justify-content: space-between;
-  position: relative;
-  z-index: 2;
-}
-
-.navButtons {
-  display: flex;
-  gap: 0;
-}
-
-.navButton {
-  padding: 20px 60px;
-  border: none;
-  background: white;
-  color: #333;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 25px 25px 0 0;
-}
-
-.navButton:first-child {
-  border-radius: 25px 0 0 0;
-}
-
-.navButton:last-child {
-  border-radius: 0 25px 0 0;
-}
-
-.navButton.active {
-  background: white;
-  color: #333;
-}
-
-.navButton:not(.active) {
-  background: transparent;
-  color: white;
-  opacity: 0.7;
-}
-
-.navButton:not(.active):hover {
-  opacity: 1;
-}
-
-/* Sub-navigation */
+/* 🧭 Sous-navigation */
 .subNav {
   display: flex;
-  justify-content: flex-start;
-  gap: 80px;
-  padding: 0 50px;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .subNavButton {
-  padding: 20px 0;
+  background: #ffffff;
+  color: #000000;
   border: none;
-  background: transparent;
-  color: #999;
-  font-size: 16px;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.subNavButton.active {
-  color: #4472c4;
+.subNavButton:hover {
+  background: #cbd5e1;
+}
+
+.active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* 💬 Notifications */
+.successMsg,
+.errorMsg {
+  text-align: center;
+  padding: 0.9rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.successMsg {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+.errorMsg {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* 👤 Utilisateur connecté */
+.userconnected {
+  text-align: center;
+  font-size: 1rem;
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+}
+
+.userconnected > p{  color:rgb(0, 0, 0);
+}
+
+
+.userconnected span {
   font-weight: 600;
+  color: #2563eb;
 }
 
-.subNavButton.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: #4472c4;
-}
-
-.subNavButton:hover:not(.active) {
-  color: #666;
-}
-
-/* Users grid */
+/* 👥 Grille des utilisateurs */
 .usersGrid {
-  padding: 30px 50px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  min-height: calc(100vh - 300px);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
 }
 
 .userCard {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 25px;
-  background: #f8f9fa;
-  border: 2px solid #e9ecef;
-  border-radius: 20px;
-  transition: all 0.3s ease;
+  text-align: center;
+  transition: all 0.2s ease;
   cursor: pointer;
-  height: 100px;
-  box-sizing: border-box;
 }
 
 .userCard:hover {
-  border-color: #8bb3e0;
-  box-shadow: 0 5px 15px rgba(139, 179, 224, 0.2);
-  transform: translateY(-1px);
+  background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.1);
+  transform: translateY(-3px);
 }
 
-.userAvatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin-right: 25px;
-  flex-shrink: 0;
-  border: 3px solid rgb(0, 0, 0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
 
-.userAvatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.userInfo {
-  flex-grow: 1;
-}
 
 .userName {
-  font-size: 20px;
+  font-size: 1rem;
   font-weight: 600;
-  color: #333;
-  margin: 0 0 8px 0;
+  color: #000000;
 }
 
-.userLevel {
-  font-size: 16px;
-  color: #6c757d;
-  margin: 0;
+/* 🤝 Invitations */
+.invitationsContainer,
+.friendsContainer {
+  background: #fff;
+  border: 1px solid #000000;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
 }
 
-.addButton {
-  width: 50px;
-  height: 50px;
-  border-radius: 15px;
-  border: none;
-  background: #8bb3e0;
-  color: #333;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.invitationsTitle,
+.friendsTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #0f172a;
+}
+
+.invitationsGrid,
+.friendsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.invitationsCard,
+.friendCard {
+  background: #f9fafb;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  gap: 1rem;
+  transition: all 0.2s ease;
 }
 
-.addButton:hover {
-  background: #6b96d1;
+.invitationsCard:hover,
+.friendCard:hover {
+  background: #fff;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+
+
+.invitationsInfo,
+.friendInfo {
+  flex: 1;
+}
+
+.invitationsName,
+.friendName {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.invitationsEmail,
+.friendEmail {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.invitationsActions,
+.friendActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.acceptBtn,
+.rejectBtn,
+.unfriendBtn {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.acceptBtn {
+  background: #16a34a;
   color: white;
-  transform: scale(1.05);
 }
 
-/* Loading and error states */
-.loading, .error {
-  text-align: center;
-  padding: 60px;
-  font-size: 20px;
-  background: white;
-  margin: 0 50px;
+.acceptBtn:hover {
+  background: #15803d;
 }
 
-.loading {
-  color: #4472c4;
+.rejectBtn,
+.unfriendBtn {
+  background: #dc2626;
+  color: white;
 }
 
-.error {
-  color: #dc3545;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 15px;
+.rejectBtn:hover,
+.unfriendBtn:hover {
+  background: #b91c1c;
 }
 
+/* 🔄 États */
+.noInvitations,
+.noFriends,
 .noResults {
   text-align: center;
-  padding: 80px 20px;
-  color: #6c757d;
-  font-size: 20px;
-  background: white;
-  margin: 0 50px;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 1rem;
 }
 
-
-/* Modal styles */
+/* 🧱 Modal */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  z-index: 50;
+  animation: fadeIn 0.2s ease-in-out;
 }
 
 .modalContent {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  max-width: 500px;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
   width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   position: relative;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 .modalClose {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
+  top: 10px;
+  right: 15px;
+  background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: 1.3rem;
   cursor: pointer;
-  color: #666;
-  padding: 4px 8px;
-  transition: color 0.2s;
-}
-
-.modalClose:hover {
-  color: #000;
+  color: #64748b;
 }
 
 .modalHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
   text-align: center;
-  padding-bottom: 24px;
 }
 
 .modalAvatar {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 16px;
+  width: 80px;
+  height: 80px;
+  background: #cbd5e1;
   border-radius: 50%;
-  overflow: hidden;
-  border: 4px solid #4F46E5;
-}
-
-.modalAvatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .modalTitle {
-  font-size: 24px;
+  font-size: 1.2rem;
   font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
+  color: #000000;
 }
 
 .modalBody {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.modalInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  margin-top: 1rem;
 }
 
 .infoRow {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
+  margin-bottom: 0.6rem;
 }
 
 .infoLabel {
   font-weight: 600;
-  color: #4F46E5;
-  flex-shrink: 0;
+  color: #334155;
 }
 
 .infoValue {
-  color: #1a1a1a;
-  text-align: right;
-  word-break: break-word;
+  color: #475569;
+}
+
+.skillList,
+.projectList {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0.5rem;
+}
+
+.skillItem,
+.projectItem {
+  background: #000000;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  display: inline-block;
+  margin: 0.2rem;
+  font-size: 0.85rem;
 }
 
 .modalActions {
+  margin-top: 1.5rem;
   display: flex;
-  gap: 12px;
-  justify-content: center;
+  justify-content: space-between;
 }
 
 .modalButton,
 .modalButtonSecondary {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 0.7rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   border: none;
-  font-size: 14px;
 }
 
 .modalButton {
-  background: #4F46E5;
+  background: #2563eb;
   color: white;
 }
 
 .modalButton:hover {
-  background: #4338CA;
-  transform: translateY(-2px);
+  background: #1d4ed8;
 }
 
 .modalButtonSecondary {
-  background: #e5e7eb;
-  color: #1a1a1a;
+  background: #000000;
+  color: #ffffff;
 }
 
 .modalButtonSecondary:hover {
-  background: #d1d5db;
+  background: #cbd5e1;
 }
 
-
-
-
-
-
-/* Sub Navigation */
-.subNav {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.subNavButton {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #f8fafc;
-  border-radius: 8px;
-  font-weight: 500;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.subNavButton:hover {
-  background: #e2e8f0;
-  color: #374151;
-}
-
-.subNavButton.active {
-  background: #4f46e5;
-  color: white;
-  border-color: #4f46e5;
-}
-
-.invitationsContainer, .friendsContainer {
-  background: white;
-  border-radius: 12px;
+/* ⚙️ Loader et erreurs */
+.loading,
+.error {
+  text-align: center;
+  font-size: 1rem;
   padding: 2rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
-  margin-bottom: 2rem;
-}
-
-.invitationsTitle, .friendsTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.noInvitations, .noFriends {
-  text-align: center;
-  padding: 3rem;
   color: #64748b;
-  font-style: italic;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 2px dashed #cbd5e1;
 }
 
-/* Invitations Grid */
-.invitationsGrid, .friendsGrid {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-}
-
-/* Invitation Card */
-.invitationCard, .friendCard {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.invitationCard:hover, .friendCard:hover {
-  border-color: #4f46e5;
-  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.invitationHeader, .friendHeader {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.invitationAvatar img, .friendAvatar img {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #4f46e5;
-}
-
-.invitationInfo, .friendInfo {
-  flex: 1;
-}
-
-.invitationName, .friendName {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 0.25rem 0;
-  width: 100%;
-}
-
-.invitationEmail, .friendEmail {
-  color: #64748b;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-/* Invitation Actions */
-.invitationActions, .friendActions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-}
-
-.acceptBtn {
-      width: 100px;
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.acceptBtn:hover {
-  background: #059669;
-  transform: scale(1.05);
-}
-
-.rejectBtn {
-      width: 100px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.rejectBtn:hover {
-  background: #dc2626;
-  transform: scale(1.05);
-}
-
-
-
-
-.userconnected {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  background: linear-gradient(135deg, #2b2d42, #1e1f2f);
-  color: #fff;
-  border-radius: 16px;
-  padding: 1.2rem 2rem;
-  margin: 1.5rem auto;
-  width: fit-content;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  transition: all 0.3s ease;
-  font-family: 'Poppins', sans-serif;
-  cursor: default;
-}
-
-.userconnected p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #cfcfcf;
-  letter-spacing: 0.5px;
-}
-
-.userconnected span {
-  margin-top: 0.3rem;
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #00fffb;
-  transition: color 0.3s ease;
-}
-
-
-
-
-.successMsg {
-  color: #155724;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 5px;
-}
-
-.errorMsg {
-  color: #721c24;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 5px;
-}
-
-
-/* 🧩 Adaptation mobile */
-@media (max-width: 600px) {
-  .userconnected {
-    padding: 1rem 1.5rem;
-    font-size: 0.9rem;
+/* 🎞️ Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+/* 📱 Responsive */
+@media (max-width: 900px) {
+  .profileContainer {
+    padding: 1rem;
+  }
 
-/* Responsive */
-@media (max-width: 768px) {
+  .modalContent {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
   .subNav {
+    flex-direction: column;
+  }
+
+  .modalActions {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
-  .invitationsGrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .invitationHeader {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .invitationActions {
-    flex-direction: column;
-  }
-}
 
-
-/* Responsive design */
-@media (max-width: 1200px) {
-  .header, .navTabs, .subNav, .usersGrid {
-    padding-left: 30px;
-    padding-right: 30px;
-  }
-  
-  .usersGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .header, .navTabs, .subNav, .usersGrid {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-  
-  .navButtons {
+  .modalButton,
+  .modalButtonSecondary {
     width: 100%;
-    justify-content: center;
-  }
-  
-  .navButton {
-    flex: 1;
-    padding: 15px 20px;
-    font-size: 16px;
-  }
-  
-  .subNav {
-    gap: 40px;
-    justify-content: center;
-  }
-  
-  .userCard {
-    padding: 20px;
-    height: 90px;
-  }
-  
-  .userAvatar {
-    width: 70px;
-    height: 70px;
-    margin-right: 20px;
-  }
-  
-  .userName {
-    font-size: 18px;
-  }
-  
-  .userLevel {
-    font-size: 14px;
-  }
-  
-  .addButton {
-    width: 45px;
-    height: 45px;
-    font-size: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .header {
-    padding: 30px 15px 60px 15px;
-  }
-  
-  .navTabs, .subNav, .usersGrid {
-    padding-left: 15px;
-    padding-right: 15px;
-  }
-  
-  .searchInput {
-    font-size: 16px;
-    padding: 15px 20px 15px 50px;
-  }
-  
-  .navButton {
-    padding: 12px 15px;
-    font-size: 14px;
-  }
-  
-  .subNav {
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  
-  .subNavButton {
-    font-size: 14px;
-  }
-  
-  .userCard {
-    padding: 15px;
-    height: 80px;
-  }
-  
-  .userAvatar {
-    width: 60px;
-    height: 60px;
-    margin-right: 15px;
-  }
-  
-  .userName {
-    font-size: 16px;
-  }
-  
-  .userLevel {
-    font-size: 13px;
-  }
-  
-  .addButton {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
   }
 }

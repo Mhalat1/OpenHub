@@ -429,7 +429,6 @@ useEffect(() => {
         {invitations.map(invitation => (
           <div key={invitation.id} className={styles.invitationsCard}>
             <div className={styles.invitationsHeader}>
-              <div className={styles.invitationsAvatar}></div>
               <div className={styles.invitationsInfo}>
                 <h4 className={styles.invitationsName}>
                   {invitation.firstName} {invitation.lastName}
@@ -478,7 +477,6 @@ useEffect(() => {
       <div className={styles.friendsGrid}>
         {friends.map((friend) => (
           <div key={friend.id} className={styles.friendCard}>
-            <div className={styles.friendAvatar}></div>
 
             <div className={styles.friendInfo}>
               <h4 className={styles.friendName}>
@@ -530,9 +528,7 @@ useEffect(() => {
             onClick={() => handleOpenModal(user)}
             style={{ cursor: 'pointer' }}
           >
-            <div className={styles.userAvatar}>
-
-            </div>
+       
             <div className={styles.userInfo}>
               <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
             </div>
@@ -555,8 +551,6 @@ useEffect(() => {
             </button>
 
             <div className={styles.modalHeader}>
-              <div className={styles.modalAvatar}>
-              </div>
               <h2 className={styles.modalTitle}>
                 {selectedUser.firstName} {selectedUser.lastName}
               </h2>
