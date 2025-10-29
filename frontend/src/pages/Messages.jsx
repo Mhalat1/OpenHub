@@ -18,6 +18,7 @@ const Messages = () => {
   const [description, setDescription] = useState("");
   const [messageContents, setMessageContents] = useState({}); // Un contenu par conversation
   const [messageLoading, setMessageLoading] = useState(false);
+  const [connectedUser, setConnectedUser] = useState(null); // ✅ Ajouter ce state
 
   // ========== FETCH FUNCTIONS ==========
   const fetchData = async () => {
@@ -42,6 +43,8 @@ const Messages = () => {
         throw new Error(data.message || `User API error: ${userResponse.status}`);
       }
       setUserData(data);
+      setConnectedUser(data); // ✅ Définir l'utilisateur connecté
+
     } catch (error) {
       setError(error.message);
     } finally {
@@ -355,15 +358,12 @@ const Messages = () => {
                       >
                         <div className={styles["msg-conversation-header"]}>
                           <h3 className={styles["msg-conversation-title"]}>
-                            {conv.title}
-                            /
-                            id : {conv.id}
-                            /
-                            nombres de messages :
-                            <span className={styles["msg-message-count"]}>
-                              {getMessageCount(conv.id)}
-                            </span>
-                            /
+                            
+                            Conversation title : {conv.title}
+                            <span>    /   </span>
+
+                            messages : ({getMessageCount(conv.id)})
+                            
 
                           </h3>
                           <span className={styles["msg-conversation-date"]}>
@@ -371,14 +371,17 @@ const Messages = () => {
                           </span>
                         </div>
 
-                        <div className={styles.conversationActions}>
-                          <button
-                            className={styles.deleteBtn}
-                            onClick={() => handleDeleteConversation(conv.id)}
-                          >
-                            🗑 Delete
-                          </button>
-                        </div>
+<div className={styles.conversationActions}>
+  {/* ✅ Afficher le bouton uniquement si l'utilisateur est le créateur */}
+  {conv.createdById === connectedUser?.id && (
+    <button
+      className={styles.deleteBtn}
+      onClick={() => handleDeleteConversation(conv.id)}
+    >
+      🗑 Delete
+    </button>
+  )}
+</div>
 
 
 
@@ -428,17 +431,18 @@ const Messages = () => {
                                       {new Date(msg.createdAt).toLocaleString()}
                                     </span>
 
-
-                                    <button
-                                      className={styles.deleteBtn}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteMessage(msg.id);
-                                      }}
-                                    >
-                                      🗑 Delete
-                                    </button>
-
+{/* ✅ Afficher le bouton uniquement si l'utilisateur est l'auteur */}
+{msg.authorId === connectedUser?.id && (
+  <button
+    className={styles.deleteBtn}
+    onClick={(e) => {
+      e.stopPropagation();
+      handleDeleteMessage(msg.id);
+    }}
+  >
+    🗑 Delete
+  </button>
+)}
                                   </div>
                                   <p className={styles["msg-message-content"]}>{msg.content}</p>
                                 </li>

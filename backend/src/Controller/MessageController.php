@@ -116,7 +116,9 @@ public function getUserConversations(EntityManagerInterface $em): JsonResponse
                 'createdAt' => $conversation->getCreatedAt()?->format('Y-m-d H:i:s'),
                 'lastMessageAt' => $conversation->getLastMessageAt()?->format('Y-m-d H:i:s'),
                 'users' => $users,
-                'userCount' => count($users)
+                'userCount' => count($users),
+                'createdById' => $conversation->getCreatedBy()?->getId(), // ✅ Ajouter cette ligne
+
             ];
         }
 
@@ -147,6 +149,7 @@ public function getMessages(Security $security, MessageRepository $messageRepo):
             'id' => $message->getId(),
             'content' => $message->getContent(),
             'author' => $message->getAuthor()->getEmail(),
+            'authorId' => $message->getAuthor()->getId(), // ✅ Ajouter l'ID de l'auteur
             'authorName' => $message->getAuthorName(),
             'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
             'conversationId' => $message->getConversation()->getId(),
@@ -201,6 +204,7 @@ public function createConversation(Request $request, Security $security, EntityM
         'description' => $conversation->getDescription(),
         'createdBy' => $user->getFirstName() . ' ' . $user->getLastName(),
         'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
+        'createdById' => $conversation->getCreatedBy()?->getId(), // ✅ Ajouter l'ID
         'lastMessageAt' => $conversation->getLastMessageAt(),
         'users' => $conversationUsers, // ✅ Seulement les amis sélectionnés
         'userCount' => count($conversationUsers) // ✅ Nombre d'amis (sans compter le créateur)
@@ -249,7 +253,9 @@ public function createMessage(Request $request, Security $security, EntityManage
         'content' => $message->getContent(),
         'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
         'conversationId' => $conversation->getId(),
-        'conversationTitle' => $conversation->getTitle()
+        'conversationTitle' => $conversation->getTitle(),
+        'authorId' => $message->getAuthor()->getId(), // ✅ Ajouter l'ID de l'auteur
+
     ], 201);
 }
 
