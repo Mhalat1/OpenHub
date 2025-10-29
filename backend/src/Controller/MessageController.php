@@ -296,4 +296,40 @@ public function deleteConversation(int $id, EntityManagerInterface $em): JsonRes
 }
 
 
+
+#[Route('/api/delete/message/{id}', name: 'delete_message', methods: ['DELETE'])]
+public function deleteMessage(int $id, EntityManagerInterface $em): JsonResponse
+{
+    $user = $this->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
+
+    try {
+        $message = $em->getRepository(Message::class)->find($id);
+
+        if (!$message) {
+            return new JsonResponse(['message' => 'Message not found'], 404);
+        }
+
+        // ✅ Vérifier que l'utilisateur est l'auteur du message
+        if ($message->getAuthor()->getId() !== $user->getId()) {
+            return new JsonResponse(['message' => 'You are not authorized to delete this message'], 403);
+        }
+
+        // ✅ Supprimer le message
+        $em->remove($message);
+        $em->flush();
+
+        return new JsonResponse(['message' => 'Message deleted successfully'], 200);
+
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'message' => 'Error deleting message',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }

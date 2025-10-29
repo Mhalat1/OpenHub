@@ -12,7 +12,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-const [conv_users, setConv_users] = useState([]); // Tableau d'IDs
+  const [conv_users, setConv_users] = useState([]); // Tableau d'IDs
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -118,6 +118,8 @@ const [conv_users, setConv_users] = useState([]); // Tableau d'IDs
     }
   };
 
+
+
   const handleDeleteMessage = async (messageId) => {
     const token = localStorage.getItem("token");
 
@@ -134,14 +136,23 @@ const [conv_users, setConv_users] = useState([]); // Tableau d'IDs
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Met à jour la liste localement
+      if (response.ok) {   
+
+        setSuccess(data.message || "Message deleted successfully");
+        setError(null);
         setMessages(prev => prev.filter(m => m.id !== messageId));
+        setTimeout(() => setSuccess(null), 3000);
+
       } else {
-        alert(data.message || "Error deleting message");
+        setError(data.message || "Error deleting message");
+        setSuccess(null);
+        //alert(data.message || "Error deleting message"); 
+        // //alert() ouvre une modale en haut de la page web pour indiauer message d'erreure
       }
     } catch (error) {
       console.error("Error deleting message:", error);
+      setError("Network error. Please try again.");
+      setSuccess(null);
     }
   };
 
@@ -166,50 +177,50 @@ const [conv_users, setConv_users] = useState([]); // Tableau d'IDs
     }
   };
 
-  
-// Fonction de création
-const createConversation = async (title, description, conv_users) => {
-  const token = localStorage.getItem("token");
-  console.log("Sending conversation:", { title, description, conv_users });
 
-  try {
-    const response = await fetch("http://127.0.0.1:8000/api/create/conversation", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title, description, conv_users }), // Envoie le tableau
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || `Create Conversation API error: ${response.status}`);
+  // Fonction de création
+  const createConversation = async (title, description, conv_users) => {
+    const token = localStorage.getItem("token");
+    console.log("Sending conversation:", { title, description, conv_users });
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/create/conversation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, description, conv_users }), // Envoie le tableau
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `Create Conversation API error: ${response.status}`);
+      }
+      return data;
+    } catch (error) {
+      throw error;
     }
-    return data;
-  } catch (error) {
-    throw error;
-  }
-};
+  };
 
-// Handler
-const handleCreateConversation = async (e) => {
-  e.preventDefault();
-  setError(null);
-  setSuccess(null);
+  // Handler
+  const handleCreateConversation = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
 
-  try {
-    const data = await createConversation(title, description, conv_users);
-    if (data) {
-      setSuccess("Conversation created successfully!");
-      setTitle("");
-      setDescription("");
-      setConv_users([]); // Reset le tableau
-      await fetchConversations();
+    try {
+      const data = await createConversation(title, description, conv_users);
+      if (data) {
+        setSuccess("Conversation created successfully!");
+        setTitle("");
+        setDescription("");
+        setConv_users([]); // Reset le tableau
+        await fetchConversations();
+      }
+    } catch (error) {
+      setError(error.message);
     }
-  } catch (error) {
-    setError(error.message);
-  }
-};
+  };
 
   const createMessage = async (content, conversation_id) => {
     const token = localStorage.getItem("token");
@@ -302,7 +313,7 @@ const handleCreateConversation = async (e) => {
 
         {/* LEFT COLUMN - User Info & Friends */}
         <aside className={styles["msg-sidebar"]}>
-         
+
           {/* Friends List */}
           <section className={styles["msg-card"]}>
             <h2 className={styles["msg-card-title"]}>Friends ({friends.length})</h2>
@@ -328,7 +339,7 @@ const handleCreateConversation = async (e) => {
           <section className={styles["msg-card"]}>
             <h2 className={styles["msg-card-title"]}>Conversations ({conversations.length})</h2>
 
-            
+
             {conversations.length > 0 ? (
               <div className={styles["msg-conversations-container"]}>
                 {conversations.map((conv) => {
@@ -353,7 +364,7 @@ const handleCreateConversation = async (e) => {
                               {getMessageCount(conv.id)}
                             </span>
                             /
-                            
+
                           </h3>
                           <span className={styles["msg-conversation-date"]}>
                             {new Date(conv.createdAt).toLocaleDateString()}
@@ -375,29 +386,29 @@ const handleCreateConversation = async (e) => {
 
 
 
-                        
+
 
                         <p className={styles["msg-conversation-description"]}>{conv.description}</p>
                         <div className={styles["msg-conversation-footer"]}>
-  {/* Créateur */}
-  <span className={styles["msg-conversation-author"]}>
-    By: {conv.createdBy}
-  </span>
+                          {/* Créateur */}
+                          <span className={styles["msg-conversation-author"]}>
+                            By: {conv.createdBy}
+                          </span>
 
-  {/* Utilisateurs de la conversation */}
-  {conv.users && conv.users.length > 0 && (
-    <span className={styles["msg-conversation-author"]}>
-      Participants ({conv.userCount}): {conv.users.map(u => u.name).join(', ')}
-    </span>
-  )}
+                          {/* Utilisateurs de la conversation */}
+                          {conv.users && conv.users.length > 0 && (
+                            <span className={styles["msg-conversation-author"]}>
+                              Participants ({conv.userCount}): {conv.users.map(u => u.name).join(', ')}
+                            </span>
+                          )}
 
-  {/* Dernier message */}
-  {conv.lastMessageAt && (
-    <span className={styles["msg-conversation-last"]}>
-      Last: {new Date(conv.lastMessageAt).toLocaleString()}
-    </span>
-  )}
-</div>
+                          {/* Dernier message */}
+                          {conv.lastMessageAt && (
+                            <span className={styles["msg-conversation-last"]}>
+                              Last: {new Date(conv.lastMessageAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
 
                         <div className={styles["msg-expand-indicator"]}>
                           {isExpanded ? '▼ Hide messages' : '▶ Show messages'}
@@ -481,72 +492,71 @@ const handleCreateConversation = async (e) => {
           {/* Notifications */}
           {error && <div className={styles["msg-notification-error"]}>{error}</div>}
           {success && <div className={styles["msg-notification-success"]}>{success}</div>}
+          {success && <div className={styles["msg-notification-success"]}>{success}</div>}
 
-          {/* Create Conversation Form */}
-          {/* Create Conversation Form */}{/* Create Conversation Form */}
-<section className={styles["msg-card"]}>
-  <h2 className={styles["msg-card-title"]}>New Conversation</h2>
-  <form onSubmit={handleCreateConversation} className={styles["msg-form"]}>
-    <div className={styles["msg-form-group"]}>
-      <label className={styles["msg-form-label"]}>Title</label>
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-        className={styles["msg-form-input"]}
-        placeholder="Enter conversation title"
-      />
-    </div>
-    
-    <div className={styles["msg-form-group"]}>
-      <label className={styles["msg-form-label"]}>Description</label>
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        required
-        className={styles["msg-form-textarea"]}
-        placeholder="Describe the conversation"
-        rows="3"
-      />
-    </div>
+          <section className={styles["msg-card"]}>
+            <h2 className={styles["msg-card-title"]}>New Conversation</h2>
+            <form onSubmit={handleCreateConversation} className={styles["msg-form"]}>
+              <div className={styles["msg-form-group"]}>
+                <label className={styles["msg-form-label"]}>Title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className={styles["msg-form-input"]}
+                  placeholder="Enter conversation title"
+                />
+              </div>
 
-    {/* Multi-select Friends */}
-    <div className={styles["msg-form-group"]}>
-      <label className={styles["msg-form-label"]}>
-        Select Friends ({conv_users.length} selected)
-      </label>
-      <div className={styles["msg-friends-list"]}>
-        {friends.length > 0 ? (
-          friends.map((friend) => (
-            <label key={friend.id} className={styles["msg-friend-checkbox"]}>
-              <input
-                type="checkbox"
-                checked={conv_users.includes(friend.id)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setConv_users([...conv_users, friend.id]);
-                  } else {
-                    setConv_users(conv_users.filter(id => id !== friend.id));
-                  }
-                }}
-              />
-              <span>
-                {friend.firstName} {friend.lastName} ({friend.email})
-              </span>
-            </label>
-          ))
-        ) : (
-          <p className={styles["msg-empty"]}>No friends available</p>
-        )}
-      </div>
-    </div>
+              <div className={styles["msg-form-group"]}>
+                <label className={styles["msg-form-label"]}>Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  className={styles["msg-form-textarea"]}
+                  placeholder="Describe the conversation"
+                  rows="3"
+                />
+              </div>
 
-    <button type="submit" className={styles["msg-form-button"]}>
-      Create Conversation
-    </button>
-  </form>
-</section>
+              {/* Multi-select Friends */}
+              <div className={styles["msg-form-group"]}>
+                <label className={styles["msg-form-label"]}>
+                  Select Friends ({conv_users.length} selected)
+                </label>
+                <div className={styles["msg-friends-list"]}>
+                  {friends.length > 0 ? (
+                    friends.map((friend) => (
+                      <label key={friend.id} className={styles["msg-friend-checkbox"]}>
+                        <input
+                          type="checkbox"
+                          checked={conv_users.includes(friend.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConv_users([...conv_users, friend.id]);
+                            } else {
+                              setConv_users(conv_users.filter(id => id !== friend.id));
+                            }
+                          }}
+                        />
+                        <span>
+                          {friend.firstName} {friend.lastName} ({friend.email})
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className={styles["msg-empty"]}>No friends available</p>
+                  )}
+                </div>
+              </div>
+
+              <button type="submit" className={styles["msg-form-button"]}>
+                Create Conversation
+              </button>
+            </form>
+          </section>
         </aside>
       </div>
     </div>
