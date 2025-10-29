@@ -376,23 +376,46 @@ const Home = () => {
         )}
 
 
-        <div className={styles.divider}>
-          <div className={styles.addSkillContainer}>
-            <div className={styles.addSkillCard}>
-              <h2 className={styles.addSkillTitle}>Ajouter une compétence</h2>
+        <h2 className={styles.addSkillTitle}>Add a New Skill</h2>
 
+        {/* Message de feedback */}
+        {message && (
+          <div
+            className={`${styles.messageBox} ${
+              message.includes("✅")
+                ? styles.success
+                : message.includes("⏳")
+                ? styles.info
+                : styles.error
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
+     
+
+
+        <div className={styles.divider}>
+
+          <div className={styles.addSkillContainer}>
+            
+            <div className={styles.addSkillCard}>
               <div className={styles.addSkillForm}>
+                
+                <h2 className={styles.addSkillTitle}>Add you a new skill</h2>
                 <div className={styles.formGroup}>
                   <label htmlFor="skillSelect" className={styles.formLabel}>
-                    Sélectionnez une compétence
+                    Select a skill
                   </label>
                   <select
                     id="skillSelect"
                     value={newSkillId}
                     onChange={(e) => setNewSkillId(e.target.value)}
                     className={styles.formSelect}
+                    disabled={loading}
                   >
-                    <option value="">-- Choisir une compétence --</option>
+                    <option value="">-- Choose a skill --</option>
                     {availableSkills.map(skill => (
                       <option key={skill.id} value={skill.id}>
                         {skill.name}
@@ -404,15 +427,15 @@ const Home = () => {
                 <button
                   onClick={addSkill}
                   className={styles.btnPrimary}
+                  disabled={loading || !newSkillId}
                 >
-                  Add Skill
+                  {loading ? 'Adding...' : 'Add Skill'}
                 </button>
-
-
               </div>
             </div>
           </div>
 
+          
 
 
           <div className={styles.addSkillContainer}>

@@ -15,6 +15,7 @@ const Profil = () => {
   const [friends, setFriends] = useState([]); // Store friends list
   const [connectedUser, setUser] = useState([]);
   const [notification, setNotification] = useState({ message: "", type: "" });
+  const [newSkillId, setNewSkillId] = useState('');
 
 
 
@@ -123,7 +124,46 @@ const Profil = () => {
 
 
 
+// Ajouter une compétence
+  const addSkill = async () => {
+    if (!newSkillId) {
+      setMessage('❌ Please select a skill');
+      return;
+    }
 
+    try {
+      setLoading(true);
+      setMessage('⏳ Adding skill...');
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("http://127.0.0.1:8000/api/user/add/skills", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          skill_id: parseInt(newSkillId)
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage(`✅ ${result.skill_name} added successfully`);
+        setNewSkillId('');
+        // Vous pouvez appeler une fonction de callback ici pour recharger les compétences
+        // Exemple: onSkillAdded()
+      } else {
+        setMessage(`❌ ${result.message}`);
+      }
+    } catch (error) {
+      setMessage('❌ Network error while adding skill');
+      console.error('Error adding skill:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchSkills = async () => {
     const token = localStorage.getItem("token");
@@ -324,8 +364,12 @@ const sendInvitation = async (friend_id) => {
     }
   };
 
+
+  
+
   useEffect(() => {
     fetchSkills();
+
     fetchUserProjects();
   const init = async () => {
     await fetchUserFriends(); // attend que friends soit rempli

@@ -8,6 +8,8 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState('');
   
+  const [userProjects, setUserProjects] = useState([]);
+  const [availableSkills, setAvailableSkills] = useState([]);
   const [project, setProject] = useState({
     name: '',
     description: '',
@@ -96,8 +98,61 @@ const Projects = () => {
     }
   };
 
+
+  
+  const fetchAvailableSkills = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("http://127.0.0.1:8000/api/skills", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur API compétences: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAvailableSkills(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des compétences:", error);
+    }
+  };
+
+
+  // Fonction pour récupérer les compétences
+  const fetchUserProjects = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/user/projects", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Skills API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setUserProjects(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+    }
+  };
+
+
   useEffect(() => {
     fetchProjects();
+    fetchAvailableSkills();
+    fetchUserProjects();
   }, []);
 
   const filteredProjects = projects.filter(
@@ -128,6 +183,45 @@ const Projects = () => {
           className={styles.projectSearchInput}
         />
       </div>
+
+
+      <div className={styles.projectDashboardSection}>
+
+  {/* 🔹 User Projects Section */}
+  <div className={styles.projectUserProjectsSection}>
+    <h2 className={styles.projectSectionTitle}>📁 My Projects</h2>
+
+    {userProjects.length === 0 ? (
+      <p className={styles.projectEmptyMessage}>You don't have any projects yet.</p>
+    ) : (
+      <div className={styles.projectGridContainer}>
+        {userProjects.map((project) => (
+          <div key={project.id} className={styles.projectCard}>
+            <div className={styles.projectCardHeader}>
+              <h3 className={styles.projectCardTitle}>{project.name}</h3>
+            </div>
+            <div className={styles.projectCardContent}>
+              <p className={styles.projectCardDescription}>{project.description}</p>
+              {project.requiredSkills && (
+                <p className={styles.projectCardSkills}>
+                  <strong>Required Skills:</strong> {project.requiredSkills}
+                </p>
+              )}
+              <div className={styles.projectCardDates}>
+                <span>📅 Start: {new Date(project.startDate).toLocaleDateString()}</span>
+                <span>🏁 End: {new Date(project.endDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
+
+
+
+
 
       {/* Creation form */}
       <div className={styles.projectCreationContainer}>
@@ -182,6 +276,43 @@ const Projects = () => {
           ✨ Create Project
         </button>
       </div>
+
+
+
+
+
+      {/* skills list */}
+      <div className={styles.projectListContainer}>
+        <h2 className={styles.projectListTitle}>
+          All Skills ({availableSkills.length})
+        </h2>
+        
+        {availableSkills.length === 0 ? (
+          <p className={styles.projectEmpty}>No projects found.</p>
+        ) : (
+  <div className={styles.projectSkillsSection}>
+    <h2 className={styles.projectSectionTitle}>🛠️ Available Skills</h2>
+
+    {availableSkills.length === 0 ? (
+      <p className={styles.projectEmptyMessage}>No skills available yet.</p>
+    ) : (
+      <div className={styles.projectGridContainer}>
+        {availableSkills.map((skill) => (
+          <div key={skill.id} className={styles.projectCard}>
+            <div className={styles.projectCardContent}>
+              <h3 className={styles.projectCardTitle}>{skill.name}</h3>
+              <p className={styles.projectCardSubtitle}>
+                {skill.category ? `Category: ${skill.category}` : "No category"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+        )}
+      </div>
+
 
       {/* Projects list */}
       <div className={styles.projectListContainer}>
