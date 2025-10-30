@@ -21,6 +21,9 @@ const Projects = () => {
     endDate: ''
   });
 
+  // État pour l'édition de projet
+  const [editingProject, setEditingProject] = useState(null);
+
   // States pour les skills
   const [newSkill, setNewSkill] = useState({
     name: '',
@@ -86,6 +89,48 @@ const Projects = () => {
       console.error("Error creating project:", err);
       setMessage("❌ Error creating project");
     }
+  };
+
+  const updateProject = async (projectId) => {
+    if (!editingProject) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/modify/project/${projectId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(editingProject),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setMessage(`✅ ${result.message}`);
+        setTimeout(() => setMessage(''), 3000);
+        
+        // Recharger les projets
+        await fetchProjects();
+        setEditingProject(null);
+      } else {
+        setMessage(`❌ ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Error updating project:", err);
+      setMessage("❌ Error updating project");
+    }
+  };
+
+  const openEditProjectModal = (proj) => {
+    setEditingProject({
+      id: proj.id,
+      name: proj.name,
+      description: proj.description,
+      requiredSkills: proj.requiredSkills,
+      startDate: proj.startDate.split('T')[0], // Format pour input date
+      endDate: proj.endDate.split('T')[0]
+    });
   };
 
   const deleteProjectCard = async (projectId) => {
@@ -426,12 +471,22 @@ const Projects = () => {
               <div key={proj.id} className={styles.projectCard}>
                 <div className={styles.projectCardHeader}>
                   <h3 className={styles.projectCardTitle}>{proj.name}</h3>
-                  <button 
-                    onClick={() => deleteProjectCard(proj.id)}
-                    className={styles.projectDeleteBtn}
-                  >
-                    🗑️
-                  </button>
+                  <div className={styles.skillActions}>
+                    <button 
+                      onClick={() => openEditProjectModal(proj)}
+                      className={styles.projectEditBtn}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={() => deleteProjectCard(proj.id)}
+                      className={styles.projectDeleteBtn}
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
                 
                 <p className={styles.projectCardDescription}>{proj.description}</p>
@@ -557,6 +612,66 @@ const Projects = () => {
             
             <button onClick={() => updateSkill(editingSkill.id)} className={styles.projectCreateBtn}>
               💾 Update Skill
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Editing Project */}
+      {editingProject && (
+        <div className={styles.modalOverlay} onClick={() => setEditingProject(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={() => setEditingProject(null)}>×</button>
+            <h2 className={styles.modalTitle}>Edit Project</h2>
+            
+            <div className={styles.projectFormGrid}>
+              <input
+                type="text"
+                placeholder="Project Name"
+                value={editingProject.name}
+                onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                className={styles.projectInput}
+              />
+
+              <textarea
+                placeholder="Description"
+                value={editingProject.description}
+                onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
+                className={styles.projectTextarea}
+                rows="3"
+              />
+
+              <input
+                type="text"
+                placeholder="Required Skills (e.g., React, Node.js)"
+                value={editingProject.requiredSkills}
+                onChange={(e) => setEditingProject({ ...editingProject, requiredSkills: e.target.value })}
+                className={styles.projectInput}
+              />
+
+              <div className={styles.projectDateGroup}>
+                <label className={styles.projectLabel}>Start Date</label>
+                <input
+                  type="date"
+                  value={editingProject.startDate}
+                  onChange={(e) => setEditingProject({ ...editingProject, startDate: e.target.value })}
+                  className={styles.projectInput}
+                />
+              </div>
+
+              <div className={styles.projectDateGroup}>
+                <label className={styles.projectLabel}>End Date</label>
+                <input
+                  type="date"
+                  value={editingProject.endDate}
+                  onChange={(e) => setEditingProject({ ...editingProject, endDate: e.target.value })}
+                  className={styles.projectInput}
+                />
+              </div>
+            </div>
+            
+            <button onClick={() => updateProject(editingProject.id)} className={styles.projectCreateBtn}>
+              💾 Update Project
             </button>
           </div>
         </div>
