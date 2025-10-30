@@ -547,11 +547,6 @@ useEffect(() => {
 
 
 
-      <div className={styles.userconnected}>
-        <p>You are connected as:</p>
-        <span>{connectedUser.firstName} {connectedUser.lastName}</span>
-      </div>
-
 {notification.message && (
   <div
     className={notification.type === "success" ? styles.successMsg : styles.errorMsg}

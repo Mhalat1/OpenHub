@@ -10,7 +10,8 @@ const Projects = () => {
   
   const [userProjects, setUserProjects] = useState([]);
   const [availableSkills, setAvailableSkills] = useState([]);
-  
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+
   // States pour les projets
   const [project, setProject] = useState({
     name: '',
@@ -247,33 +248,10 @@ const Projects = () => {
     });
   };
 
-  const fetchUserProjects = async () => {
-    const token = localStorage.getItem("token");
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/projects", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Skills API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setUserProjects(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching skills:', error);
-    }
-  };
 
   useEffect(() => {
     fetchProjects();
     fetchAvailableSkills();
-    fetchUserProjects();
   }, []);
 
   const filteredProjects = projects.filter(
@@ -305,95 +283,7 @@ const Projects = () => {
         />
       </div>
 
-      {/* User Projects Section */}
-      <div className={styles.projectDashboardSection}>
-        <div className={styles.projectUserProjectsSection}>
-          <h2 className={styles.projectSectionTitle}>📁 My Projects</h2>
-
-          {userProjects.length === 0 ? (
-            <p className={styles.projectEmptyMessage}>You don't have any projects yet.</p>
-          ) : (
-            <div className={styles.projectGridContainer}>
-              {userProjects.map((project) => (
-                <div key={project.id} className={styles.projectCard}>
-                  <div className={styles.projectCardHeader}>
-                    <h3 className={styles.projectCardTitle}>{project.name}</h3>
-                  </div>
-                  <div className={styles.projectCardContent}>
-                    <p className={styles.projectCardDescription}>{project.description}</p>
-                    {project.requiredSkills && (
-                      <p className={styles.projectCardSkills}>
-                        <strong>Required Skills:</strong> {project.requiredSkills}
-                      </p>
-                    )}
-                    <div className={styles.projectCardDates}>
-                      <span>📅 Start: {new Date(project.startDate).toLocaleDateString()}</span>
-                      <span>🏁 End: {new Date(project.endDate).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Create Project Form */}
-      <div className={styles.projectCreationContainer}>
-        <h2 className={styles.projectCreationTitle}>Create New Project</h2>
-        <div className={styles.projectFormGrid}>
-          <input
-            type="text"
-            placeholder="Project Name"
-            value={project.name}
-            onChange={(e) => setProject({ ...project, name: e.target.value })}
-            className={styles.projectInput}
-          />
-          
-          <textarea
-            placeholder="Description"
-            value={project.description}
-            onChange={(e) => setProject({ ...project, description: e.target.value })}
-            className={styles.projectTextarea}
-            rows="3"
-          />
-          
-          <input
-            type="text"
-            placeholder="Required Skills (e.g., React, Node.js)"
-            value={project.requiredSkills}
-            onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
-            className={styles.projectInput}
-          />
-          
-          <div className={styles.projectDateGroup}>
-            <label className={styles.projectLabel}>Start Date</label>
-            <input
-              type="date"
-              value={project.startDate}
-              onChange={(e) => setProject({ ...project, startDate: e.target.value })}
-              className={styles.projectInput}
-            />
-          </div>
-          
-          <div className={styles.projectDateGroup}>
-            <label className={styles.projectLabel}>End Date</label>
-            <input
-              type="date"
-              value={project.endDate}
-              onChange={(e) => setProject({ ...project, endDate: e.target.value })}
-              className={styles.projectInput}
-            />
-          </div>
-        </div>
-        
-        <button onClick={createProjectCard} className={styles.projectCreateBtn}>
-          ✨ Create Project
-        </button>
-      </div>
-
       {/* Skills Management Section */}
-      <div className={styles.projectListContainer}>
         <div className={styles.skillsHeaderContainer}>
           <h2 className={styles.projectListTitle}>
             🛠️ All Skills ({availableSkills.length})
@@ -402,7 +292,7 @@ const Projects = () => {
             onClick={() => setIsSkillModalOpen(true)}
             className={styles.projectCreateBtn}
           >
-            ➕ Add New Skill
+            ✨ Create New Skill
           </button>
         </div>
         
@@ -444,13 +334,89 @@ const Projects = () => {
             ))}
           </div>
         )}
+
+      
+      {/* Create Project Form */}
+<div className={styles.projectListContainer}>
+  <div className={styles.skillsHeaderContainer}>
+    <h2 className={styles.projectListTitle}>📁 All Projects ({filteredProjects.length})</h2>
+    <button 
+      onClick={() => setIsProjectModalOpen(true)} 
+      className={styles.projectCreateBtn}
+    >
+      ✨ Create New Project
+    </button>
+  </div>
+</div>
+
+
+{isProjectModalOpen && (
+  <div className={styles.modalOverlay} onClick={() => setIsProjectModalOpen(false)}>
+    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+      <button className={styles.closeButton} onClick={() => setIsProjectModalOpen(false)}>×</button>
+      <h2 className={styles.modalTitle}>Create New Project</h2>
+
+      <div className={styles.projectFormGrid}>
+        <input
+          type="text"
+          placeholder="Project Name"
+          value={project.name}
+          onChange={(e) => setProject({ ...project, name: e.target.value })}
+          className={styles.projectInput}
+        />
+
+        <textarea
+          placeholder="Description"
+          value={project.description}
+          onChange={(e) => setProject({ ...project, description: e.target.value })}
+          className={styles.projectTextarea}
+          rows="3"
+        />
+
+        <input
+          type="text"
+          placeholder="Required Skills (e.g., React, Node.js)"
+          value={project.requiredSkills}
+          onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
+          className={styles.projectInput}
+        />
+
+        <div className={styles.projectDateGroup}>
+          <label className={styles.projectLabel}>Start Date</label>
+          <input
+            type="date"
+            value={project.startDate}
+            onChange={(e) => setProject({ ...project, startDate: e.target.value })}
+            className={styles.projectInput}
+          />
+        </div>
+
+        <div className={styles.projectDateGroup}>
+          <label className={styles.projectLabel}>End Date</label>
+          <input
+            type="date"
+            value={project.endDate}
+            onChange={(e) => setProject({ ...project, endDate: e.target.value })}
+            className={styles.projectInput}
+          />
+        </div>
       </div>
+
+      <button 
+        onClick={() => { createProjectCard(); setIsProjectModalOpen(false); }} 
+        className={styles.projectCreateBtn}
+      >
+        ✨ Create Project
+      </button>
+    </div>
+  </div>
+)}
+
+
 
       {/* All Projects List */}
       <div className={styles.projectListContainer}>
-        <h2 className={styles.projectListTitle}>
-          All Projects ({filteredProjects.length})
-        </h2>
+
         
         {filteredProjects.length === 0 ? (
           <p className={styles.projectEmpty}>No projects found.</p>

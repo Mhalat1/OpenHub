@@ -19,9 +19,8 @@
 /* ========== PAGE LAYOUT ========== */
 .projectPage {
   padding: 6rem;
-  background-color: var(--bg-main);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
-  padding: 2rem 4%;
   display: flex;
   flex-direction: column;
   gap: 3rem;
@@ -143,6 +142,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   gap: 1.5rem;
+      padding: 2rem;
+    border-radius: 20px;
+        background-color: #34406e;
+  
 }
 
 .projectCard {

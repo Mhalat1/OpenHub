@@ -136,6 +136,55 @@ final class ProjectsController extends AbstractController
     }
 
 
+    #[Route('/api/modify/project/{id}', name: 'app_modify_project', methods: ['PUT', 'PATCH'])]
+public function modifyProject(int $id, Request $request): JsonResponse
+{
+    $project = $this->manager->getRepository(Project::class)->find($id);
+
+    if (!$project) {
+        return new JsonResponse(['message' => 'Project not found'], 404);
+    }
+
+    $data = json_decode($request->getContent(), true);
+
+    // Mise à jour des champs si présents dans la requête
+    if (isset($data['name'])) {
+        $project->setName($data['name']);
+    }
+
+    if (isset($data['description'])) {
+        $project->setDescription($data['description']);
+    }
+
+    if (isset($data['requiredSkills'])) {
+        $project->setRequiredSkills($data['requiredSkills']);
+    }
+
+    if (isset($data['startDate'])) {
+        try {
+            $project->setStartDate(new \DateTimeImmutable($data['startDate']));
+        } catch (\Exception $e) {
+            return new JsonResponse(['message' => 'Invalid startDate format'], 400);
+        }
+    }
+
+    if (isset($data['endDate'])) {
+        try {
+            $project->setEndDate(new \DateTimeImmutable($data['endDate']));
+        } catch (\Exception $e) {
+            return new JsonResponse(['message' => 'Invalid endDate format'], 400);
+        }
+    }
+
+    $this->manager->flush();
+
+    return new JsonResponse([
+        'message' => 'Project updated successfully',
+        'project_id' => $project->getId()
+    ], 200);
+}
+
+
     #[Route('/api/delete/project/{id}', name: 'app_delete_project', methods: ['DELETE'])]
     public function deleteProject(int $id): JsonResponse
     {
