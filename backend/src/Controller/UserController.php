@@ -663,37 +663,67 @@ final class UserController extends AbstractController
             ], 500);
         }
     }
-#[Route('/api/invitations/pending', name: 'api_pending_invitations', methods: ['GET'])]
-public function pendingInvitations(EntityManagerInterface $em, Security $security): JsonResponse
-{
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
-    }
 
-    $conn = $em->getConnection();
-    $sql = "SELECT u.id, u.first_name, u.last_name
-            FROM user_invitations ui
-            INNER JOIN user u ON ui.user_source = u.id
-            WHERE ui.user_target = :userId";
-    
-    // executeQuery() renvoie un Result qui a fetchAllAssociative()
-    $result = $conn->executeQuery($sql, ['userId' => $user->getId()]);
-    $invitations = $result->fetchAllAssociative();
 
-    // Filtrer les invitations qui sont déjà amis
-    $validInvitations = array_filter($invitations, function($inv) use ($user) {
-        foreach ($user->getFriends() as $friend) {
-            if ($friend->getId() === $inv['id']) {
-                return false; // déjà ami, on ignore
+    // Récupérer les invitations REÇUES (celles dans la collection Invitations de l'utilisateur)
+    #[Route('/api/invitations/pending', name: 'app_pending_invitations', methods: ['GET'])]
+    public function getPendingInvitations(Security $security): JsonResponse
+    {
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        // Les invitations reçues sont stockées dans la collection Invitations
+        $invitations = $user->getInvitations();
+
+        $data = [];
+        foreach ($invitations as $inviter) {
+            // Vérifier que l'inviter n'est pas déjà un ami
+            if (!$user->getFriends()->contains($inviter)) {
+                $data[] = [
+                    'id' => $inviter->getId(),
+                    'firstName' => $inviter->getFirstName(),
+                    'lastName' => $inviter->getLastName(),
+                    'email' => $inviter->getEmail(),
+                ];
             }
         }
-        return true; // invitation valide
-    });
 
-    return new JsonResponse(['invitations' => array_values($validInvitations)], 200);
-}
+        return new JsonResponse($data);
+    }
 
+    // Récupérer les invitations ENVOYÉES
+    #[Route('/api/invitations/sent', name: 'app_sent_invitations', methods: ['GET'])]
+    public function getSentInvitations(Security $security): JsonResponse
+    {
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        // Trouver tous les utilisateurs qui ont l'utilisateur connecté dans leurs invitations
+        $allUsers = $this->manager->getRepository(User::class)->findAll();
+        
+        $data = [];
+        foreach ($allUsers as $potentialReceiver) {
+            // Si l'utilisateur connecté est dans les invitations de cet utilisateur
+            // ET qu'ils ne sont pas encore amis
+            if ($potentialReceiver->getInvitations()->contains($user) && 
+                !$user->getFriends()->contains($potentialReceiver)) {
+                $data[] = [
+                    'id' => $potentialReceiver->getId(),
+                    'firstName' => $potentialReceiver->getFirstName(),
+                    'lastName' => $potentialReceiver->getLastName(),
+                    'email' => $potentialReceiver->getEmail(),
+                ];
+            }
+        }
+
+        return new JsonResponse($data);
+    }
 
     #[Route('/api/invitations/accept', name: 'api_accept_invitations', methods: ['POST'])]
     public function acceptInvitations(Request $request, EntityManagerInterface $em): JsonResponse

@@ -16,6 +16,7 @@ const Profil = () => {
   const [connectedUser, setUser] = useState([]);
   const [notification, setNotification] = useState({ message: "", type: "" });
   const [newSkillId, setNewSkillId] = useState('');
+  const [sentInvitations, setSentInvitations] = useState([]); // Nouvelles invitations envoyées
 
 
 

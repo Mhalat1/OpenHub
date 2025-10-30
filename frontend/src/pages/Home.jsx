@@ -378,22 +378,6 @@ const Home = () => {
 
         <h2 className={styles.addSkillTitle}>Add a New Skill</h2>
 
-        {/* Message de feedback */}
-        {message && (
-          <div
-            className={`${styles.messageBox} ${
-              message.includes("✅")
-                ? styles.success
-                : message.includes("⏳")
-                ? styles.info
-                : styles.error
-            }`}
-          >
-            {message}
-          </div>
-        )}
-
-     
 
 
         <div className={styles.divider}>
