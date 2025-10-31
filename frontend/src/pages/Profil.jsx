@@ -2,102 +2,25 @@ import React, { useEffect, useState } from 'react';
 import styles from '../style/Profil.module.css';
 
 const Profil = () => {
-  const [users, setUsers] = useState([]); // Store users
-  const [loading, setLoading] = useState(true); // Loader state
-  const [error, setError] = useState(null); // Error state
-  const [activeTab, setActiveTab] = useState('public'); // Active tab
-  const [searchTerm, setSearchTerm] = useState(''); // Search input
-  const [selectedUser, setSelectedUser] = useState(null); // User for modal
-  const [skills, setSkills] = useState([]); // Store skills
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
-  const [userProjects, setUserProjects] = useState([]); // Store user projects
-  const [invitations, setInvitations] = useState([]); // Store pending invitations
-  const [friends, setFriends] = useState([]); // Store friends list
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('public');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [skills, setSkills] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userProjects, setUserProjects] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [connectedUser, setUser] = useState([]);
   const [notification, setNotification] = useState({ message: "", type: "" });
   const [newSkillId, setNewSkillId] = useState('');
-  const [sentInvitations, setSentInvitations] = useState([]); // Nouvelles invitations envoyées
 
 
+const [sentInvitations, setSentInvitations] = useState([]);
+const [receivedInvitations, setReceivedInvitations] = useState([]);
 
-
-
-  const rejectInvitations = async (invitationsId) => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/invitations/reject", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ inviter_id: invitationsId }),
-      });
-
-      if (response.ok) {
-        // Mettre à jour la liste des invitations après le refus
-        setInvitations(prevInvitations =>
-          prevInvitations.filter(inv => inv.id !== invitationsId)
-        );
-        setFriends(prevFriends => [
-          ...prevFriends,
-          invitations.find(inv => inv.id === invitationsId)
-        ]);
-      } else {
-        console.error('Failed to refuse invitations');
-      }
-    } catch (error) {
-      console.error('Error refusing invitations:', error);
-    }
-  };
-
-  const acceptInvitations = async (invitationsId) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("Token missing");
-      return;
-    }
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/invitations/accept", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ inviter_id: invitationsId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Mettre à jour la liste des invitations après l'acceptation
-        setInvitations(prevInvitations =>
-          prevInvitations.filter(inv => inv.id !== invitationsId)
-        );
-        setFriends(prevFriends => [
-          ...prevFriends,
-          invitations.find(inv => inv.id === invitationsId)
-        ]);
-
-        console.log("Invitation accepted:", data);
-      } else {
-        console.error("Failed to accept invitation:", response.status, data);
-      }
-
-    } catch (error) {
-      console.error("Error accepting invitation:", error);
-    }
-  };
-
-
-
-
-
-
-
-
-  // Fetch users from API
   const fetchAllUsers = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -110,7 +33,6 @@ const Profil = () => {
       });
       const data = await response.json();
 
-      // Dédoublonner les utilisateurs par ID
       const uniqueUsers = Array.from(
         new Map(data.map(user => [user.id, user])).values()
       );
@@ -124,130 +46,50 @@ const Profil = () => {
   };
 
 
-
-// Ajouter une compétence
-  const addSkill = async () => {
-    if (!newSkillId) {
-      setMessage('❌ Please select a skill');
-      return;
-    }
-
+  const fetchPendingInvitations = async () => {
+    const token = localStorage.getItem("token");
     try {
-      setLoading(true);
-      setMessage('⏳ Adding skill...');
-      const token = localStorage.getItem("token");
-
-      const response = await fetch("http://127.0.0.1:8000/api/user/add/skills", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          skill_id: parseInt(newSkillId)
-        }),
+      const res = await fetch("http://127.0.0.1:8000/api/invitations/pending", {
+        headers: { "Authorization": `Bearer ${token}` },
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setMessage(`✅ ${result.skill_name} added successfully`);
-        setNewSkillId('');
-        // Vous pouvez appeler une fonction de callback ici pour recharger les compétences
-        // Exemple: onSkillAdded()
-      } else {
-        setMessage(`❌ ${result.message}`);
-      }
+      const data = await res.json();
+      setReceivedInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
-      setMessage('❌ Network error while adding skill');
-      console.error('Error adding skill:', error);
+      console.error('Error fetching pending invitations:', error);
+    }
+  };
+
+  const fetchReceivedInvitations = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/invitations/received", {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setReceivedInvitations(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching received invitations:", error);
+      setNotification({ message: "❌ Impossible de récupérer les invitations.", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSkills = async () => {
-    const token = localStorage.getItem("token");
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/skills", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Skills API error: ${response.status}`);
-      }
-
-      const dataSkills = await response.json();
-      setSkills(Array.isArray(dataSkills) ? dataSkills : []);
-    } catch (error) {
-      console.error('Error fetching skills:', error);
-    }
-  };
-
-
-const fetchPendingInvitations = async () => {
+  
+const fetchSentInvitations = async () => {
   const token = localStorage.getItem("token");
-  if (!token) return;
-
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/invitations/pending", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
+    const res = await fetch("http://127.0.0.1:8000/api/invitations/sent", {
+      headers: { "Authorization": `Bearer ${token}` }
     });
-
-
-    if (!response.ok) throw new Error(`Invitations API error: ${response.status}`);
-
-    const data = await response.json();
-
-    // Filtrer les invitations déjà amis
-    const friendIds = new Set(friends.map(f => f.id));
-
-    const filteredInvitations = (Array.isArray(data) ? data : data.invitations || [])
-      .filter(inv => inv && inv.id && !friendIds.has(inv.id));
-
-    setInvitations(filteredInvitations);
+    const data = await res.json();
+    setSentInvitations(Array.isArray(data) ? data : []);
+    console.log("sentInvitations :", data);
   } catch (error) {
-    console.error('Error fetching pending invitations:', error);
-    setInvitations([]);
+    console.error('Error fetching sent invitations:', error);
   }
 };
 
-
-
-
-
-  // Fonction pour récupérer les compétences
-  const fetchUserProjects = async () => {
-    const token = localStorage.getItem("token");
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/projects", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Skills API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setUserProjects(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching skills:', error);
-    }
-  };
 
   const fetchUserFriends = async () => {
     const token = localStorage.getItem("token");
@@ -268,77 +110,70 @@ const fetchPendingInvitations = async () => {
     }
   };
 
-const deleteFriend = async (friendId) => {
-  const token = localStorage.getItem("token");
+  const deleteFriend = async (friendId) => {
+    const token = localStorage.getItem("token");
 
-  try {
-    const response = await fetch(`http://127.0.0.1:8000/api/delete/friends/${friendId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-    });
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/delete/friends/${friendId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
       if (response.ok) {
-      await fetchUserFriends();
-      return
-    
-    } else {
-      console.error("Erreur :", data.message);
+        await fetchUserFriends();
+        setNotification({ message: "✅ Ami supprimé avec succès !", type: "success" });
+        setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+      } else {
+        console.error("Erreur :", data.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression :", error);
     }
-  } catch (error) {
-    console.error("Erreur lors de la suppression :", error);
-  }
-};
+  };
 
+  const sendInvitation = async (friend_id) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/send/invitation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ friend_id }),
+      });
 
+      const data = await response.json();
 
-const sendInvitation = async (friend_id) => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
+      if (!response.ok) {
+        setNotification({ message: data.message || "❌ Erreur lors de l'envoi de l'invitation.", type: "error" });
+        setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+        return;
+      }
 
-  const friendIds = new Set(friends.map(f => f.id));
-
-
-  try {
-    const response = await fetch("http://127.0.0.1:8000/api/send/invitation", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ friend_id }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setNotification({ message: data.message || "Erreur lors de l'envoi de l'invitation.", type: "error" });
-      await fetchPendingInvitations();
-      await fetchUserFriends();
-      return
+      if (response.ok) {
+        setNotification({ message: "✅ Invitation envoyée avec succès !", type: "success" });
+        setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+        await fetchReceivedInvitations(); // Recharger les invitations envoyées
+        
+        
+      }
+    } catch (error) {
+      setNotification({ message: "❌ Erreur réseau : impossible d'envoyer l'invitation.", type: "error" });
+      console.error("Error adding friend:", error);
     }
-    if (response.ok) {
-    setNotification({ message: "Invitation envoyée avec succès !", type: "success" });
-    }
-
-
-  } catch (error) {
-    setNotification({ message: "Erreur réseau : impossible d'envoyer l'invitation.", type: "error" });
-    console.error("Error adding friend:", error);
-  }
-};
-
-
+  };
 
   const fetchConnectedUser = async () => {
     const token = localStorage.getItem("token");
 
     try {
-      // Récupérer l'utilisateur
       const userResponse = await fetch("http://127.0.0.1:8000/api/getConnectedUser", {
         method: "GET",
         headers: {
@@ -354,9 +189,6 @@ const sendInvitation = async (friend_id) => {
       const dataUser = await userResponse.json();
       setUser(dataUser);
 
-      // Récupérer les compétences
-      await fetchSkills();
-
     } catch (error) {
       console.error('Error fetching user:', error);
       setError(error.message);
@@ -365,29 +197,18 @@ const sendInvitation = async (friend_id) => {
     }
   };
 
-
-  
-
   useEffect(() => {
-    fetchSkills();
-
-    fetchUserProjects();
-  const init = async () => {
-    await fetchUserFriends(); // attend que friends soit rempli
-    await fetchPendingInvitations(); // maintenant friends est disponible
-  };
-    fetchConnectedUser();
-    fetchAllUsers();
-  init();
-}, []);
-
-
-useEffect(() => {
-  if (friends.length > 0) {
-    fetchPendingInvitations();
-  }
-}, [friends]);
-
+    const init = async () => {
+      await fetchConnectedUser();
+      await fetchAllUsers();
+      await fetchUserFriends();
+      await fetchPendingInvitations();
+      await fetchReceivedInvitations(); // Charger les invitations envoyées
+    await fetchReceivedInvitations();
+    await fetchSentInvitations();
+    };
+    init();
+  }, []);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch =
@@ -399,28 +220,85 @@ useEffect(() => {
     return matchesSearch && isNotCurrentUser;
   });
 
-
-  // Open modal with user data
   const handleOpenModal = (user) => {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
 
-  // Close modal
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedUser(null);
+  };
+
+  if (loading) return <div className={styles.loading}>Loading...</div>;
+  if (error) return <div className={styles.error}>Error: {error}</div>;
+
+
+  const currentUserId = localStorage.getItem("userId"); // ou depuis ton contexte auth
+  const deleteReceivedInvitation = async (senderId, receiverId) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/invitations/delete-received/${senderId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setNotification({ message: "✅ Invitation reçue supprimée avec succès !", type: "success" });
+        await fetchPendingInvitations(); // ← ici
+      } else {
+        setNotification({ message: `❌ ${data.message}`, type: "error" });
+      }
+
+    } catch (error) {
+      console.error('Error deleting received invitation:', error);
+      setNotification({ message: "❌ Erreur réseau.", type: "error" });
+    }
+
+    setTimeout(() => setNotification({ message: "", type: "" }), 3000);
   };
 
 
 
 
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
-  if (error) return <div className={styles.error}>Error: {error}</div>;
+
+
+
+
+
+
+
+
+
+
+
+console.log(receivedInvitations);
+
+
 
   return (
+
+
+
+
+
+
+
     <div className={styles.profileContainer}>
+
+
+
       {/* Header with search bar */}
       <div className={styles.header}>
         <div className={styles.searchContainer}>
@@ -452,138 +330,195 @@ useEffect(() => {
           className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
           onClick={() => setActiveTab('invitations')}
         >
-          Invitations ({invitations.length})
+          invitations ({invitations.length})
+        </button>
+        <button
+          className={`${styles.subNavButton} ${activeTab === 'sent' ? styles.active : ''}`}
+          onClick={() => setActiveTab('sent')}
+        >
+          Receved ({receivedInvitations.length})
         </button>
       </div>
 
-      
+      {activeTab === 'invitations' && (
+        <div className={styles.invitationsContainer}>
+      <h3 className={styles.invitationsTitle}>📨 Invitations Reçues</h3>
 
+      {notification.message && (
+        <div className={notification.type === "success" ? styles.successMsg : styles.errorMsg}>
+          {notification.message}
+        </div>
+      )}
 
-
-{/* Section des invitations - affichage conditionnel */}
-{activeTab === 'invitations' && (
-  <div className={styles.invitationsContainer}>
-    <h3 className={styles.invitationsTitle}>Invitations en attente</h3>
-
-    {invitations.length === 0 ? (
-      <div className={styles.noInvitations}>
-        <p>Aucune invitations en attente</p>
-      </div>
-    ) : (
-      <div className={styles.invitationsGrid}>
-        {invitations.map(invitation => (
-          <div key={invitation.id} className={styles.invitationsCard}>
-            <div className={styles.invitationsHeader}>
+      {receivedInvitations.length === 0 ? (
+        <p>Aucune invitation reçue</p>
+      ) : (
+        <div className={styles.invitationsGrid}>
+          {receivedInvitations.map(inv => (
+            <div key={inv.id} className={styles.invitationsCard}>
               <div className={styles.invitationsInfo}>
-                <h4 className={styles.invitationsName}>
-                  {invitation.firstName} {invitation.lastName}
-                </h4>
-                <p className={styles.invitationsEmail}>{invitation.email}</p>
+                <h4>{inv.firstName} {inv.lastName}</h4>
+                <p>{inv.email}</p>
+              </div>
+              <div className={styles.invitationsActions}>
+                <button
+                  className="bg-green-500 text-white px-2 py-1 rounded"
+                  onClick={() => console.log("Accepter invitation de", inv.id)}
+                >
+                  Accepter
+                </button>
+                <button
+                  className="bg-red-500 text-white px-2 py-1 rounded"
+                  onClick={() => deleteInvitation(inv.id)}
+                >
+                  Supprimer
+                </button>
               </div>
             </div>
+          ))}
+        </div>
+      )}
+    </div>
+      )}
 
-            <div className={styles.invitationsActions}>
-              <button
-                className={styles.acceptBtn}
-                onClick={async () => {
-                  await acceptInvitations(invitation.id);
-                  await fetchPendingInvitations(); // rafraîchit depuis la BDD
-                }}
-              >
-                ✓ Accept
-              </button>
-              <button
-                className={styles.rejectBtn}
-                onClick={async () => {
-                  await rejectInvitations(invitation.id);
-                  await fetchPendingInvitations(); // rafraîchit depuis la BDD
-                }}
-              >
-                ✕ Refuse
-              </button>
+
+      {/* Section des invitations envoyées */}
+      {activeTab === 'sent' && (
+        <div className={styles.invitationsContainer}>
+          <h3 className={styles.invitationsTitle}>📤 Invitations Envoyées</h3>
+
+          {receivedInvitations.length === 0 ? (
+            <div className={styles.noInvitations}>
+              <p>Aucune invitation envoyée</p>
             </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+          ) : (
+            <div className={styles.invitationsGrid}>
+              {receivedInvitations.map(sentinvitation => (
+                <div key={sentinvitation.id} className={styles.invitationsCard}>
+                  <div className={styles.invitationsHeader}>
+                    <div className={styles.invitationsInfo}>
+                      <h4 className={styles.invitationsName}>
+                        {sentinvitation.firstName} {sentinvitation.lastName}
+                      </h4>
+                      <p className={styles.invitationsEmail}>{sentinvitation.email}</p>
+                      <p className={styles.invitationsEmail}>id : {sentinvitation.id} </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h2>Invitations sended</h2>
+                    {notification.message && (
+                      <div className={notification.type === "success" ? "text-green-600" : "text-red-600"}>
+                        {notification.message}
+                      </div>
+                    )}
+
+                    {receivedInvitations.length === 0 && <p>Aucune invitation reçue.</p>}
+
+                    <ul>
+                      {receivedInvitations.map((inv) => (
+                        <li key={inv.id} className="flex items-center gap-2 mb-2">
+                          <span>{inv.username}</span>
+                          <button
+                            className="bg-green-500 text-white px-2 py-1 rounded"
+                            onClick={() => acceptInvitation(inv.id, /* ton userId ici */)}
+                          >
+                            Accepter
+                          </button>
+                          <button
+                            onClick={() => deleteReceivedInvitation(inv.id, connectedUser.id)
+                            }
+                          >
+                            Supprimer
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                </div>
 
 
-{activeTab === 'friends' && (
-  <div className={styles.friendsContainer}>
-    <h3 className={styles.friendsTitle}>Friends List</h3>
 
-    {friends.length === 0 ? (
-      <div className={styles.noFriends}>
-        <p>No friends added yet.</p>
-      </div>
-    ) : (
-      <div className={styles.friendsGrid}>
-        {friends.map((friend) => (
-          <div key={friend.id} className={styles.friendCard}>
+              ))}
 
-            <div className={styles.friendInfo}>
-              <h4 className={styles.friendName}>
-                {friend.firstName} {friend.lastName}
-              </h4>
-              <p className={styles.friendEmail}>{friend.email}</p>
+
+
             </div>
+          )}
+        </div>
+      )}
 
-            {/* Bouton pour supprimer l’ami */}
-            <div className={styles.friendActions}>
-              <button
-                className={styles.unfriendBtn}
-                onClick={() => deleteFriend(friend.id)}
-              >
-                ❌ Unfriend
-              </button>
+      {/* Section des amis */}
+      {activeTab === 'friends' && (
+        <div className={styles.friendsContainer}>
+          <h3 className={styles.friendsTitle}>👥 Liste d'amis</h3>
+
+          {friends.length === 0 ? (
+            <div className={styles.noFriends}>
+              <p>Aucun ami ajouté.</p>
             </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+          ) : (
+            <div className={styles.friendsGrid}>
+              {friends.map((friend) => (
+                <div key={friend.id} className={styles.friendCard}>
+                  <div className={styles.friendInfo}>
+                    <h4 className={styles.friendName}>
+                      {friend.firstName} {friend.lastName}
+                    </h4>
+                    <p className={styles.friendEmail}>{friend.email}</p>
+                  </div>
 
+                  <div className={styles.friendActions}>
+                    <button
+                      className={styles.unfriendBtn}
+                      onClick={() => deleteFriend(friend.id)}
+                    >
+                      ❌ Unfriend
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-
-{notification.message && (
-  <div
-    className={notification.type === "success" ? styles.successMsg : styles.errorMsg}
-  >
-    {notification.message}
-  </div>
-)}
-
+      {/* Notifications */}
+      {notification.message && (
+        <div
+          className={notification.type === "success" ? styles.successMsg : styles.errorMsg}
+        >
+          {notification.message}
+        </div>
+      )}
 
       {/* Users grid */}
-      <div className={styles.usersGrid}>
-
-        
-        {filteredUsers.map((user) => (
-          <div
-            key={user.id}
-            className={styles.userCard}
-            onClick={() => handleOpenModal(user)}
-            style={{ cursor: 'pointer' }}
-          >
-       
-            <div className={styles.userInfo}>
-              <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
+      {activeTab === 'public' && (
+        <div className={styles.usersGrid}>
+          {filteredUsers.map((user) => (
+            <div
+              key={user.id}
+              className={styles.userCard}
+              onClick={() => handleOpenModal(user)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className={styles.userInfo}>
+                <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {filteredUsers.length === 0 && !loading && (
+      {filteredUsers.length === 0 && !loading && activeTab === 'public' && (
         <div className={styles.noResults}>
           No users found
         </div>
       )}
 
       {/* Modal */}
-      {isModalOpen && selectedUser && skills && (
+      {isModalOpen && selectedUser && (
         <div className={styles.modalOverlay} onClick={handleCloseModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button className={styles.modalClose} onClick={handleCloseModal}>
@@ -603,7 +538,6 @@ useEffect(() => {
                   <span className={styles.infoValue}>{selectedUser.email}</span>
                 </div>
 
-
                 {selectedUser.availabilityStart && (
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>📱 availabilityStart:</span>
@@ -617,7 +551,6 @@ useEffect(() => {
                     <span className={styles.infoValue}>{selectedUser.availabilityEnd}</span>
                   </div>
                 )}
-
 
                 {userProjects.length > 0 && (
                   <div className={styles.infoRow}>
@@ -644,21 +577,15 @@ useEffect(() => {
                     </ul>
                   </div>
                 )}
-
               </div>
 
               <div className={styles.modalActions}>
                 <button
                   className={styles.modalButton}
                   onClick={(e) => {
-
-
-                    e.stopPropagation(); // Empêche la fermeture du modal si nécessaire
+                    e.stopPropagation();
                     sendInvitation(selectedUser.id);
-                    setInvitations([...invitations, selectedUser]);
-
                     handleCloseModal();
-
                   }}
                 >
                   Add Friend
@@ -666,7 +593,6 @@ useEffect(() => {
                 <button
                   className={styles.modalButtonSecondary}
                   onClick={handleCloseModal}
-
                 >
                   Close
                 </button>

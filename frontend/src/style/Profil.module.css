@@ -199,13 +199,13 @@
 .invitationsName,
 .friendName {
   font-weight: 600;
-  color: #ffffff;
+  color: #000000;
 }
 
 .invitationsEmail,
 .friendEmail {
   font-size: 0.9rem;
-  color: #475569;
+  color: #000000;
 }
 
 .invitationsActions,

@@ -22,15 +22,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     private ?string $email = null;
 
-    /**
-     * @var list<string> User roles
-     */
     #[ORM\Column]
     private array $roles = [];
 
-    /**
-     * @var string The hashed password
-     */
     #[ORM\Column]
     private ?string $password = null;
 
@@ -46,97 +40,77 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $availabilityEnd = null;
 
-
-
-    /**
-     * @var Collection<int, Skills>
-     */
     #[ORM\ManyToMany(targetEntity: Skills::class)]
-    private Collection $Skills;
+    private Collection $skills;
 
-    /**
-     * @var Collection<int, Project>
-     */
     #[ORM\ManyToMany(targetEntity: Project::class, inversedBy: 'users')]
-    private Collection $Projects;
+    private Collection $projects;
 
-    /**
-     * @var Collection<int, User>
-     */
     #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: 'user_invitations')]
-    private Collection $Invitations;
+    private Collection $invitations;
 
-    /**
-     * @var Collection<int, User>
-     */
     #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: 'user_friends')]
-    private Collection $Friends;
+    private Collection $friends;
 
-    /**
-     * @var Collection<int, Conversation>
-     */
     #[ORM\ManyToMany(targetEntity: Conversation::class, mappedBy: 'users')]
     private Collection $conversations;
 
-    /**
-     * @var Collection<int, Message>
-     */
     #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'author')]
-    private Collection $createdat;
-
-
-
+    private Collection $messages;
 
     public function __construct()
     {
-        $this->Skills = new ArrayCollection();
-        $this->Projects = new ArrayCollection();
-        $this->Invitations = new ArrayCollection();
-        $this->Friends = new ArrayCollection();
+        $this->skills = new ArrayCollection();
+        $this->projects = new ArrayCollection();
+        $this->invitations = new ArrayCollection();
+        $this->friends = new ArrayCollection();
         $this->conversations = new ArrayCollection();
-        $this->createdat = new ArrayCollection();
+        $this->messages = new ArrayCollection();
     }
 
+    // Friends methods
     public function getFriends(): Collection
     {
-        return $this->Friends;
+        return $this->friends;
     }
+
     public function addFriend(User $friend): static
     {
-        if (!$this->Friends->contains($friend)) {
-            $this->Friends->add($friend);
-        }       
+        if (!$this->friends->contains($friend)) {
+            $this->friends->add($friend);
+        }
         return $this;
-    }  
+    }
+
     public function removeFriend(User $friend): static
     {
-        $this->Friends->removeElement($friend); 
+        $this->friends->removeElement($friend);
         return $this;
     }
 
+    // Invitations methods
     public function getInvitations(): Collection
     {
-        return $this->Invitations;
+        return $this->invitations;
     }
-    public function addInvitations(User $invitations): static
+
+    public function addInvitations(User $invitation): static
     {
-        if (!$this->Invitations->contains($invitations)) {
-            $this->Invitations->add($invitations);
+        if (!$this->invitations->contains($invitation)) {
+            $this->invitations->add($invitation);
         }
-
-        return $this;
-    }  
-    public function removeInvitations(User $invitations): static
-    {
-        $this->Invitations->removeElement($invitations);
-
         return $this;
     }
 
+    public function removeInvitations(User $invitation): static
+    {
+        $this->invitations->removeElement($invitation);
+        return $this;
+    }
 
-
+    // Availability methods
     public function getAvailabilityStart(): ?DateTimeImmutable
     {
         return $this->availabilityStart;
@@ -159,6 +133,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    // Name methods
     public function getFirstName(): ?string
     {
         return $this->firstName;
@@ -181,6 +156,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    // Basic user methods
     public function getId(): ?int
     {
         return $this->id;
@@ -197,36 +173,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * Returns the identifier for this user (email).
-     */
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
 
-    /**
-     * @see UserInterface
-     */
     public function getRoles(): array
     {
         $roles = $this->roles;
-        $roles[] = 'ROLE_USER'; // Every user has at least ROLE_USER
+        $roles[] = 'ROLE_USER';
         return array_unique($roles);
     }
 
-    /**
-     * @param list<string> $roles
-     */
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -238,66 +202,52 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * Clears sensitive data from the user.
-     */
     public function eraseCredentials(): void
     {
-        // Clear temporary sensitive data if any, e.g. $this->plainPassword = null;
+        // Clear temporary sensitive data
     }
 
-
-    /**
-     * @return Collection<int, Skills>
-     */
+    // Skills methods
     public function getSkills(): Collection
     {
-        return $this->Skills;
+        return $this->skills;
     }
 
     public function addSkill(Skills $skill): static
     {
-        if (!$this->Skills->contains($skill)) {
-            $this->Skills->add($skill);
+        if (!$this->skills->contains($skill)) {
+            $this->skills->add($skill);
         }
-
         return $this;
     }
 
     public function removeSkill(Skills $skill): static
     {
-        $this->Skills->removeElement($skill);
-
+        $this->skills->removeElement($skill);
         return $this;
     }
 
-    /**
-     * @return Collection<int, Project>
-     */
+    // Projects methods
     public function getProject(): Collection
     {
-        return $this->Projects;
+        return $this->projects;
     }
 
-    public function addProject(Project $userProject): static
+    public function addProject(Project $project): static
     {
-        if (!$this->Projects->contains($userProject)) {
-            $this->Projects->add($userProject);
+        if (!$this->projects->contains($project)) {
+            $this->projects->add($project);
         }
-
         return $this;
     }
 
-    public function removeUserProject(Project $userProject): static
+    public function removeUserProject(Project $project): static
     {
-        $this->Projects->removeElement($userProject);
-
+        $this->projects->removeElement($project);
         return $this;
     }
 
-    /**
-     * @return Collection<int, Conversation>
-     */
+    // Conversations methods
     public function getConversations(): Collection
     {
         return $this->conversations;
@@ -309,7 +259,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->conversations->add($conversation);
             $conversation->addUser($this);
         }
-
         return $this;
     }
 
@@ -318,39 +267,31 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->conversations->removeElement($conversation)) {
             $conversation->removeUser($this);
         }
-
         return $this;
     }
 
-    /**
-     * @return Collection<int, Message>
-     */
-    public function getCreatedat(): Collection
+    // Messages methods
+    public function getMessages(): Collection
     {
-        return $this->createdat;
+        return $this->messages;
     }
 
-    public function addCreatedat(Message $createdat): static
+    public function addMessage(Message $message): static
     {
-        if (!$this->createdat->contains($createdat)) {
-            $this->createdat->add($createdat);
-            $createdat->setAuthor($this);
+        if (!$this->messages->contains($message)) {
+            $this->messages->add($message);
+            $message->setAuthor($this);
         }
-
         return $this;
     }
 
-    public function removeCreatedat(Message $createdat): static
+    public function removeMessage(Message $message): static
     {
-        if ($this->createdat->removeElement($createdat)) {
-            // set the owning side to null (unless already changed)
-            if ($createdat->getAuthor() === $this) {
-                $createdat->setAuthor(null);
+        if ($this->messages->removeElement($message)) {
+            if ($message->getAuthor() === $this) {
+                $message->setAuthor(null);
             }
         }
-
         return $this;
     }
-
-
 }

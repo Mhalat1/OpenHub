@@ -666,37 +666,35 @@ final class UserController extends AbstractController
 
 
     // Récupérer les invitations REÇUES (celles dans la collection Invitations de l'utilisateur)
-    #[Route('/api/invitations/pending', name: 'app_pending_invitations', methods: ['GET'])]
-    public function getPendingInvitations(Security $security): JsonResponse
-    {
-        $user = $security->getUser();
-
-        if (!$user instanceof User) {
-            return new JsonResponse(['message' => 'User not authenticated'], 401);
-        }
-
-        // Les invitations reçues sont stockées dans la collection Invitations
-        $invitations = $user->getInvitations();
-
-        $data = [];
-        foreach ($invitations as $inviter) {
-            // Vérifier que l'inviter n'est pas déjà un ami
-            if (!$user->getFriends()->contains($inviter)) {
-                $data[] = [
-                    'id' => $inviter->getId(),
-                    'firstName' => $inviter->getFirstName(),
-                    'lastName' => $inviter->getLastName(),
-                    'email' => $inviter->getEmail(),
-                ];
-            }
-        }
-
-        return new JsonResponse($data);
+#[Route('/api/invitations/received', name: 'app_received_invitations', methods: ['GET'])]
+public function getReceivedInvitations(Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
     }
 
-    // Récupérer les invitations ENVOYÉES
-    #[Route('/api/invitations/sent', name: 'app_sent_invitations', methods: ['GET'])]
-    public function getSentInvitations(Security $security): JsonResponse
+    $allUsers = $this->manager->getRepository(User::class)->findAll();
+    $received = [];
+
+    foreach ($allUsers as $otherUser) {
+        // Si l'autre utilisateur m'a invité et que je ne suis pas encore ami avec lui
+        if ($otherUser->getInvitations()->contains($user) && !$user->getFriends()->contains($otherUser)) {
+            $received[] = [
+                'id' => $otherUser->getId(),
+                'firstName' => $otherUser->getFirstName(),
+                'lastName' => $otherUser->getLastName(),
+                'email' => $otherUser->getEmail(),
+            ];
+        }
+    }
+
+    return new JsonResponse($received);
+}
+
+
+    #[Route('/api/invitations/pending', name: 'app_pending_invitations', methods: ['GET'])]
+    public function getPendingInvitations(Security $security): JsonResponse
     {
         $user = $security->getUser();
 
@@ -724,93 +722,44 @@ final class UserController extends AbstractController
 
         return new JsonResponse($data);
     }
+#[Route('/api/invitations/delete-received/{senderId}', name: 'api_delete_received_invitation', methods: ['DELETE'])]
+public function deleteReceivedInvitation(
+    int $senderId,
+    Security $security,
+    EntityManagerInterface $em
+): JsonResponse {
+    $user = $security->getUser();
 
-    #[Route('/api/invitations/accept', name: 'api_accept_invitations', methods: ['POST'])]
-    public function acceptInvitations(Request $request, EntityManagerInterface $em): JsonResponse
-    {
-        $user = $this->getUser();
-        
-        if (!$user instanceof User) {
-            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
-        }
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
+    }
 
-        $data = json_decode($request->getContent(), true);
-        $inviterId = $data['inviter_id'] ?? null;
+    $sender = $em->getRepository(User::class)->find($senderId);
+    if (!$sender) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur expéditeur non trouvé'], 404);
+    }
 
-        if (!$inviterId) {
-            return new JsonResponse(['success' => false, 'message' => 'ID invitant requis'], 400);
-        }
+    if (!$user->getInvitations()->contains($sender)) {
+        return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
+    }
 
-        $inviter = $em->getRepository(User::class)->find($inviterId);
-        
-        if (!$inviter) {
-            return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
-        }
-
-        // Vérifier si l'invitations existe
-        if (!$user->getInvitations()->contains($inviter)) {
-            return new JsonResponse(['success' => false, 'message' => 'Invitations non trouvée'], 404);
-        }
-
-        // Retirer des invitations
-        $user->removeInvitations($inviter);
-        $inviter->removeInvitations($user);
-
-        // Ajouter aux amis
-        $user->addFriend($inviter);
-        $inviter->addFriend($user);
-
+    try {
+        $user->removeInvitations($sender);
         $em->flush();
 
         return new JsonResponse([
             'success' => true,
-            'message' => 'Invitations acceptée avec succès',
-            'friend' => [
-                'id' => $inviter->getId(),
-                'firstName' => $inviter->getFirstName(),
-                'lastName' => $inviter->getLastName()
-            ]
+            'message' => 'Invitation reçue supprimée avec succès'
         ]);
-    }
-
-    #[Route('/api/invitations/reject', name: 'api_reject_invitations', methods: ['POST'])]
-    public function rejectInvitations(Request $request, EntityManagerInterface $em): JsonResponse
-    {
-        $user = $this->getUser();
-        
-        if (!$user instanceof User) {
-            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
-        }
-
-        $data = json_decode($request->getContent(), true);
-        $inviterId = $data['inviter_id'] ?? null;
-
-        if (!$inviterId) {
-            return new JsonResponse(['success' => false, 'message' => 'ID invitant requis'], 400);
-        }
-
-        $inviter = $em->getRepository(User::class)->find($inviterId);
-        
-        if (!$inviter) {
-            return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
-        }
-
-        // Vérifier si l'invitations existe
-        if (!$user->getInvitations()->contains($inviter)) {
-            return new JsonResponse(['success' => false, 'message' => 'Invitations non trouvée'], 404);
-        }
-
-        // Retirer des invitations
-        $user->removeInvitations($inviter);
-        $inviter->removeInvitations($user);
-
-        $em->flush();
-
+    } catch (\Exception $e) {
         return new JsonResponse([
-            'success' => true,
-            'message' => 'Invitations refusée'
-        ]);
+            'success' => false,
+            'message' => 'Erreur serveur: ' . $e->getMessage()
+        ], 500);
     }
+}
+
+
 
     #[Route('/api/user/friends', name: 'api_user_friends', methods: ['GET'])]
     public function getUserFriends(Security $security): JsonResponse
