@@ -21,6 +21,8 @@ const Profil = () => {
 const [sentInvitations, setSentInvitations] = useState([]);
 const [receivedInvitations, setReceivedInvitations] = useState([]);
 
+console.log(sentInvitations);
+
   const fetchAllUsers = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -330,7 +332,7 @@ console.log(receivedInvitations);
           className={`${styles.subNavButton} ${activeTab === 'invitations' ? styles.active : ''}`}
           onClick={() => setActiveTab('invitations')}
         >
-          invitations ({invitations.length})
+          invitations ({sentInvitations.length})
         </button>
         <button
           className={`${styles.subNavButton} ${activeTab === 'sent' ? styles.active : ''}`}
@@ -342,7 +344,7 @@ console.log(receivedInvitations);
 
       {activeTab === 'invitations' && (
         <div className={styles.invitationsContainer}>
-      <h3 className={styles.invitationsTitle}>📨 Invitations Reçues</h3>
+      <h3 className={styles.invitationsTitle}>📨 Invitations Envoyee</h3>
 
       {notification.message && (
         <div className={notification.type === "success" ? styles.successMsg : styles.errorMsg}>
@@ -350,11 +352,11 @@ console.log(receivedInvitations);
         </div>
       )}
 
-      {receivedInvitations.length === 0 ? (
+      {sentInvitations.length === 0 ? (
         <p>Aucune invitation reçue</p>
       ) : (
         <div className={styles.invitationsGrid}>
-          {receivedInvitations.map(inv => (
+          {sentInvitations.map(inv => (
             <div key={inv.id} className={styles.invitationsCard}>
               <div className={styles.invitationsInfo}>
                 <h4>{inv.firstName} {inv.lastName}</h4>
@@ -393,15 +395,15 @@ console.log(receivedInvitations);
             </div>
           ) : (
             <div className={styles.invitationsGrid}>
-              {receivedInvitations.map(sentinvitation => (
-                <div key={sentinvitation.id} className={styles.invitationsCard}>
+              {receivedInvitations.map(receivedinvitations => (
+                <div key={receivedinvitations.id} className={styles.invitationsCard}>
                   <div className={styles.invitationsHeader}>
                     <div className={styles.invitationsInfo}>
                       <h4 className={styles.invitationsName}>
-                        {sentinvitation.firstName} {sentinvitation.lastName}
+                        {receivedinvitations.firstName} {receivedinvitations.lastName}
                       </h4>
-                      <p className={styles.invitationsEmail}>{sentinvitation.email}</p>
-                      <p className={styles.invitationsEmail}>id : {sentinvitation.id} </p>
+                      <p className={styles.invitationsEmail}>{receivedinvitations.email}</p>
+                      <p className={styles.invitationsEmail}>id : {receivedinvitations.id} </p>
                     </div>
                   </div>
 

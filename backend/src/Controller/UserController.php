@@ -665,8 +665,8 @@ final class UserController extends AbstractController
     }
 
 
-    // Récupérer les invitations REÇUES (celles dans la collection Invitations de l'utilisateur)
-#[Route('/api/invitations/received', name: 'app_received_invitations', methods: ['GET'])]
+
+    #[Route('/api/invitations/received', name: 'app_received_invitations', methods: ['GET'])]
 public function getReceivedInvitations(Security $security): JsonResponse
 {
     $user = $security->getUser();
@@ -692,6 +692,38 @@ public function getReceivedInvitations(Security $security): JsonResponse
     return new JsonResponse($received);
 }
 
+
+    // Récupérer les invitations REÇUES (celles dans la collection Invitations de l'utilisateur)
+
+#[Route('/api/invitations/sent', name: 'app_sent_invitations', methods: ['GET'])]
+public function getSentInvitations(Security $security): JsonResponse
+{
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
+
+    // Récupère les invitations que l'utilisateur a envoyées
+    $sentInvitations = $user->getInvitations();
+
+    $data = [];
+    foreach ($sentInvitations as $invitedUser) {
+        // Optionnel : filtrer ceux qui sont déjà amis
+        if (!$user->getFriends()->contains($invitedUser)) {
+            $data[] = [
+                'id' => $invitedUser->getId(),
+                'firstName' => $invitedUser->getFirstName(),
+                'lastName' => $invitedUser->getLastName(),
+                'email' => $invitedUser->getEmail(),
+            ];
+        }
+    }
+
+    return new JsonResponse($data);
+}
+
+    
 
     #[Route('/api/invitations/pending', name: 'app_pending_invitations', methods: ['GET'])]
     public function getPendingInvitations(Security $security): JsonResponse
