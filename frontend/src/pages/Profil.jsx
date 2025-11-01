@@ -268,6 +268,41 @@ const deleteSentInvitation = async (receiverId) => {
 };
 
 
+const acceptInvitation = async (senderId) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/invitations/accept/${senderId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      setNotification({ message: data.message, type: "success" });
+      await fetchReceivedInvitations();
+      await fetchUserFriends(); // si tu veux actualiser la liste d’amis
+      
+    } else {
+      setNotification({ message: data.message || "Erreur lors de l’acceptation", type: "error" });
+    }
+  } catch (error) {
+    setNotification({ message: "Erreur réseau", type: "error" });
+  }
+
+  setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+};
+
+
+
 
   useEffect(() => {
     const init = async () => {
@@ -384,7 +419,7 @@ console.log(receivedInvitations);
       )}
 
       {sentInvitations.length === 0 ? (
-        <p>Aucune invitation reçue</p>
+        <p>Aucune invitation Envoyee</p>
       ) : (
         <div className={styles.invitationsGrid}>
           {sentInvitations.map(inv => (
@@ -394,12 +429,7 @@ console.log(receivedInvitations);
                 <p>{inv.email}</p>
               </div>
               <div className={styles.invitationsActions}>
-                <button
-                  className="bg-green-500 text-white px-2 py-1 rounded"
-                  onClick={() => console.log("Accepter invitation de", inv.id)}
-                >
-                  Accepter
-                </button>
+
 <button
   className="bg-red-500 text-white px-2 py-1 rounded"
   onClick={() => deleteSentInvitation(inv.id)}
@@ -441,7 +471,7 @@ console.log(receivedInvitations);
             <div className={styles.invitationsActions}>
               <button
                 className="bg-green-500 text-white px-2 py-1 rounded"
-                onClick={() => console.log("Accepter invitation de", inv.id)}
+                onClick={() => acceptInvitation(inv.id)}
               >
                 Accepter
               </button>

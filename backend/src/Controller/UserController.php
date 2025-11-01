@@ -862,6 +862,55 @@ public function sendInvitation(Request $request, EntityManagerInterface $em, Sec
 }
 
 
+#[Route('/api/invitations/accept/{senderId}', name: 'api_accept_invitation', methods: ['POST'])]
+public function acceptInvitation(
+    int $senderId,
+    Security $security,
+    EntityManagerInterface $em
+): JsonResponse {
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
+    }
+
+    $sender = $em->getRepository(User::class)->find($senderId);
+    if (!$sender) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur expéditeur non trouvé'], 404);
+    }
+
+    // Vérifie si une invitation a bien été reçue de cet utilisateur
+    if (!$user->getReceivedInvitations()->contains($sender)) {
+        return new JsonResponse(['success' => false, 'message' => 'Aucune invitation trouvée.'], 404);
+    }
+
+    try {
+        // Retirer l’invitation dans les deux sens
+        $user->getReceivedInvitations()->removeElement($sender);
+        $sender->getSentInvitations()->removeElement($user);
+
+        // Ajouter en amis dans les deux sens
+        $user->addFriend($sender);
+        $sender->addFriend($user);
+
+        $em->persist($user);
+        $em->persist($sender);
+        $em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Invitation acceptée. Vous êtes maintenant amis.',
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Erreur serveur: ' . $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+
 #[Route('/api/invitations/delete-received/{senderId}', name: 'api_delete_received_invitation', methods: ['DELETE'])]
 public function deleteReceivedInvitation(
     int $senderId,
