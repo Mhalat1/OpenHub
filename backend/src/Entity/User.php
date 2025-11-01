@@ -46,9 +46,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Project::class, inversedBy: 'users')]
     private Collection $projects;
 
-    #[ORM\ManyToMany(targetEntity: User::class)]
-    #[ORM\JoinTable(name: 'user_invitations')]
-    private Collection $invitations;
+// Les invitations que J'AI ENVOYÉES
+#[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'receivedInvitations')]
+#[ORM\JoinTable(name: 'user_invitations')]
+private Collection $sentInvitations;
+
+// Les invitations que J'AI REÇUES (côté inverse)
+#[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'sentInvitations')]
+private Collection $receivedInvitations;
 
     #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: 'user_friends')]
@@ -64,7 +69,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->skills = new ArrayCollection();
         $this->projects = new ArrayCollection();
-        $this->invitations = new ArrayCollection();
+    $this->sentInvitations = new ArrayCollection();
+    $this->receivedInvitations = new ArrayCollection();
         $this->friends = new ArrayCollection();
         $this->conversations = new ArrayCollection();
         $this->messages = new ArrayCollection();
@@ -90,25 +96,31 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // Invitations methods
-    public function getInvitations(): Collection
-    {
-        return $this->invitations;
-    }
+// Méthodes pour les invitations ENVOYÉES
+public function getSentInvitations(): Collection
+{
+    return $this->sentInvitations;
+}
 
-    public function addInvitations(User $invitation): static
-    {
-        if (!$this->invitations->contains($invitation)) {
-            $this->invitations->add($invitation);
-        }
-        return $this;
+public function addSentInvitation(User $user): static
+{
+    if (!$this->sentInvitations->contains($user)) {
+        $this->sentInvitations->add($user);
     }
+    return $this;
+}
 
-    public function removeInvitations(User $invitation): static
-    {
-        $this->invitations->removeElement($invitation);
-        return $this;
-    }
+public function removeSentInvitation(User $user): static
+{
+    $this->sentInvitations->removeElement($user);
+    return $this;
+}
+
+// Méthodes pour les invitations REÇUES
+public function getReceivedInvitations(): Collection
+{
+    return $this->receivedInvitations;
+}
 
     // Availability methods
     public function getAvailabilityStart(): ?DateTimeImmutable

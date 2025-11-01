@@ -18,8 +18,8 @@ const Profil = () => {
   const [newSkillId, setNewSkillId] = useState('');
 
 
-const [sentInvitations, setSentInvitations] = useState([]);
-const [receivedInvitations, setReceivedInvitations] = useState([]);
+const [receivedInvitations, setSentInvitations] = useState([]);
+const [sentInvitations, setReceivedInvitations] = useState([]);
 
 console.log(sentInvitations);
 
@@ -162,7 +162,7 @@ const fetchSentInvitations = async () => {
       if (response.ok) {
         setNotification({ message: "✅ Invitation envoyée avec succès !", type: "success" });
         setTimeout(() => setNotification({ message: "", type: "" }), 3000);
-        await fetchReceivedInvitations(); // Recharger les invitations envoyées
+        await fetchSentInvitations(); // Recharger les invitations envoyées
         
         
       }
@@ -205,7 +205,6 @@ const fetchSentInvitations = async () => {
       await fetchAllUsers();
       await fetchUserFriends();
       await fetchPendingInvitations();
-      await fetchReceivedInvitations(); // Charger les invitations envoyées
     await fetchReceivedInvitations();
     await fetchSentInvitations();
     };
