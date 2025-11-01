@@ -710,6 +710,8 @@ public function getSentInvitations(Security $security): JsonResponse
 
     return new JsonResponse($data);
 }
+
+
     
 
     #[Route('/api/invitations/pending', name: 'app_pending_invitations', methods: ['GET'])]
@@ -741,42 +743,6 @@ public function getSentInvitations(Security $security): JsonResponse
 
         return new JsonResponse($data);
     }
-#[Route('/api/invitations/delete-received/{senderId}', name: 'api_delete_received_invitation', methods: ['DELETE'])]
-public function deleteReceivedInvitation(
-    int $senderId,
-    Security $security,
-    EntityManagerInterface $em
-): JsonResponse {
-    $user = $security->getUser();
-
-    if (!$user instanceof User) {
-        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
-    }
-
-    $sender = $em->getRepository(User::class)->find($senderId);
-    if (!$sender) {
-        return new JsonResponse(['success' => false, 'message' => 'Utilisateur expéditeur non trouvé'], 404);
-    }
-
-    if (!$user->getSentInvitations()->contains($sender)) {
-        return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
-    }
-
-    try {
-        $user->removeSentInvitation($sender);
-        $em->flush();
-
-        return new JsonResponse([
-            'success' => true,
-            'message' => 'Invitation reçue supprimée avec succès'
-        ]);
-    } catch (\Exception $e) {
-        return new JsonResponse([
-            'success' => false,
-            'message' => 'Erreur serveur: ' . $e->getMessage()
-        ], 500);
-    }
-}
 
 
 
@@ -894,6 +860,94 @@ public function sendInvitation(Request $request, EntityManagerInterface $em, Sec
         ], 500);
     }
 }
+
+
+#[Route('/api/invitations/delete-received/{senderId}', name: 'api_delete_received_invitation', methods: ['DELETE'])]
+public function deleteReceivedInvitation(
+    int $senderId,
+    Security $security,
+    EntityManagerInterface $em
+): JsonResponse {
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
+    }
+
+    $sender = $em->getRepository(User::class)->find($senderId);
+    if (!$sender) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur expéditeur non trouvé'], 404);
+    }
+
+    // Vérifie si le user connecté a reçu une invitation de $sender
+    if (!$user->getReceivedInvitations()->contains($sender)) {
+        return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
+    }
+
+    try {
+        // Supprimer l'invitation dans les deux sens
+        $user->getReceivedInvitations()->removeElement($sender);
+        $sender->getSentInvitations()->removeElement($user);
+
+        $em->persist($user);
+        $em->persist($sender);
+        $em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Invitation reçue supprimée avec succès'
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Erreur serveur: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+#[Route('/api/invitations/delete-sent/{receiverId}', name: 'api_delete_sent_invitation', methods: ['DELETE'])]
+public function deleteSentInvitation(
+    int $receiverId,
+    Security $security,
+    EntityManagerInterface $em
+): JsonResponse {
+    $user = $security->getUser();
+
+    if (!$user instanceof User) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
+    }
+
+    $receiver = $em->getRepository(User::class)->find($receiverId);
+    if (!$receiver) {
+        return new JsonResponse(['success' => false, 'message' => 'Utilisateur destinataire non trouvé'], 404);
+    }
+
+    if (!$user->getSentInvitations()->contains($receiver)) {
+        return new JsonResponse(['success' => false, 'message' => 'Invitation non trouvée'], 404);
+    }
+
+    try {
+        $user->getSentInvitations()->removeElement($receiver);
+        $receiver->getReceivedInvitations()->removeElement($user);
+
+        $em->persist($user);
+        $em->persist($receiver);
+        $em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Invitation envoyée supprimée avec succès'
+        ]);
+    } catch (\Exception $e) {
+        return new JsonResponse([
+            'success' => false,
+            'message' => 'Erreur serveur: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
 
 
 

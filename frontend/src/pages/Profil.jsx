@@ -18,8 +18,8 @@ const Profil = () => {
   const [newSkillId, setNewSkillId] = useState('');
 
 
-const [receivedInvitations, setSentInvitations] = useState([]);
-const [sentInvitations, setReceivedInvitations] = useState([]);
+const [sentInvitations, setSentInvitations] = useState([]);
+const [receivedInvitations, setReceivedInvitations] = useState([]);
 
 console.log(sentInvitations);
 
@@ -199,6 +199,76 @@ const fetchSentInvitations = async () => {
     }
   };
 
+
+  const deleteReceivedInvitation = async (senderId) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/invitations/delete-received/${senderId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      setNotification({ message: "✅ Invitation supprimée avec succès.", type: "success" });
+      // Rafraîchir la liste
+      await fetchReceivedInvitations();
+    } else {
+      setNotification({ message: `❌ ${data.message || "Erreur lors de la suppression."}`, type: "error" });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    setNotification({ message: "❌ Erreur réseau.", type: "error" });
+  }
+
+  setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+};
+
+
+const deleteSentInvitation = async (receiverId) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/invitations/delete-sent/${receiverId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      setNotification({ message: "✅ Invitation envoyée supprimée avec succès.", type: "success" });
+      // Rafraîchir la liste
+      await fetchSentInvitations();
+    } else {
+      setNotification({ message: `❌ ${data.message || "Erreur lors de la suppression."}`, type: "error" });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression :", error);
+    setNotification({ message: "❌ Erreur réseau.", type: "error" });
+  }
+
+  setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+};
+
+
+
   useEffect(() => {
     const init = async () => {
       await fetchConnectedUser();
@@ -233,44 +303,6 @@ const fetchSentInvitations = async () => {
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
   if (error) return <div className={styles.error}>Error: {error}</div>;
-
-
-  const currentUserId = localStorage.getItem("userId"); // ou depuis ton contexte auth
-  const deleteReceivedInvitation = async (senderId, receiverId) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/invitations/delete-received/${senderId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setNotification({ message: "✅ Invitation reçue supprimée avec succès !", type: "success" });
-        await fetchPendingInvitations(); // ← ici
-      } else {
-        setNotification({ message: `❌ ${data.message}`, type: "error" });
-      }
-
-    } catch (error) {
-      console.error('Error deleting received invitation:', error);
-      setNotification({ message: "❌ Erreur réseau.", type: "error" });
-    }
-
-    setTimeout(() => setNotification({ message: "", type: "" }), 3000);
-  };
-
-
-
 
 
 
@@ -368,12 +400,13 @@ console.log(receivedInvitations);
                 >
                   Accepter
                 </button>
-                <button
-                  className="bg-red-500 text-white px-2 py-1 rounded"
-                  onClick={() => deleteInvitation(inv.id)}
-                >
-                  Supprimer
-                </button>
+<button
+  className="bg-red-500 text-white px-2 py-1 rounded"
+  onClick={() => deleteSentInvitation(inv.id)}
+>
+  Supprimer
+</button>
+
               </div>
             </div>
           ))}
@@ -382,73 +415,49 @@ console.log(receivedInvitations);
     </div>
       )}
 
+{activeTab === 'sent' && (
+  <div className={styles.invitationsContainer}>
+    <h3 className={styles.invitationsTitle}>📥 Invitations Reçues</h3>
 
-      {/* Section des invitations envoyées */}
-      {activeTab === 'sent' && (
-        <div className={styles.invitationsContainer}>
-          <h3 className={styles.invitationsTitle}>📤 Invitations Envoyées</h3>
+    {notification.message && (
+      <div className={notification.type === "success" ? styles.successMsg : styles.errorMsg}>
+        {notification.message}
+      </div>
+    )}
 
-          {receivedInvitations.length === 0 ? (
-            <div className={styles.noInvitations}>
-              <p>Aucune invitation envoyée</p>
+    {receivedInvitations.length === 0 ? (
+      <div className={styles.noInvitations}>
+        <p>Aucune invitation reçue</p>
+      </div>
+    ) : (
+      <div className={styles.invitationsGrid}>
+        {receivedInvitations.map((inv) => (
+          <div key={inv.id} className={styles.invitationsCard}>
+            <div className={styles.invitationsInfo}>
+              <h4>{inv.firstName} {inv.lastName}</h4>
+              <p>{inv.email}</p>
             </div>
-          ) : (
-            <div className={styles.invitationsGrid}>
-              {receivedInvitations.map(receivedinvitations => (
-                <div key={receivedinvitations.id} className={styles.invitationsCard}>
-                  <div className={styles.invitationsHeader}>
-                    <div className={styles.invitationsInfo}>
-                      <h4 className={styles.invitationsName}>
-                        {receivedinvitations.firstName} {receivedinvitations.lastName}
-                      </h4>
-                      <p className={styles.invitationsEmail}>{receivedinvitations.email}</p>
-                      <p className={styles.invitationsEmail}>id : {receivedinvitations.id} </p>
-                    </div>
-                  </div>
 
-                  <div>
-                    <h2>Invitations sended</h2>
-                    {notification.message && (
-                      <div className={notification.type === "success" ? "text-green-600" : "text-red-600"}>
-                        {notification.message}
-                      </div>
-                    )}
-
-                    {receivedInvitations.length === 0 && <p>Aucune invitation reçue.</p>}
-
-                    <ul>
-                      {receivedInvitations.map((inv) => (
-                        <li key={inv.id} className="flex items-center gap-2 mb-2">
-                          <span>{inv.username}</span>
-                          <button
-                            className="bg-green-500 text-white px-2 py-1 rounded"
-                            onClick={() => acceptInvitation(inv.id, /* ton userId ici */)}
-                          >
-                            Accepter
-                          </button>
-                          <button
-                            onClick={() => deleteReceivedInvitation(inv.id, connectedUser.id)
-                            }
-                          >
-                            Supprimer
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                </div>
-
-
-
-              ))}
-
-
-
+            <div className={styles.invitationsActions}>
+              <button
+                className="bg-green-500 text-white px-2 py-1 rounded"
+                onClick={() => console.log("Accepter invitation de", inv.id)}
+              >
+                Accepter
+              </button>
+              <button
+                className="bg-red-500 text-white px-2 py-1 rounded"
+                onClick={() => deleteReceivedInvitation(inv.id)}
+              >
+                Supprimer
+              </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
       {/* Section des amis */}
       {activeTab === 'friends' && (
