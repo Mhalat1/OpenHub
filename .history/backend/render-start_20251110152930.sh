@@ -20,7 +20,13 @@ if [ -n "$DATABASE_URL" ]; then
     export PDO_PASS=$(echo $DATABASE_URL | sed -E 's|mysql://([^:]+):([^@]+)@.*|\2|')
 
 
-    until php -r "try { new PDO(getenv('PDO_DSN').';sslmode=REQUIRED', getenv('PDO_USER'), getenv('PDO_PASS')); exit(0); } catch (Exception \$e) { exit(1); }"; do
+until php -r "try { new PDO(getenv('PDO_DSN').';sslmode=REQUIRED', getenv('PDO_USER'), getenv('PDO_PASS')); exit(0); } catch (Exception \$e) { exit(1); }"; do
+    sleep 3
+    echo "⏳ Nouvelle tentative..."
+done
+
+
+    until php -r "try { new PDO(getenv('PDO_DSN'), getenv('PDO_USER'), getenv('PDO_PASS')); exit(0); } catch (Exception \$e) { exit(1); }"; do
         sleep 3
         echo "⏳ Nouvelle tentative..."
     done
