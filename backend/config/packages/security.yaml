@@ -1,6 +1,4 @@
 security:
-
-
     password_hashers:
         App\Entity\User:
             algorithm: auto
@@ -10,11 +8,11 @@ security:
             entity:
                 class: App\Entity\User
                 property: email
-        # used to reload user from session & other features (e.g. switch_user)
 
     firewalls:
+        # Firewall pour la connexion - doit matcher la route de check_path
         login:
-            pattern: ^/api/login_check
+            pattern: ^/api/login
             stateless: true
             json_login:
                 check_path: /api/login_check
@@ -22,25 +20,34 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            logout:
+                path: /api/logout
 
-
+        # Firewall principal pour l'API
         api:
-            pattern:   ^/api
+            pattern: ^/api
             stateless: true
             jwt: ~
+
+        # Firewall de développement
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Firewall par défaut (pour les routes non-API)
+        main:
+            lazy: true
+            provider: app_user_provider
 
     access_control:
-        - { path: ^/api/connexion, roles: PUBLIC_ACCESS }
+        # Routes publiques (sans authentification)
+        - { path: ^/$, roles: PUBLIC_ACCESS }
+        - { path: ^/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/userCreate, roles: PUBLIC_ACCESS }
-        - { path: /api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
-        - { path: ^/login, roles: PUBLIC_ACCESS }
-        - { path: ^/api/projet, roles: PUBLIC_ACCESS }
-        - { path: ^/api,       roles: PUBLIC_ACCESS }
-        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+        - { path: ^/api/projet, roles: PUBLIC_ACCESS }  # Si vous voulez que les projets soient publics
         - { path: ^/register, roles: PUBLIC_ACCESS }
-        - { path: ^/, roles: PUBLIC_ACCESS }
+        
+        # Routes protégées (nécessitent une authentification)
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
