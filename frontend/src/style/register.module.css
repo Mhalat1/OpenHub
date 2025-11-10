@@ -1,0 +1,112 @@
+/* register.module.css */
+
+.registerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f6fa, #dcdde1);
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  gap: 1.5rem;
+}
+
+.logo {
+  width: 120px;
+  margin-bottom: 1rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+input {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+}
+.loginBtn{
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #f39c12;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.registerpageText{
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.buttonregister {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #4a90e2;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.buttonregister:hover {
+  background-color: #357ab8;
+  transform: translateY(-2px);
+}
+
+.buttonregister:active {
+  transform: translateY(1px);
+}
+
+.success {
+  color: #27ae60;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.error {
+  color: #e74c3c;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.loginBtn {
+  margin-top: 0.5rem;
+  background-color: #f39c12;
+}
+
+.loginBtn:hover {
+  background-color: #d78c0d;
+}
+
+p {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.5rem;
+}
