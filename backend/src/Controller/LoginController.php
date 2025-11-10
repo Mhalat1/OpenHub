@@ -12,7 +12,7 @@ class LoginController extends AbstractController
     {
         public function __construct(private AuthenticationServiceInterface $authService) {}
 
-        #[Route(path: '/login', name: 'app_login', methods: ['POST'])]
+        #[Route(path: '/api//login', name: 'app_login', methods: ['POST'])]
         public function login(): Response
         {
             $error = $this->authService->getLastError();
