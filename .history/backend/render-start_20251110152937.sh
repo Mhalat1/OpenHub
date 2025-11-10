@@ -24,6 +24,9 @@ if [ -n "$DATABASE_URL" ]; then
         sleep 3
         echo "⏳ Nouvelle tentative..."
     done
+
+
+
     echo "✅ Base de données prête !"
 fi
 
