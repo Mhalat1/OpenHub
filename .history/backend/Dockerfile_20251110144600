@@ -30,4 +30,4 @@ RUN chmod -R 755 var/
 EXPOSE 80
 
 # Use the startup script
-CMD ["/usr/local/bin/render-start.sh"]userCreate
+CMD ["/usr/local/bin/render-start.sh"]
