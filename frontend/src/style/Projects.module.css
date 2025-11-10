@@ -1,0 +1,298 @@
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  --secondary: #8b5cf6;
+  --success: #10b981;
+  --error: #ef4444;
+  --info: #3b82f6;
+  --bg-main: #f1f1f1;
+  --bg-card: #ffffff;
+  --bg-hover: #f9fafb;
+  --text-primary: #000000;
+  --text-secondary: #424242;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* ========== PAGE LAYOUT ========== */
+.projectPage {
+  padding: 6rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  font-family: "Inter", sans-serif;
+  color: var(--text-primary);
+}
+
+/* ========== MESSAGES ========== */
+.projectNotificationSuccess,
+.projectNotificationError {
+  padding: 1rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 500;
+  width: fit-content;
+  animation: fadeIn 0.4s ease-in-out;
+  box-shadow: 0 3px 8px var(--shadow);
+}
+
+.projectNotificationSuccess {
+  background-color: var(--success);
+  color: #fff;
+}
+
+.projectNotificationError {
+  background-color: var(--error);
+  color: #fff;
+}
+
+/* ========== SEARCH BAR ========== */
+.projectSearchContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.projectSearchInput {
+  width: 100%;
+  max-width: 500px;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  outline: none;
+  transition: 0.3s;
+}
+
+.projectSearchInput:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 5px var(--primary-light);
+}
+
+/* ========== SECTION TITLES ========== */
+.projectSectionTitle,
+.projectListTitle,
+.projectCreationTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* ========== FORM ========== */
+.projectFormGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.projectInput,
+.projectTextarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--bg-card);
+  font-size: 0.95rem;
+  transition: 0.3s;
+}
+
+.projectInput:focus,
+.projectTextarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 4px var(--primary-light);
+}
+
+.projectLabel {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+}
+
+.projectDateGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.projectCreateBtn {
+  margin-top: 1rem;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 4px 10px var(--shadow);
+}
+
+.projectCreateBtn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+}
+
+/* ========== PROJECT & SKILL CARDS ========== */
+.projectGridContainer,
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.5rem;
+      padding: 2rem;
+    border-radius: 20px;
+        background-color: #34406e;
+  
+}
+
+.projectCard {
+  background-color: var(--bg-card);
+  border-radius: 15px;
+  padding: 1.2rem;
+  box-shadow: 0 3px 10px var(--shadow);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.projectCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+}
+
+.projectCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.projectCardTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.projectCardDescription {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0.8rem 0;
+}
+
+.projectCardSkills {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.projectCardDates {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ========== BUTTONS (Delete/Edit) ========== */
+.projectDeleteBtn,
+.projectEditBtn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.projectDeleteBtn:hover {
+  color: var(--error);
+  transform: scale(1.2);
+}
+
+.projectEditBtn:hover {
+  color: var(--info);
+  transform: scale(1.2);
+}
+
+/* ========== EMPTY MESSAGE ========== */
+.projectEmpty,
+.projectEmptyMessage {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem 0;
+  font-size: 1rem;
+}
+
+/* ========== MODALS ========== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+.modalContent {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px var(--shadow);
+  position: relative;
+  animation: scaleIn 0.3s ease;
+}
+
+.modalTitle {
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.closeButton:hover {
+  color: var(--error);
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .projectFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectGrid,
+  .projectGridContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .projectCard {
+    padding: 1rem;
+  }
+}

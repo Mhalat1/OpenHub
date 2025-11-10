@@ -1,0 +1,432 @@
+/* 🌍 Container principal */
+.profileContainer {
+  padding: 6rem 6rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* 🔍 Barre de recherche */
+.header {
+  display: flex;
+  justify-content: center;
+}
+
+.searchContainer {
+  width: 100%;
+  max-width: 500px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ffffff;
+  background: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  outline: none;
+}
+
+/* 🧭 Sous-navigation */
+.subNav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.subNavButton {
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subNavButton:hover {
+  background: #cbd5e1;
+}
+
+.active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* 💬 Notifications */
+.successMsg,
+.errorMsg {
+  text-align: center;
+  padding: 0.9rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.successMsg {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+.errorMsg {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* 👤 Utilisateur connecté */
+.userconnected {
+  text-align: center;
+  font-size: 1rem;
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+}
+
+.userconnected > p{  color:rgb(0, 0, 0);
+}
+
+
+.userconnected span {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* 👥 Grille des utilisateurs */
+.usersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.userCard {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.userCard:hover {
+  background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.1);
+  transform: translateY(-3px);
+}
+
+
+
+.userName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+/* 🤝 Invitations */
+.invitationsContainer,
+.friendsContainer {
+  background: #fff;
+  border: 1px solid #000000;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+}
+
+.invitationsTitle,
+.friendsTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #0f172a;
+}
+
+.invitationsGrid,
+.friendsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.invitationsCard,
+.friendCard {
+  background: #f9fafb;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+}
+
+.invitationsCard:hover,
+.friendCard:hover {
+  background: #fff;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+
+
+.invitationsInfo,
+.friendInfo {
+  flex: 1;
+}
+
+.invitationsName,
+.friendName {
+  font-weight: 600;
+  color: #000000;
+}
+
+.invitationsEmail,
+.friendEmail {
+  font-size: 0.9rem;
+  color: #000000;
+}
+
+.invitationsActions,
+.friendActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.acceptBtn,
+.rejectBtn,
+.unfriendBtn {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.acceptBtn {
+  background: #16a34a;
+  color: white;
+}
+
+.acceptBtn:hover {
+  background: #15803d;
+}
+
+.rejectBtn,
+.unfriendBtn {
+  background: #dc2626;
+  color: white;
+}
+
+.rejectBtn:hover,
+.unfriendBtn:hover {
+  background: #b91c1c;
+}
+
+/* 🔄 États */
+.noInvitations,
+.noFriends,
+.noResults {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* 🧱 Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.modalContent {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.modalClose {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.modalHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.modalAvatar {
+  width: 80px;
+  height: 80px;
+  background: #cbd5e1;
+  border-radius: 50%;
+}
+
+.modalTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.modalBody {
+  margin-top: 1rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.infoLabel {
+  font-weight: 600;
+  color: #334155;
+}
+
+.infoValue {
+  color: #475569;
+}
+
+.skillList,
+.projectList {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0.5rem;
+}
+
+.skillItem,
+.projectItem {
+  background: #000000;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  display: inline-block;
+  margin: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.modalActions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.modalButton,
+.modalButtonSecondary {
+  padding: 0.7rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.modalButton {
+  background: #2563eb;
+  color: white;
+}
+
+.modalButton:hover {
+  background: #1d4ed8;
+}
+
+.modalButtonSecondary {
+  background: #000000;
+  color: #ffffff;
+}
+
+.modalButtonSecondary:hover {
+  background: #cbd5e1;
+}
+
+/* ⚙️ Loader et erreurs */
+.loading,
+.error {
+  text-align: center;
+  font-size: 1rem;
+  padding: 2rem;
+  color: #64748b;
+}
+
+/* 🎞️ Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 📱 Responsive */
+@media (max-width: 900px) {
+  .profileContainer {
+    padding: 1rem;
+  }
+
+  .modalContent {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .subNav {
+    flex-direction: column;
+  }
+
+  .modalActions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .modalButton,
+  .modalButtonSecondary {
+    width: 100%;
+  }
+}
