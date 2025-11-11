@@ -1,8 +1,0 @@
-
-###> symfony/framework-bundle ###
-/.history
-/.env.local
-/.env.local.php
-/.env.*.local
-/var/
-/vendor/
