@@ -14,6 +14,7 @@ services:
       php bin/console doctrine:migrations:migrate --no-interaction
       php bin/console cache:clear --env=prod
       php bin/console cache:warmup --env=prod
+      
     startCommand: |
       cd backend && php -S 0.0.0.0:$PORT public/index.php
     envVars:
