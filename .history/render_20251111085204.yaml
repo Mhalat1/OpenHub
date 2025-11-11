@@ -6,23 +6,23 @@ services:
     plan: free
     buildCommand: |
       cd backend
-      chmod +x render-start.sh
-      ./render-start.sh
+      chmod +x build.sh
+      ./build.sh
     startCommand: |
       cd backend && php -S 0.0.0.0:$PORT -t public
     envVars:
       - key: APP_ENV
-        value: prod
+        value: prod  # ⬅️ CORRIGÉ: "prod" au lieu de "production"
       - key: APP_SECRET
         generateValue: true
       - key: JWT_PASSPHRASE
         generateValue: true
       - key: DATABASE_URL
         fromService:
-          type: mysql
+          type: mysql  # ⬅️ CORRIGÉ: "mysql" au lieu de "postgresql"
           name: aiven-mysql
           property: connectionString
-    healthCheckPath: /health
+    healthCheckPath: /health  # ⬅️ CORRIGÉ: utilise ta route existante
 
   # Frontend React
   - type: web
@@ -34,7 +34,7 @@ services:
       npm run build
     staticPublishPath: ./frontend/build
     envVars:
-      - key: VITE_API_URL
+      - key: VITE_API_URL  # ⬅️ CORRIGÉ: "VITE_" pour Vite
         fromService:
           type: web
           name: symfony-backend
