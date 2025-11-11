@@ -1,0 +1,35 @@
+services:
+    # Service JWT personnalisé pour charger les clés depuis les variables d'environnement
+    app.jwt_key_loader:
+        class: App\Service\EnvJWTKeyLoader
+        arguments:
+            - '%env(JWT_SECRET_KEY)%'
+            - '%env(JWT_PUBLIC_KEY)%'
+            - '%env(JWT_PASSPHRASE)%'
+        tags:
+            - { name: lexik_jwt_authentication.key_loader }
+
+    # Vos services existants
+    App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
+
+    App\Security\LoginSuccessHandler:
+        public: true
+
+    App\Security\LoginFailureHandler:
+        public: true
+
+    App\Security\ApiTokenAuthenticator:
+        arguments:
+            $someDependency: '@some_dependency'
+
+    # COMMENTEZ CETTE LIGNE - CORS est géré dans index.php
+    # App\EventListener\CORSListener:
+    #     tags:
+    #         - { name: kernel.event_listener, event: kernel.response }
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
