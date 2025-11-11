@@ -10,7 +10,7 @@ security:
                 property: email
 
     firewalls:
-        # Firewall pour la connexion
+        # Firewall pour la connexion - doit matcher la route de check_path
         login:
             pattern: ^/api/login
             stateless: true
@@ -20,6 +20,8 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            logout:
+                path: /api/logout
 
         # Firewall principal pour l'API
         api:
@@ -32,17 +34,20 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        # Firewall par défaut
+        # Firewall par défaut (pour les routes non-API)
         main:
             lazy: true
             provider: app_user_provider
 
     access_control:
-        # Routes publiques
-        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+        # Routes publiques (sans authentification)
+        - { path: ^/$, roles: PUBLIC_ACCESS }
+        - { path: ^/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/userCreate, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+        - { path: ^/api/projet, roles: PUBLIC_ACCESS }  # Si vous voulez que les projets soient publics
         - { path: ^/register, roles: PUBLIC_ACCESS }
         
-        # Routes protégées
+        # Routes protégées (nécessitent une authentification)
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
