@@ -5,10 +5,6 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
 
-
-
-
-
 services:
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
@@ -17,9 +13,15 @@ services:
 
     App\Security\LoginFailureHandler:
         public: true
+        
     App\Security\ApiTokenAuthenticator:
         arguments:
             $someDependency: '@some_dependency'  # Si ton authenticator dépend de services, ajoute-les ici.
+
+    # Écouteur CORS manuel
+    App\EventListener\CORSListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.response }
 
     # default configuration for services in *this* file
     _defaults:
@@ -30,6 +32,10 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
