@@ -1,0 +1,23 @@
+services:
+    App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
+
+    App\Security\LoginSuccessHandler:
+        public: true
+
+    App\Security\LoginFailureHandler:
+        public: true
+    App\Security\ApiTokenAuthenticator:
+        arguments:
+            $someDependency: '@some_dependency'
+
+    # COMMENTEZ CETTE LIGNE - CORS est géré dans index.php
+    # App\EventListener\CORSListener:
+    #     tags:
+    #         - { name: kernel.event_listener, event: kernel.response }
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
