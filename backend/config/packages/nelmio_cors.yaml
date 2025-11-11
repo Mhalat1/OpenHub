@@ -1,7 +1,0 @@
-nelmio_cors:
-    defaults:
-        allow_origin: ['https://openhub-front.onrender.com']
-        allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
-        allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With']
-        max_age: 3600
-        allow_credentials: true
