@@ -1,4 +1,15 @@
 services:
+    # SUPPRIMEZ ce bloc - ne gardez pas les deux !
+    # app.jwt_key_loader:
+    #     class: App\Service\EnvJWTKeyLoader
+    #     arguments:
+    #         - '%env(JWT_SECRET_KEY)%'
+    #         - '%env(JWT_PUBLIC_KEY)%'
+    #         - '%env(JWT_PASSPHRASE)%'
+    #     tags:
+    #         - { name: lexik_jwt_authentication.key_loader }
+
+    # Vos autres services...
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
     App\Security\LoginSuccessHandler:
@@ -6,14 +17,10 @@ services:
 
     App\Security\LoginFailureHandler:
         public: true
+
     App\Security\ApiTokenAuthenticator:
         arguments:
             $someDependency: '@some_dependency'
-
-    # COMMENTEZ CETTE LIGNE - CORS est géré dans index.php
-    # App\EventListener\CORSListener:
-    #     tags:
-    #         - { name: kernel.event_listener, event: kernel.response }
 
     _defaults:
         autowire: true
