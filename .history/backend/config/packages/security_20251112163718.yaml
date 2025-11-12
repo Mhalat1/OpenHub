@@ -10,8 +10,9 @@ security:
                 property: email
 
     firewalls:
+        # Firewall pour la connexion
         login:
-            pattern: ^/api/login_check
+            pattern: ^/api/login
             stateless: true
             json_login:
                 check_path: /api/login_check
@@ -19,7 +20,6 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
-
 
         # Firewall principal pour l'API
         api:
