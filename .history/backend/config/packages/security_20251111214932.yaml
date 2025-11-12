@@ -43,5 +43,6 @@ security:
         - { path: ^/api/userCreate, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
+        
         # Routes protégées
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
