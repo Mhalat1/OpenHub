@@ -1,0 +1,6 @@
+
+lexik_jwt_authentication:
+    secret_key: '%kernel.project_dir%/jwt_private.pem' # chemin vers le Secret File
+    public_key: '%kernel.project_dir%/jwt_public.pem'
+    pass_phrase: '%env(JWT_PASSPHRASE)%'
+    token_ttl: 3600
