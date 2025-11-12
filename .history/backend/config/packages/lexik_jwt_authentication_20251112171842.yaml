@@ -1,0 +1,6 @@
+
+lexik_jwt_authentication:
+    secret_key: '/etc/secrets/jwt_private.pem'
+    public_key: '/etc/secrets/jwt_public.pem'
+    pass_phrase: 'Thinkpad@2022'
+    token_ttl: 3600
