@@ -43,7 +43,7 @@ const Login = () => {
         localStorage.setItem("token", data.token);
         alert("Login successful ✅");
         navigate("/profil");
-        console.log("Login successful, token stored.", { token });
+        console.log("Login successful, token stored.", { data.token });
       }
     } catch (err) {
       setError(err.message);
