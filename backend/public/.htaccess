@@ -1,6 +1,5 @@
-# CORS headers - TEMP FIX
-SetEnvIf Origin "^https://openhub-front-.*\.onrender\.com$" AccessControlAllowOrigin=$0
-Header always set Access-Control-Allow-Origin %{AccessControlAllowOrigin}e env=AccessControlAllowOrigin
+# CORS headers - SOLUTION DÉFINITIVE
+Header always set Access-Control-Allow-Origin "https://openhub-front.onrender.com"
 Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE, PATCH"
 Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin"
 Header always set Access-Control-Allow-Credentials "true"
