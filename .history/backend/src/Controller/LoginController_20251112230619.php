@@ -12,7 +12,7 @@ class LoginController extends AbstractController
     {
         public function __construct(private AuthenticationServiceInterface $authService) {}
 
-        #[Route(path: '/api/login', name: 'app_login', methods: ['POST'])]
+        #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
         public function login(): Response
         {
             $error = $this->authService->getLastError();
@@ -25,15 +25,15 @@ class LoginController extends AbstractController
         }
 }
 
-class LoginCheckController extends AbstractController   
-    {
-        #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
-        public function loginCheck(): Response
-        {
-            // This code is never executed.
-            return $this->json(['message' => 'Login check endpoint']);
-        }
-    }
+// class LoginCheckController extends AbstractController   
+//     {
+//         #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
+//         public function loginCheck(): Response
+//         {
+//             // This code is never executed.
+//             return $this->json(['message' => 'Login check endpoint']);
+//         }
+//     }
 
 
 class LogoutController extends AbstractController

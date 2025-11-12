@@ -1,10 +1,10 @@
-// ...existing code...
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../style/login.module.css"; 
 import logo from '../images/logo.png';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,7 +14,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted!"); // debug
+    console.log("Form submitted!"); // <--- debug
     console.log("POST", `${API_URL}/api/login_check`, { email, password });
 
     setError("");
@@ -27,28 +27,24 @@ const Login = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
-      // Essaie de parser la réponse en JSON (plus fiable que read text + parse)
+      const text = await response.text();
       let data;
       try {
-        data = await response.json();
+        data = JSON.parse(text);
       } catch {
         throw new Error("Server error: Invalid response format");
       }
 
       if (!response.ok) {
-        // Lexik renvoie souvent 401 + { "code": 401, "message": "..." }
         throw new Error(data.message || "Invalid credentials");
       }
 
       if (data.token) {
-        const storageKey = import.meta.env.VITE_API_JWT_STORAGE_KEY || "token";
+        const storageKey = import.meta.env.VITE_API_JWT_STORAGE_KEY || 'token';
         localStorage.setItem(storageKey, data.token);
         alert("Login successful ✅");
         navigate("/profil");
         console.log("Login successful, token stored.", { token: data.token });
-      } else {
-        throw new Error("No token returned by server");
       }
     } catch (err) {
       setError(err.message);
@@ -56,12 +52,16 @@ const Login = () => {
   };
 
   return (
+
+
     <div className={styles.loginContainer}> 
       <div className={styles.logo}>
         <img src={logo} alt="logo" className={styles.logo} />
       </div>
 
-      <div className={styles.divider}></div> 
+      <div className={styles.divider}>
+        
+        </div> 
 
       <div className={styles.logincontent}>
         <h2>Login</h2>
@@ -91,11 +91,10 @@ const Login = () => {
           Register
         </button>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error}>{error}</p>} {/* ✅ */}
       </div>
     </div>
   );
 };
 
 export default Login;
-// ...existing code...

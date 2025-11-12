@@ -1,7 +1,4 @@
-
 security:
-    enable_authenticator_manager: true
-
     password_hashers:
         App\Entity\User:
             algorithm: auto
@@ -13,10 +10,6 @@ security:
                 property: email
 
     firewalls:
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
-
         login:
             pattern: ^/api/login_check
             stateless: true
@@ -32,6 +25,10 @@ security:
             pattern: ^/api
             stateless: true
             jwt: ~
+
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
 
         main:
             lazy: true
