@@ -1,5 +1,15 @@
 services:
- 
+    # SUPPRIMEZ ce bloc - ne gardez pas les deux !
+    # app.jwt_key_loader:
+    #     class: App\Service\EnvJWTKeyLoader
+    #     arguments:
+    #         - '%env(JWT_PRIVATE_KEY)%'
+    #         - '%env(JWT_PUBLIC_KEY)%'
+    #         - '%env(JWT_PASSPHRASE)%'
+    #     tags:
+    #         - { name: lexik_jwt_authentication.key_loader }
+
+    # Vos autres services...
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
     App\Security\LoginSuccessHandler:
