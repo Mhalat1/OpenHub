@@ -20,16 +20,13 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Préparation du dossier pour les clés JWT
+
 RUN mkdir -p /etc/secrets
 ENV JWT_PRIVATE_KEY_PATH=/etc/secrets/private.pem
 ENV JWT_PUBLIC_KEY_PATH=/etc/secrets/public.pem
 
-EXPOSE 80
 
-# 🧠 CMD unique qui crée les fichiers depuis les variables d'environnement Render
-CMD bash -c 'echo "$JWT_PRIVATE_KEY" > /etc/secrets/private.pem && \
-             echo "$JWT_PUBLIC_KEY" > /etc/secrets/public.pem && \
-             chmod 600 /etc/secrets/private.pem /etc/secrets/public.pem && \
-             php bin/console cache:clear --no-warmup && \
-             apache2-foreground'
+EXPOSE 80
+CMD php bin/console cache:clear --no-warmup && apache2-foreground
+
+CMD ["apache2-foreground"]
