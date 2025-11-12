@@ -25,15 +25,15 @@ class LoginController extends AbstractController
         }
 }
 
-// class LoginCheckController extends AbstractController   
-//     {
-//         #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
-//         public function loginCheck(): Response
-//         {
-//             // This code is never executed.
-//             return $this->json(['message' => 'Login check endpoint']);
-//         }
-//     }
+class LoginCheckController extends AbstractController   
+    {
+        #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
+        public function loginCheck(): Response
+        {
+            // This code is never executed.
+            return $this->json(['message' => 'Login check endpoint']);
+        }
+    }
 
 
 class LogoutController extends AbstractController
