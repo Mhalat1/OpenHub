@@ -3,7 +3,7 @@ services:
     # app.jwt_key_loader:
     #     class: App\Service\EnvJWTKeyLoader
     #     arguments:
-    #         - '%env(JWT_PRIVATE_KEY)%'
+    #         - '%env(JWT_SECRET_KEY)%'
     #         - '%env(JWT_PUBLIC_KEY)%'
     #         - '%env(JWT_PASSPHRASE)%'
     #     tags:

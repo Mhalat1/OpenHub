@@ -1,6 +1,0 @@
-
-lexik_jwt_authentication:
-    secret_key: '%kernel.project_dir%/jwt_private.pem' # chemin vers le Secret File ajoutee dans render
-    public_key: '%kernel.project_dir%/jwt_public.pem'
-    pass_phrase: 'Thinkpad@2022'
-    token_ttl: 3600
