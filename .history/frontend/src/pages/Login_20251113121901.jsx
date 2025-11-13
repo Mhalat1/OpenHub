@@ -42,7 +42,7 @@ const Login = () => {
       }
 
       if (data.token) {
-        localStorage.setItem("token", data.token);
+localStorage.setItem("token", data.token);
         alert("Login successful ✅");
         navigate("/profil");
         console.log("Login successful, token stored.", { token: data.token });
