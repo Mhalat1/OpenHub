@@ -254,7 +254,6 @@ const Home = () => {
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
-    console.log('Token:', token)
 
     try {
       // Récupérer l'utilisateur
