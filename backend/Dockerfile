@@ -27,12 +27,12 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN sed -i '/<Directory \/var\/www\/html\/public>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-# Créer les clés JWT à partir des variables d'environnement
-RUN mkdir -p config/jwt \
-    && echo "$JWT_SECRET_KEY" > config/jwt/private.pem \
-    && echo "$JWT_PUBLIC_KEY" > config/jwt/public.pem \
-    && chmod 600 config/jwt/*.pem \
-    && chown -R www-data:www-data config/jwt
+# # Créer les clés JWT à partir des variables d'environnement
+# RUN mkdir -p config/jwt \
+#     && echo "$JWT_SECRET_KEY" > config/jwt/private.pem \
+#     && echo "$JWT_PUBLIC_KEY" > config/jwt/public.pem \
+#     && chmod 600 config/jwt/*.pem \
+#     && chown -R www-data:www-data config/jwt
 
 EXPOSE 80
 

@@ -12,8 +12,13 @@ const Login = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+  localStorage.removeItem("token");
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    localStorage.removeItem("token");
     console.log("Form submitted!"); // debug
     console.log("POST", `${API_URL}/api/login_check`, { email, password });
 
