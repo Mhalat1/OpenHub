@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Installer les dépendances PHP nécessaires
+# Installer les dépendances PHP
 RUN apt-get update && apt-get install -y \
     git unzip libicu-dev libzip-dev libpng-dev zip \
     libonig-dev curl && \
@@ -27,14 +27,12 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN sed -i '/<Directory \/var\/www\/html\/public>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-# Créer les clés JWT à partir des variables d'environnement
-RUN mkdir -p config/jwt \
-    && echo "$JWT_SECRET_KEY" > config/jwt/private.pem \
-    && echo "$JWT_PUBLIC_KEY" > config/jwt/public.pem \
-    && chmod 600 config/jwt/*.pem \
-    && chown -R www-data:www-data config/jwt
+# Copier les clés JWT dans le container et sécuriser les permissions
+RUN mkdir -p /var/www/html/config/jwt
+COPY config/jwt/*.pem /var/www/html/config/jwt/
+RUN chmod 600 /var/www/html/config/jwt/*.pem && chown -R www-data:www-data /var/www/html/config/jwt/
 
 EXPOSE 80
 
-# Commande finale : nettoyage cache + lancement Apache
+# Commande finale
 CMD php bin/console cache:clear --no-warmup && apache2-foreground
