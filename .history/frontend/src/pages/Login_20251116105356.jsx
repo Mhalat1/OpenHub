@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../style/login.module.css"; 
 import logo from '../images/logo.png';
-import { useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
