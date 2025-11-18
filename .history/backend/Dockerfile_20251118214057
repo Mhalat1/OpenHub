@@ -70,5 +70,5 @@ CMD cp /etc/secrets/private.pem config/jwt/private.pem && \
     chmod 600 config/jwt/*.pem && \
     php bin/console cache:clear --no-warmup && \
     apache2-foreground
-
-    
+# Commande finale : nettoyage cache + lancement Apache
+CMD php bin/console cache:clear --no-warmup && apache2-foreground
