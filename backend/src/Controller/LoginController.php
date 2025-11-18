@@ -26,15 +26,15 @@ class LoginController extends AbstractController
 }
 
 class LoginCheckController extends AbstractController   
+{
+    #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
+    public function loginCheck(): never
     {
-        #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
-        public function loginCheck(): Response
-        {
-            // This code is never executed.
-            return $this->json(['message' => 'Login check endpoint']);
-        }
+        // Cette méthode ne devrait JAMAIS être exécutée
+        // Si elle s'exécute, c'est que Lexik JWT n'intercepte pas la requête
+        throw new \LogicException('This method should be intercepted by Lexik JWT firewall.');
     }
-
+}
 
 class LogoutController extends AbstractController
     {    
