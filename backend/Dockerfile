@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     docker-php-ext-install intl pdo pdo_mysql gd zip opcache mbstring && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+
 # Activer les modules Apache nécessaires
 RUN a2enmod rewrite headers
 
@@ -35,8 +36,9 @@ EXPOSE 80
 
 # Commande finale : copier les secrets JWT au démarrage et lancer Apache
 CMD mkdir -p config/jwt && \
+    chmod 600 config/jwt/*.pem && \
+    chmod 644 /etc/secrets/*.pem && \
     cp /etc/secrets/private.pem config/jwt/private.pem && \
     cp /etc/secrets/public.pem config/jwt/public.pem && \
-    chmod 600 config/jwt/*.pem && \
     php bin/console cache:clear --no-warmup && \
     apache2-foreground
