@@ -34,7 +34,8 @@ RUN mkdir -p config/jwt
 EXPOSE 80
 
 # Commande finale : copier les secrets JWT au démarrage et lancer Apache
-CMD cp /etc/secrets/private.pem config/jwt/private.pem && \
+CMD mkdir -p config/jwt && \
+    cp /etc/secrets/private.pem config/jwt/private.pem && \
     cp /etc/secrets/public.pem config/jwt/public.pem && \
     chmod 600 config/jwt/*.pem && \
     php bin/console cache:clear --no-warmup && \
