@@ -26,6 +26,9 @@ security:
             pattern: ^/api
             stateless: true
             jwt: ~
+        main:
+            lazy: true
+            provider: app_user_provider
 
     access_control:
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
