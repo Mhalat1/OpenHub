@@ -19,4 +19,9 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
  && sed -i '/<Directory \/var\/www\/html\/public>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
 EXPOSE 80
-CMD php bin/console cache:clear --no-warmup && apache2-foreground
+
+
+CMD echo "=== Checking secrets ===" && ls -l /etc/secrets && cat /etc/secrets/private.pem | head -n 2 && \
+    php bin/console cache:clear --no-warmup && apache2-foreground
+
+    
