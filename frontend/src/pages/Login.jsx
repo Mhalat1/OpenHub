@@ -48,7 +48,7 @@ const Login = () => {
       if (data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user_email", email); // Pour l'UX
-        navigate("/profil", { 
+        navigate("/home", { 
           state: { message: "Connexion réussie !" } 
         });
       } else {
