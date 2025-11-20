@@ -1,0 +1,23 @@
+.env
+*.env
+.env.*
+**/.env
+**/.env.*
+config/jwt/
+*.pem
+*.key
+
+# ��� DEPENDANCES
+node_modules/
+*/node_modules/
+
+# ���️ BUILD
+dist/
+build/
+*.log
+
+# ��� IDE
+.vscode/
+.idea/
+.history/
+
