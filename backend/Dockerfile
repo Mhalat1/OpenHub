@@ -8,37 +8,47 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite headers
 
 WORKDIR /var/www/html
-COPY . .
 
-# ✅✅✅ AJOUTEZ CES LIGNES CRITIQUES ✅✅✅
-# Créer le fichier .env pour la production
-RUN if [ -f ".env.production" ]; then \
-        cp .env.production .env && \
-        echo "✅ .env.production copied to .env"; \
-    else \
-        echo "⚠️  .env.production not found, creating minimal .env"; \
-        echo "APP_ENV=prod" > .env; \
-        echo "APP_SECRET=default_secret_change_me_in_render" >> .env; \
-        echo "DATABASE_URL=mysql://default" >> .env; \
-        echo "CORS_ALLOW_ORIGIN=[]" >> .env; \
-        echo "JWT_PASSPHRASE=default" >> .env; \
-    fi
-# ✅✅✅ FIN DES AJOUTS CRITIQUES ✅✅✅
+# ✅ COPIER SEULEMENT LES FICHIERS NÉCESSAIRES
+COPY composer.json composer.lock symfony.lock ./
+COPY bin/ bin/
+COPY config/ config/
+COPY public/ public/
+COPY src/ src/
+COPY templates/ templates/
+
+# ✅ COPIER .env.production S'IL EXISTE
+COPY .env.production .env.production 2>/dev/null || true
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# Créer le dossier JWT
-RUN mkdir -p config/jwt
+# ✅ CRÉER LA STRUCTURE DE DOSSIERS AVEC BONNES PERMISSIONS
+RUN mkdir -p var/cache var/log config/jwt && \
+    chown -R www-data:www-data var/ && \
+    chmod -R 775 var/
+
+# ✅ CRÉER .env POUR LA PRODUCTION
+RUN if [ -f ".env.production" ]; then \
+        cp .env.production .env && \
+        echo "✅ .env.production copied to .env"; \
+    else \
+        echo "APP_ENV=prod" > .env; \
+        echo "APP_SECRET=temp_$(date +%s)" >> .env; \
+        echo "DATABASE_URL=mysql://temp" >> .env; \
+        echo "✅ Minimal .env created"; \
+    fi
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
  && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
  && sed -i '/<Directory \/var\/www\/html\/public>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
+# ✅ CHANGER L'UTILISATEUR POUR www-data
+USER www-data
+
 EXPOSE 80
 
-# Script de démarrage corrigé
 CMD sh -c ' \
     echo "=== Starting Application ==="; \
     mkdir -p config/jwt; \
@@ -49,13 +59,10 @@ CMD sh -c ' \
         chmod 644 config/jwt/*.pem; \
     else \
         echo "❌ ERROR: JWT secrets not found!"; \
-        echo "Please configure Secret Files in Render dashboard"; \
         exit 1; \
     fi; \
-    echo "=== Checking .env file ==="; \
-    ls -la .env && echo "=== .env content ===" && head -5 .env; \
-    echo "=== Clearing cache ==="; \
-    php bin/console cache:clear --no-warmup; \
+    echo "=== Warming up cache ==="; \
+    php bin/console cache:warmup || echo "⚠️  Cache warmup failed, but continuing..."; \
     echo "=== Starting Apache ==="; \
     apache2-foreground \
 '
