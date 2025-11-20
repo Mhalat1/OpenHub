@@ -229,8 +229,8 @@ body{
 .linkButton {
   width: 100%;
   padding: 1rem;
-  background: white;
-  color: var(--primary);
+  background: var(--primary);
+  color: wvar(--primary)hite;
   border: none;
   border-radius: var(--radius);
   font-size: 1rem;
@@ -238,7 +238,6 @@ body{
   cursor: pointer;
   transition: all 0.2s ease;
   margin-top: auto;
-      box-shadow: 0px 0px 0px 2px #00000038;
 }
 
 /* Messages d'erreur */
