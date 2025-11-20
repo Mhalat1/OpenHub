@@ -24,7 +24,7 @@
 /* Section Hero (Gauche) */
 .heroSection {
     flex: 1;
-    background: linear-gradient(135deg, #407cff 0%, #000000 100%);
+    background: linear-gradient(135deg, #0050ff 0%, #000000 100%);
     color: #fff;
     padding: 3rem;
     display: flex;
@@ -65,18 +65,15 @@
     margin-bottom: 2.5rem;
     text-align: center;
     opacity: .9;
-    color: #0090ff;
+    color: #00ff55;
 }
 
 .features {
   display: flex;
   gap: 1rem;
-  flex-direction: row;
-      max-width: 90vw;
 }
 
 .featureItem {
-      font-size: 12px;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -333,28 +330,14 @@
   .heroText h1 {
     font-size: 2rem;
   }
-  .heroText p {
-    margin-bottom: 15px;
-  }
   
   .formSection {
     padding: 1rem;
   }
   
   .formContainer {
-    margin: 2rem;
-  }
-
-  .form{
-    max-width: 100%;
-    gap: 15px;
-  }
-
-    .formHeader h2 {
-    font-size: 25px;
-  }
-  .formHeader p {
-    font-size: 20px;
+    padding: 2rem;
+    margin: -3rem 1rem 1rem 1rem;
   }
 }
 
@@ -378,10 +361,7 @@
     font-size: 15px;
   }
   .form{
-    padding: 0px;
-        box-shadow: none;
-        gap: 2.5rem;
-        padding: 0px;
+    padding: 0;
   }
 
   .logo{

@@ -65,18 +65,15 @@
     margin-bottom: 2.5rem;
     text-align: center;
     opacity: .9;
-    color: #0090ff;
+    color: #00ff55;
 }
 
 .features {
   display: flex;
   gap: 1rem;
-  flex-direction: row;
-      max-width: 90vw;
 }
 
 .featureItem {
-      font-size: 12px;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -347,7 +344,7 @@
 
   .form{
     max-width: 100%;
-    gap: 15px;
+    gap: 2rem;
   }
 
     .formHeader h2 {
