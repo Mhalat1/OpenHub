@@ -13,6 +13,9 @@ COPY . .
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
+# Créer le dossier JWT
+RUN mkdir -p config/jwt
+
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
  && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
@@ -20,8 +23,22 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 
 EXPOSE 80
 
-
-CMD echo "=== Checking secrets ===" && ls -l /etc/secrets && cat /etc/secrets/private.pem | head -n 2 && \
-    php bin/console cache:clear --no-warmup && apache2-foreground
-
-    
+# Script de démarrage corrigé
+CMD sh -c ' \
+    echo "=== Starting Application ==="; \
+    mkdir -p config/jwt; \
+    if [ -f "/etc/secrets/private.pem" ]; then \
+        echo "✅ Copying JWT keys..."; \
+        cp /etc/secrets/private.pem config/jwt/private.pem; \
+        cp /etc/secrets/public.pem config/jwt/public.pem; \
+        chmod 644 config/jwt/*.pem; \
+    else \
+        echo "❌ ERROR: JWT secrets not found!"; \
+        echo "Please configure Secret Files in Render dashboard"; \
+        exit 1; \
+    fi; \
+    echo "=== Clearing cache ==="; \
+    php bin/console cache:clear --no-warmup; \
+    echo "=== Starting Apache ==="; \
+    apache2-foreground \
+'

@@ -1,4 +1,4 @@
-# ��� SECURITE - NE JAMAIS COMMITER
+#  SECURITE - NE JAMAIS COMMITER
 .env
 *.env
 .env.*
@@ -8,16 +8,16 @@ config/jwt/
 *.pem
 *.key
 
-# ��� DEPENDANCES
+#  DEPENDANCES
 node_modules/
 */node_modules/
 
-# ���️ BUILD
+#  BUILD
 dist/
 build/
 *.log
 
-# ��� IDE
+#  IDE
 .vscode/
 .idea/
 .history/
