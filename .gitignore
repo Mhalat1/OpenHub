@@ -1,4 +1,3 @@
-# Fichiers à ignorer
 .env.dev
 !.env.production
 config/jwt/
