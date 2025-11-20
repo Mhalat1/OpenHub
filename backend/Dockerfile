@@ -10,6 +10,21 @@ RUN a2enmod rewrite headers
 WORKDIR /var/www/html
 COPY . .
 
+# ✅✅✅ AJOUTEZ CES LIGNES CRITIQUES ✅✅✅
+# Créer le fichier .env pour la production
+RUN if [ -f ".env.production" ]; then \
+        cp .env.production .env && \
+        echo "✅ .env.production copied to .env"; \
+    else \
+        echo "⚠️  .env.production not found, creating minimal .env"; \
+        echo "APP_ENV=prod" > .env; \
+        echo "APP_SECRET=default_secret_change_me_in_render" >> .env; \
+        echo "DATABASE_URL=mysql://default" >> .env; \
+        echo "CORS_ALLOW_ORIGIN=[]" >> .env; \
+        echo "JWT_PASSPHRASE=default" >> .env; \
+    fi
+# ✅✅✅ FIN DES AJOUTS CRITIQUES ✅✅✅
+
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
@@ -37,6 +52,8 @@ CMD sh -c ' \
         echo "Please configure Secret Files in Render dashboard"; \
         exit 1; \
     fi; \
+    echo "=== Checking .env file ==="; \
+    ls -la .env && echo "=== .env content ===" && head -5 .env; \
     echo "=== Clearing cache ==="; \
     php bin/console cache:clear --no-warmup; \
     echo "=== Starting Apache ==="; \
