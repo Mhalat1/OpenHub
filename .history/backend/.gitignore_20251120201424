@@ -3,5 +3,5 @@
 /.history
 /var/
 /vendor/
-/.env
-/.env.dev
+/.env.local
+###< symfony/framework-bundle ###

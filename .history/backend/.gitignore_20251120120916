@@ -3,5 +3,3 @@
 /.history
 /var/
 /vendor/
-/.env
-/.env.dev

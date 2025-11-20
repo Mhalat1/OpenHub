@@ -4,4 +4,4 @@
 /var/
 /vendor/
 /.env
-/.env.dev
+/.env.local
