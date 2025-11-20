@@ -17,6 +17,7 @@
 
 /* Container principal */
 .loginContainer {
+  display: flex;
   min-height: 100vh;
   background: linear-gradient(135deg, var(--background) 0%, #ffffff 100%);
 }
@@ -46,10 +47,8 @@
 }
 
 .logo {
-    height: 200px;
-    width: auto;
-    z-index: 1;
-    position: relative;
+  height: 200px;
+  width: auto;
 }
 
 .heroText h1 {

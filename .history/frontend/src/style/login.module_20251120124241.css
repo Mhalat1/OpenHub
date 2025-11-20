@@ -17,24 +17,37 @@
 
 /* Container principal */
 .loginContainer {
+  display: flex;
   min-height: 100vh;
   background: linear-gradient(135deg, var(--background) 0%, #ffffff 100%);
 }
 
 /* Section Hero (Gauche) */
 .heroSection {
+._heroSection_lcc7o_26 {
     flex: 1;
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: #fff;
-    padding: 3rem;
+    padding: 6rem 3rem;
     display: flex;
     flex-direction: column;
+    /* justify-content: center; */
     align-items: center;
     position: relative;
     overflow: hidden;
 }
 
-
+.heroSection::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  animation: float 20s linear infinite;
+}
 
 @keyframes float {
   0% { transform: translate(0, 0) rotate(0deg); }
@@ -46,10 +59,9 @@
 }
 
 .logo {
-    height: 200px;
-    width: auto;
-    z-index: 1;
-    position: relative;
+  height: 120px;
+  width: auto;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
 }
 
 .heroText h1 {
@@ -61,11 +73,10 @@
 }
 
 .heroText p {
-    font-size: 1.2rem;
-    margin-bottom: 2.5rem;
-    text-align: center;
-    opacity: .9;
-    color: #00ff55;
+  font-size: 1.2rem;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  opacity: 0.9;
 }
 
 .features {
@@ -96,6 +107,7 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 2rem;
 }
 

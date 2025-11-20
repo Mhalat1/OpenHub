@@ -17,6 +17,7 @@
 
 /* Container principal */
 .loginContainer {
+  display: flex;
   min-height: 100vh;
   background: linear-gradient(135deg, var(--background) 0%, #ffffff 100%);
 }
@@ -26,7 +27,7 @@
     flex: 1;
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: #fff;
-    padding: 3rem;
+    padding: 6rem 3rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -34,7 +35,16 @@
     overflow: hidden;
 }
 
-
+.heroSection::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
 
 @keyframes float {
   0% { transform: translate(0, 0) rotate(0deg); }
@@ -46,10 +56,8 @@
 }
 
 .logo {
-    height: 200px;
-    width: auto;
-    z-index: 1;
-    position: relative;
+  height: 200px;
+  width: auto;
 }
 
 .heroText h1 {
@@ -65,7 +73,7 @@
     margin-bottom: 2.5rem;
     text-align: center;
     opacity: .9;
-    color: #00ff55;
+    color: #00ff55
 }
 
 .features {
