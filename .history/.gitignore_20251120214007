@@ -1,6 +1,9 @@
 # Fichiers à ignorer
 .env.dev
 !.env.production
+!.env.example
+*.env
+!*.env.production
 config/jwt/
 var/
 vendor/
