@@ -1,4 +1,5 @@
 .env.dev
+!.env.production
 config/jwt/
 var/
 vendor/
