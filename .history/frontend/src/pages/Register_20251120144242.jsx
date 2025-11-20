@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "../style/register.module.css";
 import logo from '../images/logo.png';
 
-const API_URL = 'https://openhub-back.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const initialState = {
   firstName: "", lastName: "", email: "", password: "",

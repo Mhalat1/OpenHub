@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../style/Projects.module.css';
 
-const API_URL = 'https://openhub-back.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL;
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);

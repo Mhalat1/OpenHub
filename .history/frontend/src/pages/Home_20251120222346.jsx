@@ -4,7 +4,7 @@ import styles from '../style/Home.module.css';
 import React, { useEffect, useState } from 'react';
 import Projects from './Projects';
 
-const API_URL = 'https://openhub-back.onrender.com';
+const API_URL = 'https://openhub-back.onrender.com;
 
 
 const Home = () => {

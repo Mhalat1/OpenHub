@@ -1,6 +1,0 @@
-.env.dev
-config/jwt/
-var/
-vendor/
-node_modules/
-.DS_Store
