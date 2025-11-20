@@ -242,7 +242,6 @@ body{
 }
 
 .linkButton:hover {
-
   background: var(--primary);
   color: white;
 }

@@ -244,7 +244,7 @@ body{
 .linkButton:hover {
 
   background: var(--primary);
-  color: white;
+  color: var(--primary);
 }
 
 /* Messages d'erreur */

@@ -243,8 +243,8 @@ body{
 
 .linkButton:hover {
 
-  background: var(--primary);
-  color: white;
+  background: white;
+  color: var(--primary);
 }
 
 /* Messages d'erreur */

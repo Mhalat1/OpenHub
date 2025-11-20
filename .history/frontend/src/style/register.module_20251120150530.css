@@ -242,10 +242,9 @@ body{
 }
 
 .linkButton:hover {
-
   background: var(--primary);
   color: white;
-}
+  
 
 /* Messages d'erreur */
 .errorMessage {

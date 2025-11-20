@@ -241,12 +241,6 @@ body{
   box-shadow: 0 0 0 2px #2563eb;
 }
 
-.linkButton:hover {
-
-  background: var(--primary);
-  color: white;
-}
-
 /* Messages d'erreur */
 .errorMessage {
   background: #fef2f2;
