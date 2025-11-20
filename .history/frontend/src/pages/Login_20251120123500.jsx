@@ -73,9 +73,11 @@ const Login = () => {
           <p>Rejoignez la communauté des développeurs passionnés</p>
           <div className={styles.features}>
             <div className={styles.featureItem}>
+              <span className={styles.featureIcon}>👥</span>
               <span>Connectez avec des développeurs</span>
             </div>
             <div className={styles.featureItem}>
+              <span className={styles.featureIcon}>💼</span>
               <span>Partagez vos projets</span>
             </div>
             <div className={styles.featureItem}>

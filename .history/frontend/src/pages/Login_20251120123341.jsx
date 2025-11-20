@@ -17,7 +17,6 @@ const Login = () => {
     setError("");
     setIsLoading(true);
 
-    // Validation côté client
     if (!email || !password) {
       setError("Veuillez remplir tous les champs");
       setIsLoading(false);
@@ -47,7 +46,7 @@ const Login = () => {
 
       if (data.token) {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user_email", email); // Pour l'UX
+        localStorage.setItem("user_email", email);
         navigate("/profil", { 
           state: { message: "Connexion réussie !" } 
         });
@@ -63,40 +62,40 @@ const Login = () => {
 
   return (
     <div className={styles.loginContainer}>
-      {/* Section Branding */}
+      {/* Section Hero - Version compacte */}
       <div className={styles.heroSection}>
         <div className={styles.logoContainer}>
           <img src={logo} alt="OpenHub Logo" className={styles.logo} />
         </div>
         <div className={styles.heroText}>
-          <h1>Bienvenue sur OpenHub</h1>
-          <p>Rejoignez la communauté des développeurs passionnés</p>
-          <div className={styles.features}>
-            <div className={styles.featureItem}>
-              <span>Connectez avec des développeurs</span>
-            </div>
-            <div className={styles.featureItem}>
-              <span>Partagez vos projets</span>
-            </div>
-            <div className={styles.featureItem}>
-              <span>Collaborez en temps réel</span>
-            </div>
+          <h1>OpenHub</h1>
+          <p>Votre communauté dev</p>
+        </div>
+        <div className={styles.features}>
+          <div className={styles.featureItem}>
+            <span>Réseau</span>
+          </div>
+          <div className={styles.featureItem}>
+            <span>Projets</span>
+          </div>
+          <div className={styles.featureItem}>
+            <span>Collaboration</span>
           </div>
         </div>
       </div>
 
-      {/* Section Formulaire */}
+      {/* Section Formulaire - Version compacte */}
       <div className={styles.formSection}>
         <div className={styles.formContainer}>
           <div className={styles.formHeader}>
             <h2>Connexion</h2>
-            <p>Accédez à votre espace personnel</p>
+            <p>Accédez à votre compte</p>
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.inputGroup}>
               <label htmlFor="email" className={styles.label}>
-                Adresse email
+                Email
               </label>
               <input
                 id="email"
@@ -140,7 +139,6 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Messages d'état */}
           {error && (
             <div className={styles.errorMessage}>
               <span className={styles.errorIcon}>⚠️</span>
@@ -148,10 +146,9 @@ const Login = () => {
             </div>
           )}
 
-          {/* Section d'inscription */}
           <div className={styles.registerSection}>
             <div className={styles.divider}>
-              <span>Nouveau ici ?</span>
+              <span>Nouveau ?</span>
             </div>
             <button
               className={styles.registerButton}
@@ -159,16 +156,6 @@ const Login = () => {
               disabled={isLoading}
             >
               Créer un compte
-            </button>
-          </div>
-
-          {/* Lien mot de passe oublié */}
-          <div className={styles.forgotPassword}>
-            <button 
-              className={styles.forgotLink}
-              onClick={() => navigate("/reset-password")}
-            >
-              Mot de passe oublié ?
             </button>
           </div>
         </div>
