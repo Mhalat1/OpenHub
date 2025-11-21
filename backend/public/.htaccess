@@ -1,5 +1,5 @@
 # CORS headers - SOLUTION DÉFINITIVE
-Header always set Access-Control-Allow-Origin "https://www.mh-logiciel.fr"
+Header always set Access-Control-Allow-Origin "https://openhub-frontend.onrender.com/"
 Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE, PATCH"
 Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin"
 Header always set Access-Control-Allow-Credentials "true"
