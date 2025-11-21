@@ -4,7 +4,6 @@ import styles from "../style/login.module.css";
 import logo from '../images/logo.png';
 
 const API_URL = 'https://openhub-back.onrender.com';
-
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
