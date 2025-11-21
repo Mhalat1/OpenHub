@@ -28,7 +28,7 @@ const Login = () => {
       setIsLoading(false);
       return;
     }
-
+    console.log("API_URL =", API_URL);
     try {
       const response = await fetch(`${API_URL}/api/login_check`, {
         method: "POST",
