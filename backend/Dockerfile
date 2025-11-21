@@ -14,7 +14,9 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 # --- Préparation des répertoires de cache et logs ---
-RUN mkdir -p var/cache var/log && chmod -R 777 var/cache var/log
+RUN mkdir -p var/cache var/log && \
+    chmod -R 777 var/cache var/log && \
+    chown -R www-data:www-data var
 
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
