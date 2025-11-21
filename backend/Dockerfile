@@ -27,7 +27,12 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 EXPOSE 80
 
 
-CMD echo "=== Checking secrets ===" && ls -l /etc/secrets && cat /etc/secrets/private.pem | head -n 2 && \
-    php bin/console cache:clear --no-warmup && apache2-foreground
+CMD echo "=== Checking secrets ===" && ls -l /etc/secrets && \
+    head -n 2 /etc/secrets/private.pem && \
+    chown -R www-data:www-data var && \
+    chmod -R 777 var/cache var/log && \
+    php bin/console cache:clear --no-warmup && \
+    apache2-foreground
+
 
     
