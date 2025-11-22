@@ -1,20 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
-import "../style/BarreNav.css"; 
 import homeicon from "../images/icones/home.png";
+import logouticon from "../images/icones/logout.png";
+import messageicon from "../images/icones/messages.png";
 import profilicon from "../images/icones/profil.png";
 import Projectsicon from "../images/icones/projects.png";
-import messageicon from "../images/icones/messages.png";
-import logouticon from "../images/icones/logout.png";
+import "../style/BarreNav.css";
 
 const Navbar = () => {
   const location = useLocation();
   
-  // Fonction pour gérer la déconnexion
-  const handleLogout = (e) => {
-    e.preventDefault();
-    // Ajoutez ici votre logique de déconnexion
-    console.log("Déconnexion...");
-  };
+
 
   return (
     <nav className="navbar">
@@ -43,11 +38,11 @@ const Navbar = () => {
             <span className="nav-label">Messages</span>
           </Link>
         </li>
-        <li>
-          <a href="/logout" onClick={handleLogout} title="Déconnexion">
-            <img src={logouticon} alt="Déconnexion" />
-            <span className="nav-label">Déconnexion</span>
-          </a>
+        <li className={location.pathname === "/logout" ? "active" : ""}>
+          <Link to="/logout" title="logout">
+            <img src={logouticon} alt="logout" />
+            <span className="nav-label">logout</span>
+          </Link>
         </li>
       </ul>
     </nav>
