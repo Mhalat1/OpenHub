@@ -2,16 +2,14 @@ import React, { useEffect, useState } from 'react';
 import styles from '../style/Projects.module.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [message, setMessage] = useState('');
-  
-  const [userProjects, setUserProjects] = useState([]);
-  const [availableSkills, setAvailableSkills] = useState([]);
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [actionLoading, setActionLoading] = useState({ type: '', id: null });
 
   // States pour les projets
   const [project, setProject] = useState({
@@ -35,6 +33,14 @@ const Projects = () => {
 
   const [editingSkill, setEditingSkill] = useState(null);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState([]);
+
+  // ===== NOTIFICATION HELPER =====
+  const showMessage = (text, type = 'info') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: '', type: '' }), 4000);
+  };
 
   // ===== PROJECTS FUNCTIONS =====
   const fetchProjects = async () => {
@@ -53,12 +59,20 @@ const Projects = () => {
       setProjects(data);
     } catch (err) {
       setError(err.message);
+      showMessage(`❌ ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const createProjectCard = async () => {
+  const createProject = async () => {
+    if (!project.name || !project.description) {
+      showMessage('❌ Project name and description are required', 'error');
+      return;
+    }
+
+    setActionLoading({ type: 'createProject', id: null });
+    
     try {
       const response = await fetch(`${API_URL}/api/create/new/project`, {
         method: "POST",
@@ -69,31 +83,34 @@ const Projects = () => {
         body: JSON.stringify(project),
       });
 
-      if (response.ok) {
-        setMessage("✅ Project created successfully!");
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        const result = await response.json();
-        setMessage(`❌ ${result.message}`);
-      }
+      const result = await response.json();
 
-      fetchProjects();
-      
-      setProject({
-        name: '',
-        description: '',
-        requiredSkills: '',
-        startDate: '',
-        endDate: ''
-      });
+      if (response.ok) {
+        showMessage("✅ Project created successfully!", 'success');
+        await fetchProjects();
+        setIsProjectModalOpen(false);
+        setProject({
+          name: '',
+          description: '',
+          requiredSkills: '',
+          startDate: '',
+          endDate: ''
+        });
+      } else {
+        showMessage(`❌ ${result.message}`, 'error');
+      }
     } catch (err) {
       console.error("Error creating project:", err);
-      setMessage("❌ Error creating project");
+      showMessage("❌ Error creating project", 'error');
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
   const updateProject = async (projectId) => {
     if (!editingProject) return;
+
+    setActionLoading({ type: 'updateProject', id: projectId });
 
     try {
       const response = await fetch(`${API_URL}/api/modify/project/${projectId}`, {
@@ -108,18 +125,17 @@ const Projects = () => {
       const result = await response.json();
 
       if (response.ok) {
-        setMessage(`✅ ${result.message}`);
-        setTimeout(() => setMessage(''), 3000);
-        
-        // Recharger les projets
+        showMessage(`✅ ${result.message}`, 'success');
         await fetchProjects();
         setEditingProject(null);
       } else {
-        setMessage(`❌ ${result.message}`);
+        showMessage(`❌ ${result.message}`, 'error');
       }
     } catch (err) {
       console.error("Error updating project:", err);
-      setMessage("❌ Error updating project");
+      showMessage("❌ Error updating project", 'error');
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
@@ -129,14 +145,16 @@ const Projects = () => {
       name: proj.name,
       description: proj.description,
       requiredSkills: proj.requiredSkills,
-      startDate: proj.startDate.split('T')[0], // Format pour input date
+      startDate: proj.startDate.split('T')[0],
       endDate: proj.endDate.split('T')[0]
     });
   };
 
-  const deleteProjectCard = async (projectId) => {
-    if (!window.confirm("Are you sure you want to delete this project?")) return;
+  const deleteProject = async (projectId, projectName) => {
+    if (!window.confirm(`Are you sure you want to delete "${projectName}"?`)) return;
     
+    setActionLoading({ type: 'deleteProject', id: projectId });
+
     try {
       const response = await fetch(`${API_URL}/api/delete/project/${projectId}`, {
         method: "DELETE",
@@ -147,15 +165,16 @@ const Projects = () => {
       });
 
       if (response.ok) {
-        setMessage("✅ Project deleted successfully!");
-        setTimeout(() => setMessage(''), 3000);
-        fetchProjects();
+        showMessage("✅ Project deleted successfully!", 'success');
+        await fetchProjects();
       } else {
-        setMessage("❌ Failed to delete project");
+        showMessage("❌ Failed to delete project", 'error');
       }
     } catch (err) {
       console.error("Error deleting project:", err);
-      setMessage("❌ Error deleting project");
+      showMessage("❌ Error deleting project", 'error');
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
@@ -163,7 +182,6 @@ const Projects = () => {
   const fetchAvailableSkills = async () => {
     try {
       const token = localStorage.getItem("token");
-
       const response = await fetch(`${API_URL}/api/skills`, {
         method: "GET",
         headers: {
@@ -172,23 +190,23 @@ const Projects = () => {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Erreur API compétences: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Skills API error: ${response.status}`);
+      
       const data = await response.json();
       setAvailableSkills(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Erreur lors de la récupération des compétences:", error);
+      console.error("Error fetching skills:", error);
+      showMessage("❌ Error fetching skills", 'error');
     }
   };
 
   const createSkill = async () => {
-    // Validation
-    if (!newSkill.name || !newSkill.description || !newSkill.technoUtilisees || !newSkill.duree) {
-      setMessage("❌ All fields are required for skill creation");
+    if (!newSkill.name || !newSkill.description || !newSkill.technoUtilisees) {
+      showMessage("❌ Skill name, description and technologies are required", 'error');
       return;
     }
+
+    setActionLoading({ type: 'createSkill', id: null });
 
     try {
       const response = await fetch(`${API_URL}/api/skills/create`, {
@@ -203,31 +221,30 @@ const Projects = () => {
       const result = await response.json();
 
       if (result.success) {
-        setMessage(`✅ ${result.message}`);
-        setTimeout(() => setMessage(''), 3000);
-        
-        // Réinitialiser le formulaire
+        showMessage(`✅ ${result.message}`, 'success');
         setNewSkill({
           name: '',
           description: '',
           technoUtilisees: '',
           duree: ''
         });
-        
-        // Recharger les compétences
         await fetchAvailableSkills();
         setIsSkillModalOpen(false);
       } else {
-        setMessage(`❌ ${result.message}`);
+        showMessage(`❌ ${result.message}`, 'error');
       }
     } catch (err) {
       console.error("Error creating skill:", err);
-      setMessage("❌ Error creating skill");
+      showMessage("❌ Error creating skill", 'error');
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
   const updateSkill = async (skillId) => {
     if (!editingSkill) return;
+
+    setActionLoading({ type: 'updateSkill', id: skillId });
 
     try {
       const response = await fetch(`${API_URL}/api/skills/update/${skillId}`, {
@@ -242,23 +259,24 @@ const Projects = () => {
       const result = await response.json();
 
       if (result.success) {
-        setMessage(`✅ ${result.message}`);
-        setTimeout(() => setMessage(''), 3000);
-        
-        // Recharger les compétences
+        showMessage(`✅ ${result.message}`, 'success');
         await fetchAvailableSkills();
         setEditingSkill(null);
       } else {
-        setMessage(`❌ ${result.message}`);
+        showMessage(`❌ ${result.message}`, 'error');
       }
     } catch (err) {
       console.error("Error updating skill:", err);
-      setMessage("❌ Error updating skill");
+      showMessage("❌ Error updating skill", 'error');
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
   const deleteSkill = async (skillId, skillName) => {
-    if (!window.confirm(`Are you sure you want to delete the skill "${skillName}"?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${skillName}"?`)) return;
+
+    setActionLoading({ type: 'deleteSkill', id: skillId });
 
     try {
       const response = await fetch(`${API_URL}/api/skills/delete/${skillId}`, {
@@ -272,15 +290,16 @@ const Projects = () => {
       const result = await response.json();
 
       if (result.success) {
-        setMessage(`✅ ${result.message}`);
-        setTimeout(() => setMessage(''), 3000);
+        showMessage(`✅ ${result.message}`, 'success');
         await fetchAvailableSkills();
       } else {
-        setMessage(`❌ ${result.message}`);
+        showMessage(`❌ ${result.message}`, 'error');
       }
     } catch (err) {
       console.error("Error deleting skill:", err);
-      setMessage("❌ Error deleting skill");
+      showMessage("❌ Error deleting skill", 'error');
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
@@ -294,10 +313,13 @@ const Projects = () => {
     });
   };
 
-
   useEffect(() => {
-    fetchProjects();
-    fetchAvailableSkills();
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchProjects(), fetchAvailableSkills()]);
+      setLoading(false);
+    };
+    init();
   }, []);
 
   const filteredProjects = projects.filter(
@@ -306,373 +328,508 @@ const Projects = () => {
       (proj.requiredSkills && proj.requiredSkills.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (loading) return <p className={styles.projectLoading}>Loading projects...</p>;
-  if (error) return <p className={styles.projectError}>Error: {error}</p>;
+  const filteredSkills = availableSkills.filter(
+    (skill) =>
+      skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.technoUtilisees.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return (
+    <div className={styles.loadingContainer}>
+      <div className={styles.spinner}></div>
+      <p>Loading projects and skills...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className={styles.errorContainer}>
+      <p>Error: {error}</p>
+    </div>
+  );
 
   return (
-    <div className={styles.projectPage}>
-      {/* Notifications */}
-      {message && (
-        <div className={message.startsWith('✅') ? styles.projectNotificationSuccess : styles.projectNotificationError}>
-          {message}
+    <div className={styles.projectsPage}>
+      {/* Header */}
+      <div className={styles.header}>
+        <h1 className={styles.pageTitle}>🚀 Projects & Skills Management</h1>
+        <div className={styles.searchContainer}>
+          <input
+            type="text"
+            placeholder="🔍 Search projects or skills..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+      </div>
+
+      {/* Notification */}
+      {message.text && (
+        <div className={`${styles.notification} ${styles[message.type]}`}>
+          {message.text}
         </div>
       )}
 
-      {/* Search bar */}
-      <div className={styles.projectSearchContainer}>
-        <input
-          type="text"
-          placeholder="🔍 Search project or skill..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.projectSearchInput}
-        />
-      </div>
-
-      {/* Skills Management Section */}
-        <div className={styles.skillsHeaderContainer}>
-          <h2 className={styles.projectListTitle}>
-            🛠️ All Skills ({availableSkills.length})
-          </h2>
-          <button 
-            onClick={() => setIsSkillModalOpen(true)}
-            className={styles.projectCreateBtn}
-          >
-            ✨ Create New Skill
-          </button>
-        </div>
+      {/* Main Content */}
+      <div className={styles.mainContent}>
         
-        {availableSkills.length === 0 ? (
-          <p className={styles.projectEmpty}>No skills available.</p>
-        ) : (
-          <div className={styles.projectGridContainer}>
-            {availableSkills.map((skill) => (
-              <div key={skill.id} className={styles.projectCard}>
-                <div className={styles.projectCardHeader}>
-                  <h3 className={styles.projectCardTitle}>{skill.name}</h3>
-                  <div className={styles.skillActions}>
-                    <button 
-                      onClick={() => openEditSkillModal(skill)}
-                      className={styles.projectEditBtn}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      onClick={() => deleteSkill(skill.id, skill.name)}
-                      className={styles.projectDeleteBtn}
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
+        {/* Skills Section */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              🛠️ Skills Management ({availableSkills.length})
+            </h2>
+            <button 
+              onClick={() => setIsSkillModalOpen(true)}
+              className={styles.primaryButton}
+            >
+              ✨ Create New Skill
+            </button>
+          </div>
+
+          {availableSkills.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No skills available</p>
+              <p className={styles.emptyStateSubtitle}>Create your first skill to get started</p>
+            </div>
+          ) : (
+            <div className={styles.cardsGrid}>
+              {filteredSkills.map((skill) => (
+                <div key={skill.id} className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <h3 className={styles.cardTitle}>{skill.name}</h3>
+                    <div className={styles.cardActions}>
+                      <button 
+                        onClick={() => openEditSkillModal(skill)}
+                        className={styles.editButton}
+                        disabled={actionLoading.type === 'updateSkill' && actionLoading.id === skill.id}
+                        title="Edit skill"
+                      >
+                        {actionLoading.type === 'updateSkill' && actionLoading.id === skill.id ? (
+                          <span className={styles.spinner}></span>
+                        ) : (
+                          '✏️'
+                        )}
+                      </button>
+                      <button 
+                        onClick={() => deleteSkill(skill.id, skill.name)}
+                        className={styles.deleteButton}
+                        disabled={actionLoading.type === 'deleteSkill' && actionLoading.id === skill.id}
+                        title="Delete skill"
+                      >
+                        {actionLoading.type === 'deleteSkill' && actionLoading.id === skill.id ? (
+                          <span className={styles.spinner}></span>
+                        ) : (
+                          '🗑️'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.cardContent}>
+                    <p className={styles.cardDescription}>{skill.description}</p>
+                    <div className={styles.cardMeta}>
+                      <span className={styles.metaItem}>
+                        <strong>Technologies:</strong> {skill.technoUtilisees}
+                      </span>
+                      {skill.duree && (
+                        <span className={styles.metaItem}>
+                          <strong>Duration:</strong> {skill.duree}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className={styles.projectCardContent}>
-                  <p className={styles.projectCardDescription}>{skill.description}</p>
-                  <p className={styles.projectCardSkills}>
-                    <strong>Technologies:</strong> {skill.technoUtilisees}
-                  </p>
-                  <p className={styles.projectCardSubtitle}>
-                    <strong>Duration:</strong> {skill.duree || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Projects Section */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              📁 Projects Management ({projects.length})
+            </h2>
+            <button 
+              onClick={() => setIsProjectModalOpen(true)} 
+              className={styles.primaryButton}
+            >
+              ✨ Create New Project
+            </button>
           </div>
-        )}
 
-      
-      {/* Create Project Form */}
-<div className={styles.projectListContainer}>
-  <div className={styles.skillsHeaderContainer}>
-    <h2 className={styles.projectListTitle}>📁 All Projects ({filteredProjects.length})</h2>
-    <button 
-      onClick={() => setIsProjectModalOpen(true)} 
-      className={styles.projectCreateBtn}
-    >
-      ✨ Create New Project
-    </button>
-  </div>
-</div>
+          {projects.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No projects available</p>
+              <p className={styles.emptyStateSubtitle}>Create your first project to get started</p>
+            </div>
+          ) : (
+            <div className={styles.cardsGrid}>
+              {filteredProjects.map((proj) => (
+                <div key={proj.id} className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <h3 className={styles.cardTitle}>{proj.name}</h3>
+                    <div className={styles.cardActions}>
+                      <button 
+                        onClick={() => openEditProjectModal(proj)}
+                        className={styles.editButton}
+                        disabled={actionLoading.type === 'updateProject' && actionLoading.id === proj.id}
+                        title="Edit project"
+                      >
+                        {actionLoading.type === 'updateProject' && actionLoading.id === proj.id ? (
+                          <span className={styles.spinner}></span>
+                        ) : (
+                          '✏️'
+                        )}
+                      </button>
+                      <button 
+                        onClick={() => deleteProject(proj.id, proj.name)}
+                        className={styles.deleteButton}
+                        disabled={actionLoading.type === 'deleteProject' && actionLoading.id === proj.id}
+                        title="Delete project"
+                      >
+                        {actionLoading.type === 'deleteProject' && actionLoading.id === proj.id ? (
+                          <span className={styles.spinner}></span>
+                        ) : (
+                          '🗑️'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.cardContent}>
+                    <p className={styles.cardDescription}>{proj.description}</p>
+                    
+                    <div className={styles.cardMeta}>
+                      <span className={styles.metaItem}>
+                        <strong>Skills:</strong> {proj.requiredSkills}
+                      </span>
+                    </div>
 
-
-{isProjectModalOpen && (
-  <div className={styles.modalOverlay} onClick={() => setIsProjectModalOpen(false)}>
-    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-      <button className={styles.closeButton} onClick={() => setIsProjectModalOpen(false)}>×</button>
-      <h2 className={styles.modalTitle}>Create New Project</h2>
-
-      <div className={styles.projectFormGrid}>
-        <input
-          type="text"
-          placeholder="Project Name"
-          value={project.name}
-          onChange={(e) => setProject({ ...project, name: e.target.value })}
-          className={styles.projectInput}
-        />
-
-        <textarea
-          placeholder="Description"
-          value={project.description}
-          onChange={(e) => setProject({ ...project, description: e.target.value })}
-          className={styles.projectTextarea}
-          rows="3"
-        />
-
-        <input
-          type="text"
-          placeholder="Required Skills (e.g., React, Node.js)"
-          value={project.requiredSkills}
-          onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
-          className={styles.projectInput}
-        />
-
-        <div className={styles.projectDateGroup}>
-          <label className={styles.projectLabel}>Start Date</label>
-          <input
-            type="date"
-            value={project.startDate}
-            onChange={(e) => setProject({ ...project, startDate: e.target.value })}
-            className={styles.projectInput}
-          />
-        </div>
-
-        <div className={styles.projectDateGroup}>
-          <label className={styles.projectLabel}>End Date</label>
-          <input
-            type="date"
-            value={project.endDate}
-            onChange={(e) => setProject({ ...project, endDate: e.target.value })}
-            className={styles.projectInput}
-          />
-        </div>
+                    <div className={styles.datesContainer}>
+                      <div className={styles.dateItem}>
+                        <span className={styles.dateLabel}>Start:</span>
+                        <span className={styles.dateValue}>
+                          {new Date(proj.startDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className={styles.dateItem}>
+                        <span className={styles.dateLabel}>End:</span>
+                        <span className={styles.dateValue}>
+                          {new Date(proj.endDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
-      <button 
-        onClick={() => { createProjectCard(); setIsProjectModalOpen(false); }} 
-        className={styles.projectCreateBtn}
-      >
-        ✨ Create Project
-      </button>
-    </div>
-  </div>
-)}
+      {/* Create Project Modal */}
+      {isProjectModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsProjectModalOpen(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={() => setIsProjectModalOpen(false)}>×</button>
+            <h2 className={styles.modalTitle}>Create New Project</h2>
 
-
-
-      {/* All Projects List */}
-      <div className={styles.projectListContainer}>
-
-        
-        {filteredProjects.length === 0 ? (
-          <p className={styles.projectEmpty}>No projects found.</p>
-        ) : (
-          <div className={styles.projectGrid}>
-            {filteredProjects.map((proj) => (
-              <div key={proj.id} className={styles.projectCard}>
-                <div className={styles.projectCardHeader}>
-                  <h3 className={styles.projectCardTitle}>{proj.name}</h3>
-                  <div className={styles.skillActions}>
-                    <button 
-                      onClick={() => openEditProjectModal(proj)}
-                      className={styles.projectEditBtn}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      onClick={() => deleteProjectCard(proj.id)}
-                      className={styles.projectDeleteBtn}
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-                
-                <p className={styles.projectCardDescription}>{proj.description}</p>
-                
-                <div className={styles.projectCardSkills}>
-                  <strong>Skills:</strong> {proj.requiredSkills}
-                </div>
-                
-                <div className={styles.projectCardDates}>
-                  <div className={styles.projectDateItem}>
-                    <span className={styles.projectDateLabel}>Start:</span>
-                    <span className={styles.projectDateValue}>
-                      {new Date(proj.startDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className={styles.projectDateItem}>
-                    <span className={styles.projectDateLabel}>End:</span>
-                    <span className={styles.projectDateValue}>
-                      {new Date(proj.endDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Project Name *</label>
+                <input
+                  type="text"
+                  placeholder="Enter project name"
+                  value={project.name}
+                  onChange={(e) => setProject({ ...project, name: e.target.value })}
+                  className={styles.formInput}
+                />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Modal for Creating New Skill */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description *</label>
+                <textarea
+                  placeholder="Describe the project..."
+                  value={project.description}
+                  onChange={(e) => setProject({ ...project, description: e.target.value })}
+                  className={styles.formTextarea}
+                  rows="3"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Required Skills</label>
+                <input
+                  type="text"
+                  placeholder="React, Node.js, MongoDB..."
+                  value={project.requiredSkills}
+                  onChange={(e) => setProject({ ...project, requiredSkills: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Start Date</label>
+                <input
+                  type="date"
+                  value={project.startDate}
+                  onChange={(e) => setProject({ ...project, startDate: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>End Date</label>
+                <input
+                  type="date"
+                  value={project.endDate}
+                  onChange={(e) => setProject({ ...project, endDate: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+            </div>
+
+            <button 
+              onClick={createProject}
+              className={styles.primaryButton}
+              disabled={actionLoading.type === 'createProject'}
+            >
+              {actionLoading.type === 'createProject' ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Creating...
+                </>
+              ) : (
+                '✨ Create Project'
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Create Skill Modal */}
       {isSkillModalOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsSkillModalOpen(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeButton} onClick={() => setIsSkillModalOpen(false)}>×</button>
             <h2 className={styles.modalTitle}>Create New Skill</h2>
             
-            <div className={styles.projectFormGrid}>
-              <input
-                type="text"
-                placeholder="Skill Name"
-                value={newSkill.name}
-                onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
-                className={styles.projectInput}
-              />
-              
-              <textarea
-                placeholder="Description (max 50 chars)"
-                value={newSkill.description}
-                onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
-                className={styles.projectTextarea}
-                maxLength={50}
-                rows="2"
-              />
-              
-              <input
-                type="text"
-                placeholder="Technologies Used"
-                value={newSkill.technoUtilisees}
-                onChange={(e) => setNewSkill({ ...newSkill, technoUtilisees: e.target.value })}
-                className={styles.projectInput}
-              />
-              
-              <div className={styles.projectDateGroup}>
-                <label className={styles.projectLabel}>Duration Date</label>
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Skill Name *</label>
                 <input
-                  type="date"
+                  type="text"
+                  placeholder="Enter skill name"
+                  value={newSkill.name}
+                  onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description *</label>
+                <textarea
+                  placeholder="Describe the skill..."
+                  value={newSkill.description}
+                  onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
+                  className={styles.formTextarea}
+                  maxLength={50}
+                  rows="2"
+                />
+                <span className={styles.charCount}>{newSkill.description.length}/50</span>
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Technologies Used *</label>
+                <input
+                  type="text"
+                  placeholder="React, JavaScript, Node.js..."
+                  value={newSkill.technoUtilisees}
+                  onChange={(e) => setNewSkill({ ...newSkill, technoUtilisees: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Duration</label>
+                <input
+                  type="text"
+                  placeholder="3 months, 1 year..."
                   value={newSkill.duree}
                   onChange={(e) => setNewSkill({ ...newSkill, duree: e.target.value })}
-                  className={styles.projectInput}
+                  className={styles.formInput}
                 />
               </div>
             </div>
             
-            <button onClick={createSkill} className={styles.projectCreateBtn}>
-              ✨ Create Skill
+            <button 
+              onClick={createSkill}
+              className={styles.primaryButton}
+              disabled={actionLoading.type === 'createSkill'}
+            >
+              {actionLoading.type === 'createSkill' ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Creating...
+                </>
+              ) : (
+                '✨ Create Skill'
+              )}
             </button>
           </div>
         </div>
       )}
 
-      {/* Modal for Editing Skill */}
+      {/* Edit Skill Modal */}
       {editingSkill && (
         <div className={styles.modalOverlay} onClick={() => setEditingSkill(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeButton} onClick={() => setEditingSkill(null)}>×</button>
             <h2 className={styles.modalTitle}>Edit Skill</h2>
             
-            <div className={styles.projectFormGrid}>
-              <input
-                type="text"
-                placeholder="Skill Name"
-                value={editingSkill.name}
-                onChange={(e) => setEditingSkill({ ...editingSkill, name: e.target.value })}
-                className={styles.projectInput}
-              />
-              
-              <textarea
-                placeholder="Description (max 50 chars)"
-                value={editingSkill.description}
-                onChange={(e) => setEditingSkill({ ...editingSkill, description: e.target.value })}
-                className={styles.projectTextarea}
-                maxLength={50}
-                rows="2"
-              />
-              
-              <input
-                type="text"
-                placeholder="Technologies Used"
-                value={editingSkill.technoUtilisees}
-                onChange={(e) => setEditingSkill({ ...editingSkill, technoUtilisees: e.target.value })}
-                className={styles.projectInput}
-              />
-              
-              <div className={styles.projectDateGroup}>
-                <label className={styles.projectLabel}>Duration Date</label>
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Skill Name *</label>
                 <input
-                  type="date"
+                  type="text"
+                  placeholder="Enter skill name"
+                  value={editingSkill.name}
+                  onChange={(e) => setEditingSkill({ ...editingSkill, name: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description *</label>
+                <textarea
+                  placeholder="Describe the skill..."
+                  value={editingSkill.description}
+                  onChange={(e) => setEditingSkill({ ...editingSkill, description: e.target.value })}
+                  className={styles.formTextarea}
+                  maxLength={50}
+                  rows="2"
+                />
+                <span className={styles.charCount}>{editingSkill.description.length}/50</span>
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Technologies Used *</label>
+                <input
+                  type="text"
+                  placeholder="React, JavaScript, Node.js..."
+                  value={editingSkill.technoUtilisees}
+                  onChange={(e) => setEditingSkill({ ...editingSkill, technoUtilisees: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Duration</label>
+                <input
+                  type="text"
+                  placeholder="3 months, 1 year..."
                   value={editingSkill.duree}
                   onChange={(e) => setEditingSkill({ ...editingSkill, duree: e.target.value })}
-                  className={styles.projectInput}
+                  className={styles.formInput}
                 />
               </div>
             </div>
             
-            <button onClick={() => updateSkill(editingSkill.id)} className={styles.projectCreateBtn}>
-              💾 Update Skill
+            <button 
+              onClick={() => updateSkill(editingSkill.id)}
+              className={styles.primaryButton}
+              disabled={actionLoading.type === 'updateSkill' && actionLoading.id === editingSkill.id}
+            >
+              {actionLoading.type === 'updateSkill' && actionLoading.id === editingSkill.id ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Updating...
+                </>
+              ) : (
+                '💾 Update Skill'
+              )}
             </button>
           </div>
         </div>
       )}
 
-      {/* Modal for Editing Project */}
+      {/* Edit Project Modal */}
       {editingProject && (
         <div className={styles.modalOverlay} onClick={() => setEditingProject(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button className={styles.closeButton} onClick={() => setEditingProject(null)}>×</button>
             <h2 className={styles.modalTitle}>Edit Project</h2>
             
-            <div className={styles.projectFormGrid}>
-              <input
-                type="text"
-                placeholder="Project Name"
-                value={editingProject.name}
-                onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
-                className={styles.projectInput}
-              />
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Project Name *</label>
+                <input
+                  type="text"
+                  placeholder="Enter project name"
+                  value={editingProject.name}
+                  onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
 
-              <textarea
-                placeholder="Description"
-                value={editingProject.description}
-                onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
-                className={styles.projectTextarea}
-                rows="3"
-              />
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description *</label>
+                <textarea
+                  placeholder="Describe the project..."
+                  value={editingProject.description}
+                  onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
+                  className={styles.formTextarea}
+                  rows="3"
+                />
+              </div>
 
-              <input
-                type="text"
-                placeholder="Required Skills (e.g., React, Node.js)"
-                value={editingProject.requiredSkills}
-                onChange={(e) => setEditingProject({ ...editingProject, requiredSkills: e.target.value })}
-                className={styles.projectInput}
-              />
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Required Skills</label>
+                <input
+                  type="text"
+                  placeholder="React, Node.js, MongoDB..."
+                  value={editingProject.requiredSkills}
+                  onChange={(e) => setEditingProject({ ...editingProject, requiredSkills: e.target.value })}
+                  className={styles.formInput}
+                />
+              </div>
 
-              <div className={styles.projectDateGroup}>
-                <label className={styles.projectLabel}>Start Date</label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Start Date</label>
                 <input
                   type="date"
                   value={editingProject.startDate}
                   onChange={(e) => setEditingProject({ ...editingProject, startDate: e.target.value })}
-                  className={styles.projectInput}
+                  className={styles.formInput}
                 />
               </div>
 
-              <div className={styles.projectDateGroup}>
-                <label className={styles.projectLabel}>End Date</label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>End Date</label>
                 <input
                   type="date"
                   value={editingProject.endDate}
                   onChange={(e) => setEditingProject({ ...editingProject, endDate: e.target.value })}
-                  className={styles.projectInput}
+                  className={styles.formInput}
                 />
               </div>
             </div>
             
-            <button onClick={() => updateProject(editingProject.id)} className={styles.projectCreateBtn}>
-              💾 Update Project
+            <button 
+              onClick={() => updateProject(editingProject.id)}
+              className={styles.primaryButton}
+              disabled={actionLoading.type === 'updateProject' && actionLoading.id === editingProject.id}
+            >
+              {actionLoading.type === 'updateProject' && actionLoading.id === editingProject.id ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Updating...
+                </>
+              ) : (
+                '💾 Update Project'
+              )}
             </button>
           </div>
         </div>

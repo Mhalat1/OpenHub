@@ -335,7 +335,7 @@ const Profil = () => {
         <div className={styles.searchContainer}>
           <input
             type="text"
-            placeholder="Rechercher des utilisateurs..."
+            placeholder="Filtrer les utilisateurs..."
             className={styles.searchInput}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -343,15 +343,6 @@ const Profil = () => {
         </div>
       </div>
 
-      {/* User Info */}
-      {connectedUser && (
-        <div className={styles.connectedUserCard}>
-          <div className={styles.connectedUserInfo}>
-            <h3>👋 Bonjour, {connectedUser.firstName} {connectedUser.lastName}</h3>
-            <p>{connectedUser.email}</p>
-          </div>
-        </div>
-      )}
 
       {/* Notification */}
       {notification.message && (
