@@ -1,5 +1,5 @@
 .page {
-  background-color: #f6f8fc;
+  background: linear-gradient(135deg, var(--primary) 0%, #000000 100%);
   min-height: 100vh;
   padding: 2rem;
   font-family: "Inter", sans-serif;
@@ -8,9 +8,8 @@
 .pageTitle {
   text-align: center;
   font-size: 2.2rem;
-  color: #4f46e5;
+  color: #ffffff;
   font-weight: 700;
-  margin: 4rem 0rem 1rem 0rem;
 }
 
 .layout {
