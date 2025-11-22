@@ -4,7 +4,7 @@ import styles from '../style/Home.module.css';
 import React, { useEffect, useState } from 'react';
 import Projects from './Projects';
 
-const API_URL = 'https://openhub-back.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Home = () => {
   const [user, setUser] = useState({});
@@ -379,7 +379,6 @@ const Home = () => {
       {/* Header Corrigé */}
       <div className={styles.profileHeader}>
         <div className={styles.headerContent}>
-          <img src={userPhoto} alt="Profile photo" className={styles.profilePhoto} />
           <div className={styles.nameContainer}>
             <h2>{user.firstName || "First name"} {user.lastName || "Last name"}</h2>
             <p className={styles.userEmail}>{user.email || "..."}</p>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../style/Message.module.css';
 
-const API_URL = 'https://openhub-back.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL;
 const Messages = () => {
   // ========== STATES ==========
   const [userData, setUserData] = useState(null);
