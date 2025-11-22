@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '../style/Message.module.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
 const Messages = () => {
   // ========== STATES ==========
   const [userData, setUserData] = useState(null);
@@ -9,17 +10,21 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [activeSection, setActiveSection] = useState('conversations'); // 'conversations' | 'friends'
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [conv_users, setConv_users] = useState([]); // Tableau d'IDs
+  const [conv_users, setConv_users] = useState([]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [messageContents, setMessageContents] = useState({}); // Un contenu par conversation
+  const [messageContents, setMessageContents] = useState({});
   const [messageLoading, setMessageLoading] = useState(false);
-  const [connectedUser, setConnectedUser] = useState(null); // ✅ Ajouter ce state
+  const [connectedUser, setConnectedUser] = useState(null);
+  const [actionLoading, setActionLoading] = useState({ type: '', id: null });
+
+  const messagesEndRef = useRef(null);
 
   // ========== FETCH FUNCTIONS ==========
   const fetchData = async () => {
@@ -31,20 +36,33 @@ const Messages = () => {
     }
 
     try {
-      const userResponse = await fetch(`${API_URL}/api/getConnectedUser`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
+      const [userResponse, friendsResponse, conversationsResponse, messagesResponse] = await Promise.all([
+        fetch(`${API_URL}/api/getConnectedUser`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/api/user/friends`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/api/get/conversations`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/api/get/messages`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        })
+      ]);
 
-      const data = await userResponse.json();
-      if (!userResponse.ok) {
-        throw new Error(data.message || `User API error: ${userResponse.status}`);
-      }
-      setUserData(data);
-      setConnectedUser(data); // ✅ Définir l'utilisateur connecté
+      const userData = await userResponse.json();
+      if (!userResponse.ok) throw new Error(userData.message || `User API error: ${userResponse.status}`);
+      
+      const friendsData = await friendsResponse.json();
+      const conversationsData = await conversationsResponse.json();
+      const messagesData = await messagesResponse.json();
+
+      setUserData(userData);
+      setConnectedUser(userData);
+      setFriends(friendsData);
+      setConversations(conversationsData);
+      setMessages(messagesData || []);
 
     } catch (error) {
       setError(error.message);
@@ -53,149 +71,50 @@ const Messages = () => {
     }
   };
 
-  const fetchUserFriends = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch(`${API_URL}/api/user/friends`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      setFriends(data);
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
-  const fetchConversations = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch(`${API_URL}/api/get/conversations`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-      setConversations(data);
-      console.log(data);
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
-
+  // ========== CONVERSATION FUNCTIONS ==========
   const handleDeleteConversation = async (conversationId) => {
-    const token = localStorage.getItem("token");
-
-    if (!window.confirm("Are you sure you want to delete this conversation?")) {
+    if (!window.confirm("Are you sure you want to delete this conversation? All messages will be lost.")) {
       return;
     }
+
+    setActionLoading({ type: 'deleteConversation', id: conversationId });
+    const token = localStorage.getItem("token");
 
     try {
       const response = await fetch(`${API_URL}/api/delete/conversation/${conversationId}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Authorization": `Bearer ${token}` },
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setSuccess(data.message || "Conversation deleted successfully!");
-        setError(null);
         setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+        if (selectedConversationId === conversationId) {
+          setSelectedConversationId(null);
+        }
       } else {
         setError(data.message || "Error deleting conversation");
-        setSuccess(null);
       }
-
     } catch (error) {
       console.error("Error deleting conversation:", error);
-    }
-  };
-
-
-
-  const handleDeleteMessage = async (messageId) => {
-    const token = localStorage.getItem("token");
-
-    if (!window.confirm("Are you sure you want to delete this message?")) return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/delete/message/${messageId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {   
-
-        setSuccess(data.message || "Message deleted successfully");
-        setError(null);
-        setMessages(prev => prev.filter(m => m.id !== messageId));
-        setTimeout(() => setSuccess(null), 3000);
-
-      } else {
-        setError(data.message || "Error deleting message");
-        setSuccess(null);
-        //alert(data.message || "Error deleting message"); 
-        // //alert() ouvre une modale en haut de la page web pour indiauer message d'erreure
-      }
-    } catch (error) {
-      console.error("Error deleting message:", error);
       setError("Network error. Please try again.");
-      setSuccess(null);
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
-
-  const fetchMessages = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch(`${API_URL}/api/get/messages`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || `Messages API error: ${response.status}`);
-      }
-      setMessages(data || []);
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
-
-  // Fonction de création
   const createConversation = async (title, description, conv_users) => {
     const token = localStorage.getItem("token");
-    console.log("Sending conversation:", { title, description, conv_users });
-
+    
     try {
       const response = await fetch(`${API_URL}/api/create/conversation`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, description, conv_users }), // Envoie le tableau
+        headers: { "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ title, description, conv_users }),
       });
+      
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || `Create Conversation API error: ${response.status}`);
@@ -206,37 +125,77 @@ const Messages = () => {
     }
   };
 
-  // Handler
   const handleCreateConversation = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    if (!title.trim() || !description.trim()) {
+      setError("Title and description are required");
+      return;
+    }
+
+    if (conv_users.length === 0) {
+      setError("Please select at least one friend");
+      return;
+    }
+
+    setActionLoading({ type: 'createConversation', id: null });
+
     try {
       const data = await createConversation(title, description, conv_users);
-      if (data) {
-        setSuccess("Conversation created successfully!");
-        setTitle("");
-        setDescription("");
-        setConv_users([]); // Reset le tableau
-        await fetchConversations();
-      }
+      setSuccess("Conversation created successfully!");
+      setTitle("");
+      setDescription("");
+      setConv_users([]);
+      await fetchData();
+      setActiveSection('conversations');
     } catch (error) {
       setError(error.message);
+    } finally {
+      setActionLoading({ type: '', id: null });
+    }
+  };
+
+  // ========== MESSAGE FUNCTIONS ==========
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm("Are you sure you want to delete this message?")) return;
+
+    setActionLoading({ type: 'deleteMessage', id: messageId });
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(`${API_URL}/api/delete/message/${messageId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {   
+        setSuccess(data.message || "Message deleted successfully");
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+      } else {
+        setError(data.message || "Error deleting message");
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setActionLoading({ type: '', id: null });
     }
   };
 
   const createMessage = async (content, conversation_id) => {
     const token = localStorage.getItem("token");
+    
     try {
       const response = await fetch(`${API_URL}/api/create/message`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ content, conversation_id }),
       });
+      
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || `Create Message API error: ${response.status}`);
@@ -251,22 +210,32 @@ const Messages = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setMessageLoading(true);
+    
+    const content = messageContents[conversationId]?.trim() || "";
+    
+    if (!content) {
+      setError("Message content cannot be empty");
+      return;
+    }
 
-    const content = messageContents[conversationId] || "";
+    setMessageLoading(true);
 
     try {
       const data = await createMessage(content, conversationId);
-      if (data) {
-        setSuccess("Message sent successfully!");
-        // Clear only this conversation's message content
-        setMessageContents(prev => ({
-          ...prev,
-          [conversationId]: ""
-        }));
-        await fetchMessages();
-        await fetchConversations();
-      }
+      setSuccess("Message sent successfully!");
+      
+      setMessageContents(prev => ({
+        ...prev,
+        [conversationId]: ""
+      }));
+      
+      await fetchData();
+      
+      // Scroll to bottom after sending message
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      
     } catch (error) {
       if (error.message.includes('404') || error.message.includes('not found')) {
         setError(`Conversation does not exist.`);
@@ -280,6 +249,7 @@ const Messages = () => {
     }
   };
 
+  // ========== UI HANDLERS ==========
   const handleConversationClick = (convId) => {
     setSelectedConversationId(selectedConversationId === convId ? null : convId);
   };
@@ -293,248 +263,348 @@ const Messages = () => {
 
   // ========== COMPUTED DATA ==========
   const getMessagesForConversation = (conversationId) => {
-    return messages.filter(msg => msg.conversationId === conversationId);
+    return messages
+      .filter(msg => msg.conversationId === conversationId)
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   };
 
   const getMessageCount = (conversationId) => {
     return getMessagesForConversation(conversationId).length;
   };
 
+  const getSelectedConversation = () => {
+    return conversations.find(conv => conv.id === selectedConversationId);
+  };
+
   // ========== EFFECTS ==========
   useEffect(() => {
     fetchData();
-    fetchUserFriends();
-    fetchConversations();
-    fetchMessages();
   }, []);
 
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+        setError(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
+
+  useEffect(() => {
+    // Auto-scroll to bottom when messages change
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedConversationId]);
+
   // ========== RENDER ==========
-  if (loading) return <p className={styles["msg-loading"]}>Loading...</p>;
+  if (loading) return (
+    <div className={styles.loadingContainer}>
+      <div className={styles.spinner}></div>
+      <p>Loading messages...</p>
+    </div>
+  );
 
   return (
-    <div className={styles["msg-page"]}>
-      <div className={styles["msg-grid"]}>
+    <div className={styles.messagesPage}>
+      {/* Header */}
+      <div className={styles.header}>
+        <h1 className={styles.pageTitle}>💬 Messages</h1>
+        <div className={styles.headerActions}>
+          <button 
+            className={`${styles.headerButton} ${activeSection === 'conversations' ? styles.active : ''}`}
+            onClick={() => setActiveSection('conversations')}
+          >
+            📁 Conversations ({conversations.length})
+          </button>
+          <button 
+            className={`${styles.headerButton} ${activeSection === 'friends' ? styles.active : ''}`}
+            onClick={() => setActiveSection('friends')}
+          >
+            👥 Friends ({friends.length})
+          </button>
+        </div>
+      </div>
 
-        {/* LEFT COLUMN - User Info & Friends */}
-        <aside className={styles["msg-sidebar"]}>
+      {/* Notifications */}
+      <div className={styles.notifications}>
+        {error && (
+          <div className={styles.notificationError}>
+            <span>⚠️</span>
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className={styles.notificationSuccess}>
+            <span>✅</span>
+            {success}
+          </div>
+        )}
+      </div>
 
-          {/* Friends List */}
-          <section className={styles["msg-card"]}>
-            <h2 className={styles["msg-card-title"]}>Friends ({friends.length})</h2>
-            {friends.length > 0 ? (
-              <ul className={styles["msg-list"]}>
-                {friends.map((friend) => (
-                  <li key={friend.id} className={styles["msg-friend-item"]}>
-                    <div className={styles["msg-friend-name"]}>
-                      {friend.firstName} {friend.lastName}
-                    </div>
-                    <div className={styles["msg-friend-email"]}>{friend.email}</div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className={styles["msg-empty"]}>No friends</p>
-            )}
-          </section>
-        </aside>
-
-        {/* MIDDLE COLUMN - Conversations with Messages */}
-        <main className={styles["msg-main"]}>
-          <section className={styles["msg-card"]}>
-            <h2 className={styles["msg-card-title"]}>Conversations ({conversations.length})</h2>
-
-
-            {conversations.length > 0 ? (
-              <div className={styles["msg-conversations-container"]}>
-                {conversations.map((conv) => {
-                  console.log(conv)
-                  const conversationMessages = getMessagesForConversation(conv.id);
-                  const isExpanded = selectedConversationId === conv.id;
-
-                  return (
-                    <div key={conv.id} className={styles["msg-conversation-wrapper"]}>
-                      <div
-                        className={`${styles["msg-conversation-item"]} ${isExpanded ? styles["msg-conversation-expanded"] : ""}`}
-                        onClick={() => handleConversationClick(conv.id)}
-                      >
-                        <div className={styles["msg-conversation-header"]}>
-                          <h3 className={styles["msg-conversation-title"]}>
-                            
-                            Conversation title : {conv.title}
-                            <span>    /   </span>
-
-                            messages : ({getMessageCount(conv.id)})
-                            
-
-                          </h3>
-                          <span className={styles["msg-conversation-date"]}>
-                            {new Date(conv.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-
-<div className={styles.conversationActions}>
-  {/* ✅ Afficher le bouton uniquement si l'utilisateur est le créateur */}
-  {conv.createdById === connectedUser?.id && (
-    <button
-      className={styles.deleteBtn}
-      onClick={() => handleDeleteConversation(conv.id)}
-    >
-      🗑 Delete
-    </button>
-  )}
-</div>
-
-
-
-
-
-
-
-
-
-                        <p className={styles["msg-conversation-description"]}>{conv.description}</p>
-                        <div className={styles["msg-conversation-footer"]}>
-                          {/* Créateur */}
-                          <span className={styles["msg-conversation-author"]}>
-                            By: {conv.createdBy}
-                          </span>
-
-                          {/* Utilisateurs de la conversation */}
-                          {conv.users && conv.users.length > 0 && (
-                            <span className={styles["msg-conversation-author"]}>
-                              Participants ({conv.userCount}): {conv.users.map(u => u.name).join(', ')}
-                            </span>
-                          )}
-
-                          {/* Dernier message */}
-                          {conv.lastMessageAt && (
-                            <span className={styles["msg-conversation-last"]}>
-                              Last: {new Date(conv.lastMessageAt).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className={styles["msg-expand-indicator"]}>
-                          {isExpanded ? '▼ Hide messages' : '▶ Show messages'}
-                        </div>
+      <div className={styles.mainLayout}>
+        {/* Left Sidebar - Conversations List */}
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarSection}>
+            <h2 className={styles.sectionTitle}>
+              {activeSection === 'conversations' ? '📁 Conversations' : '👥 Friends'}
+            </h2>
+            
+            {activeSection === 'conversations' ? (
+              <div className={styles.conversationsList}>
+                {conversations.length > 0 ? (
+                  conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={`${styles.conversationItem} ${
+                        selectedConversationId === conv.id ? styles.active : ''
+                      }`}
+                      onClick={() => handleConversationClick(conv.id)}
+                    >
+                      <div className={styles.conversationHeader}>
+                        <h3 className={styles.conversationName}>
+                          {conv.title}
+                        </h3>
+                        <span className={styles.messageCount}>
+                          {getMessageCount(conv.id)}
+                        </span>
                       </div>
-
-                      {/* Messages for this conversation */}
-                      {isExpanded && (
-                        <div className={styles["msg-messages-wrapper"]}>
-                          {conversationMessages.length > 0 ? (
-                            <ul className={styles["msg-list"]}>
-                              {conversationMessages.map((msg) => (
-                                <li key={msg.id} className={styles["msg-message-item"]}>
-                                  <div className={styles["msg-message-header"]}>
-                                    <span className={styles["msg-message-author"]}>{msg.authorName}</span>
-                                    <span className={styles["msg-message-date"]}>
-                                      {new Date(msg.createdAt).toLocaleString()}
-                                    </span>
-
-{/* ✅ Afficher le bouton uniquement si l'utilisateur est l'auteur */}
-{msg.authorId === connectedUser?.id && (
-  <button
-    className={styles.deleteBtn}
-    onClick={(e) => {
-      e.stopPropagation();
-      handleDeleteMessage(msg.id);
-    }}
-  >
-    🗑 Delete
-  </button>
-)}
-                                  </div>
-                                  <p className={styles["msg-message-content"]}>{msg.content}</p>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className={styles["msg-empty"]}>No messages in this conversation yet</p>
-                          )}
-
-
-
-                          {/* Message Form inline in conversation */}
-                          <form
-                            onSubmit={(e) => handleCreateMessage(e, conv.id)}
-                            className={styles["msg-form"]}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className={styles["msg-form-group"]}>
-                              <label className={styles["msg-form-label"]}>New Message</label>
-                              <textarea
-                                value={messageContents[conv.id] || ""}
-                                onChange={(e) => handleMessageContentChange(conv.id, e.target.value)}
-                                required
-                                className={styles["msg-form-textarea"]}
-                                placeholder="Type your message"
-                                rows="3"
-                              />
-                            </div>
-                            <button
-                              type="submit"
-                              className={styles["msg-form-button"]}
-                              disabled={messageLoading}
-                            >
-                              {messageLoading ? "Sending..." : "Send Message"}
-                            </button>
-                          </form>
-                        </div>
-                      )}
+                      
+                      <p className={styles.conversationPreview}>
+                        {conv.description}
+                      </p>
+                      
+                      <div className={styles.conversationMeta}>
+                        <span className={styles.participants}>
+                          👥 {conv.userCount || 1}
+                        </span>
+                        <span className={styles.lastActivity}>
+                          {conv.lastMessageAt 
+                            ? new Date(conv.lastMessageAt).toLocaleDateString()
+                            : new Date(conv.createdAt).toLocaleDateString()
+                          }
+                        </span>
+                      </div>
                     </div>
-                  );
-                })}
+                  ))
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p>No conversations yet</p>
+                    <p className={styles.emptySubtitle}>Start a new conversation with friends</p>
+                  </div>
+                )}
               </div>
             ) : (
-              <p className={styles["msg-empty"]}>No conversations</p>
+              <div className={styles.friendsList}>
+                {friends.length > 0 ? (
+                  friends.map((friend) => (
+                    <div key={friend.id} className={styles.friendItem}>
+                      <div className={styles.friendAvatar}>
+                        {friend.firstName?.charAt(0)}{friend.lastName?.charAt(0)}
+                      </div>
+                      <div className={styles.friendInfo}>
+                        <h4 className={styles.friendName}>
+                          {friend.firstName} {friend.lastName}
+                        </h4>
+                        <p className={styles.friendEmail}>{friend.email}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p>No friends yet</p>
+                    <p className={styles.emptySubtitle}>Add friends to start messaging</p>
+                  </div>
+                )}
+              </div>
             )}
-          </section>
+          </div>
+        </aside>
+
+        {/* Main Content - Chat Area */}
+        <main className={styles.chatArea}>
+          {selectedConversationId ? (
+            <div className={styles.chatContainer}>
+              {/* Chat Header */}
+              <div className={styles.chatHeader}>
+                {(() => {
+                  const conversation = getSelectedConversation();
+                  return (
+                    <>
+                      <div className={styles.chatInfo}>
+                        <h2 className={styles.chatTitle}>{conversation?.title}</h2>
+                        <p className={styles.chatDescription}>{conversation?.description}</p>
+                        <div className={styles.chatMeta}>
+                          <span className={styles.participantCount}>
+                            👥 {conversation?.userCount || 1} participants
+                          </span>
+                          {conversation?.createdBy && (
+                            <span className={styles.createdBy}>
+                              Created by: {conversation.createdBy}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className={styles.chatActions}>
+                        {conversation?.createdById === connectedUser?.id && (
+                          <button
+                            className={styles.deleteButton}
+                            onClick={() => handleDeleteConversation(selectedConversationId)}
+                            disabled={actionLoading.type === 'deleteConversation' && actionLoading.id === selectedConversationId}
+                          >
+                            {actionLoading.type === 'deleteConversation' && actionLoading.id === selectedConversationId ? (
+                              <span className={styles.spinner}></span>
+                            ) : (
+                              '🗑 Delete'
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Messages List */}
+              <div className={styles.messagesList}>
+                {getMessagesForConversation(selectedConversationId).length > 0 ? (
+                  <>
+                    {getMessagesForConversation(selectedConversationId).map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`${styles.messageBubble} ${
+                          msg.authorId === connectedUser?.id ? styles.ownMessage : styles.otherMessage
+                        }`}
+                      >
+                        <div className={styles.messageHeader}>
+                          <span className={styles.messageAuthor}>
+                            {msg.authorName}
+                            {msg.authorId === connectedUser?.id && ' (You)'}
+                          </span>
+                          <span className={styles.messageTime}>
+                            {new Date(msg.createdAt).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                          
+                          {msg.authorId === connectedUser?.id && (
+                            <button
+                              className={styles.messageDelete}
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              disabled={actionLoading.type === 'deleteMessage' && actionLoading.id === msg.id}
+                              title="Delete message"
+                            >
+                              {actionLoading.type === 'deleteMessage' && actionLoading.id === msg.id ? (
+                                <span className={styles.spinner}></span>
+                              ) : (
+                                '🗑'
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className={styles.messageContent}>
+                          {msg.content}
+                        </div>
+                        
+                        <div className={styles.messageDate}>
+                          {new Date(msg.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </>
+                ) : (
+                  <div className={styles.emptyChat}>
+                    <p>No messages yet</p>
+                    <p className={styles.emptySubtitle}>Start the conversation!</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <form
+                onSubmit={(e) => handleCreateMessage(e, selectedConversationId)}
+                className={styles.messageForm}
+              >
+                <div className={styles.inputGroup}>
+                  <textarea
+                    value={messageContents[selectedConversationId] || ""}
+                    onChange={(e) => handleMessageContentChange(selectedConversationId, e.target.value)}
+                    placeholder="Type your message..."
+                    className={styles.messageInput}
+                    rows="2"
+                    disabled={messageLoading}
+                  />
+                  <button
+                    type="submit"
+                    className={styles.sendButton}
+                    disabled={messageLoading || !messageContents[selectedConversationId]?.trim()}
+                  >
+                    {messageLoading ? (
+                      <span className={styles.spinner}></span>
+                    ) : (
+                      '📤 Send'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className={styles.noConversation}>
+              <div className={styles.noConversationContent}>
+                <h2>💬 Welcome to Messages</h2>
+                <p>Select a conversation from the sidebar or create a new one to start messaging.</p>
+                <button 
+                  onClick={() => setActiveSection('conversations')}
+                  className={styles.primaryButton}
+                >
+                  📁 View Conversations
+                </button>
+              </div>
+            </div>
+          )}
         </main>
 
-        {/* RIGHT COLUMN - Forms */}
-        <aside className={styles["msg-forms"]}>
-          {/* Notifications */}
-          {error && <div className={styles["msg-notification-error"]}>{error}</div>}
-          {success && <div className={styles["msg-notification-success"]}>{success}</div>}
-          {success && <div className={styles["msg-notification-success"]}>{success}</div>}
-
-          <section className={styles["msg-card"]}>
-            <h2 className={styles["msg-card-title"]}>New Conversation</h2>
-            <form onSubmit={handleCreateConversation} className={styles["msg-form"]}>
-              <div className={styles["msg-form-group"]}>
-                <label className={styles["msg-form-label"]}>Title</label>
+        {/* Right Sidebar - New Conversation Form */}
+        <aside className={styles.createSidebar}>
+          <div className={styles.sidebarSection}>
+            <h2 className={styles.sectionTitle}>✨ New Conversation</h2>
+            
+            <form onSubmit={handleCreateConversation} className={styles.conversationForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Conversation Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  className={styles["msg-form-input"]}
+                  className={styles.formInput}
                   placeholder="Enter conversation title"
                 />
               </div>
 
-              <div className={styles["msg-form-group"]}>
-                <label className={styles["msg-form-label"]}>Description</label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
-                  className={styles["msg-form-textarea"]}
+                  className={styles.formTextarea}
                   placeholder="Describe the conversation"
                   rows="3"
                 />
               </div>
 
-              {/* Multi-select Friends */}
-              <div className={styles["msg-form-group"]}>
-                <label className={styles["msg-form-label"]}>
-                  Select Friends ({conv_users.length} selected)
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  Add Friends ({conv_users.length} selected)
                 </label>
-                <div className={styles["msg-friends-list"]}>
+                <div className={styles.friendsSelector}>
                   {friends.length > 0 ? (
                     friends.map((friend) => (
-                      <label key={friend.id} className={styles["msg-friend-checkbox"]}>
+                      <label key={friend.id} className={styles.friendOption}>
                         <input
                           type="checkbox"
                           checked={conv_users.includes(friend.id)}
@@ -546,22 +616,39 @@ const Messages = () => {
                             }
                           }}
                         />
-                        <span>
-                          {friend.firstName} {friend.lastName} ({friend.email})
+                        <span className={styles.friendCheckbox}>
+                          <span className={styles.friendAvatarSmall}>
+                            {friend.firstName?.charAt(0)}{friend.lastName?.charAt(0)}
+                          </span>
+                          <span className={styles.friendInfoSmall}>
+                            <strong>{friend.firstName} {friend.lastName}</strong>
+                            <span>{friend.email}</span>
+                          </span>
                         </span>
                       </label>
                     ))
                   ) : (
-                    <p className={styles["msg-empty"]}>No friends available</p>
+                    <p className={styles.emptyState}>No friends available</p>
                   )}
                 </div>
               </div>
 
-              <button type="submit" className={styles["msg-form-button"]}>
-                Create Conversation
+              <button 
+                type="submit" 
+                className={styles.primaryButton}
+                disabled={actionLoading.type === 'createConversation'}
+              >
+                {actionLoading.type === 'createConversation' ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Creating...
+                  </>
+                ) : (
+                  '✨ Create Conversation'
+                )}
               </button>
             </form>
-          </section>
+          </div>
         </aside>
       </div>
     </div>

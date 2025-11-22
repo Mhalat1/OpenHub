@@ -331,7 +331,7 @@ const Profil = () => {
     <div className={styles.profileContainer}>
       {/* Header with search bar */}
       <div className={styles.header}>
-        <h1 className={styles.pageTitle}>👥 Réseau Social</h1>
+        <h1 className={styles.pageTitle}>Réseau Social</h1>
         <div className={styles.searchContainer}>
           <input
             type="text"

@@ -351,7 +351,7 @@ const Projects = () => {
     <div className={styles.projectsPage}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.pageTitle}>🚀 Projects & Skills Management</h1>
+        <h1 className={styles.pageTitle}>Projects & Skills Management</h1>
         <div className={styles.searchContainer}>
           <input
             type="text"
