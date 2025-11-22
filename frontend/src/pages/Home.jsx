@@ -6,7 +6,6 @@ import Projects from './Projects';
 
 const API_URL = 'https://openhub-back.onrender.com';
 
-
 const Home = () => {
   const [user, setUser] = useState({});
   const [skills, setSkills] = useState([]);
@@ -23,12 +22,15 @@ const Home = () => {
   const [message, setMessage] = useState('');
   const [availabilityStart, setAvailabilityStart] = useState('');
   const [availabilityEnd, setAvailabilityEnd] = useState('');
-
+  const [addingSkill, setAddingSkill] = useState(false);
+  const [addingProject, setAddingProject] = useState(false);
+  const [updatingAvailability, setUpdatingAvailability] = useState(false);
 
   const openSkillModal = (skill) => {
     setSelectedSkill(skill);
     setIsModalOpen(true);
   };
+
   const openProjectModal = (project) => {
     setSelectedProject(project);
     setIsModalOpen(true);
@@ -36,12 +38,9 @@ const Home = () => {
 
   const closeModal = () => {
     setSelectedSkill(null);
+    setSelectedProject(null);
     setIsModalOpen(false);
   };
-
-
-
-
 
   const addAvailability = async () => {
     if (!availabilityStart) {
@@ -54,6 +53,7 @@ const Home = () => {
     }
 
     try {
+      setUpdatingAvailability(true);
       setMessage('⏳ Updating availability...');
       const token = localStorage.getItem("token");
 
@@ -75,19 +75,26 @@ const Home = () => {
         setMessage("✅ Availability updated successfully!");
         setAvailabilityStart('');
         setAvailabilityEnd('');
-        await fetchData(); // recharge user info
+        await fetchData();
       } else {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
       console.error("Error adding availability:", error);
       setMessage("❌ Network error while updating availability");
+    } finally {
+      setUpdatingAvailability(false);
     }
   };
 
-
   const addProject = async () => {
+    if (!newProjectId) {
+      setMessage('❌ Please select a project');
+      return;
+    }
+
     try {
+      setAddingProject(true);
       const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/api/user/add/project`, {
@@ -105,25 +112,27 @@ const Home = () => {
       if (result.success) {
         setMessage(`✅ ${result.project_name} added successfully`);
         setNewProjectId('');
-        // Recharger les compétences
         await fetchUserProjects();
-
+      } else {
+        setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Erreur réseau lors de l\'ajout');
+      setMessage('❌ Network error while adding project');
       console.error('Error adding project:', error);
+    } finally {
+      setAddingProject(false);
     }
   };
 
-
   const addSkill = async () => {
     if (!newSkillId) {
-      setMessage('❌ please enter a skill ID');
+      setMessage('❌ Please select a skill');
       return;
     }
 
     try {
-      setMessage(' ⏳ Adding skill...');
+      setAddingSkill(true);
+      setMessage('⏳ Adding skill...');
       const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/api/user/add/skills`, {
@@ -142,17 +151,17 @@ const Home = () => {
       if (result.success) {
         setMessage(`✅ ${result.skill_name} added successfully`);
         setNewSkillId('');
-        // Recharger les compétences
         await fetchSkills();
       } else {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Erreur réseau lors de l\'ajout');
+      setMessage('❌ Network error while adding skill');
       console.error('Error adding skill:', error);
+    } finally {
+      setAddingSkill(false);
     }
   };
-
 
   const fetchAvailableSkills = async () => {
     try {
@@ -167,18 +176,16 @@ const Home = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur API compétences: ${response.status}`);
+        throw new Error(`Skills API error: ${response.status}`);
       }
 
       const data = await response.json();
       setAvailableSkills(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Erreur lors de la récupération des compétences:", error);
+      console.error("Error fetching available skills:", error);
     }
   };
 
-
-  // Fonction pour récupérer les compétences
   const fetchUserProjects = async () => {
     const token = localStorage.getItem("token");
 
@@ -192,18 +199,16 @@ const Home = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Skills API error: ${response.status}`);
+        throw new Error(`Projects API error: ${response.status}`);
       }
 
       const data = await response.json();
       setUserProjects(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching skills:', error);
+      console.error('Error fetching user projects:', error);
     }
   };
 
-
-  // Fonction pour récupérer les compétences
   const fetchAllProjects = async () => {
     const token = localStorage.getItem("token");
 
@@ -217,13 +222,13 @@ const Home = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Skills API error: ${response.status}`);
+        throw new Error(`Projects API error: ${response.status}`);
       }
 
       const dataAllProject = await response.json();
       setProjects(Array.isArray(dataAllProject) ? dataAllProject : []);
     } catch (error) {
-      console.error('Error fetching skills:', error);
+      console.error('Error fetching all projects:', error);
     }
   };
 
@@ -250,14 +255,11 @@ const Home = () => {
     }
   };
 
-  
-
   const fetchData = async () => {
     const token = localStorage.getItem("token");
     console.log('Token:', token)
 
     try {
-      // Récupérer l'utilisateur
       const userResponse = await fetch(`${API_URL}/api/getConnectedUser`, {
         method: "GET",
         headers: {
@@ -272,8 +274,6 @@ const Home = () => {
 
       const dataUser = await userResponse.json();
       setUser(dataUser);
-
-      // Récupérer les compétences
       await fetchSkills();
 
     } catch (error) {
@@ -284,9 +284,8 @@ const Home = () => {
     }
   };
 
-
   const removeProject = async (projectId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir vous retirer de ce projet ?')) {
+    if (!window.confirm('Are you sure you want to leave this project?')) {
       return;
     }
 
@@ -315,14 +314,13 @@ const Home = () => {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Erreur réseau lors de la suppression');
+      setMessage('❌ Network error while removing project');
       console.error('Error removing project:', error);
     }
   };
 
-
   const removeSkill = async (skillId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette compétence ?')) {
+    if (!window.confirm('Are you sure you want to remove this skill?')) {
       return;
     }
 
@@ -351,11 +349,10 @@ const Home = () => {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Erreur réseau lors de la suppression');
+      setMessage('❌ Network error while removing skill');
       console.error('Error removing skill:', error);
     }
   };
-
 
   useEffect(() => {
     fetchData();
@@ -364,204 +361,208 @@ const Home = () => {
     fetchUserProjects();
   }, []);
 
-
-
-  if (loading) return <p>Loading user data...</p>;
-  if (error) return <p>Error: {error}</p>;
-
-
-
-
-
-
-
+  if (loading) return (
+    <div className={styles.loadingContainer}>
+      <div className={styles.spinner}></div>
+      <p>Loading user data...</p>
+    </div>
+  );
+  
+  if (error) return (
+    <div className={styles.errorContainer}>
+      <p>Error: {error}</p>
+    </div>
+  );
 
   return (
     <div className={styles.profileContainer}>
+      {/* Header Corrigé */}
       <div className={styles.profileHeader}>
-        <img src={userPhoto} alt="Profile photo" className={styles.profilePhoto} />
-
-        <h2>{user.lastName || "Last name"}</h2>
-        <h2>{user.firstName || "First name"}</h2>
+        <div className={styles.headerContent}>
+          <img src={userPhoto} alt="Profile photo" className={styles.profilePhoto} />
+          <div className={styles.nameContainer}>
+            <h2>{user.firstName || "First name"} {user.lastName || "Last name"}</h2>
+            <p className={styles.userEmail}>{user.email || "..."}</p>
+          </div>
+        </div>
       </div>
 
       <div className={styles.profileContent}>
-        <div className={styles.availabilitySection}>
-          <div className={styles.dateRange}>
-            <div className={styles.inputDate}>
-              <span>Email: {user.email || "..."}</span>
+        {/* Section Informations */}
+        <div className={styles.infoSection}>
+          <h3 className={styles.sectionTitle}>📋 My Information</h3>
+          <div className={styles.subsection}>
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Available from</span>
+                <span className={styles.infoValue}>
+                  {user.availabilityStart ? new Date(user.availabilityStart).toLocaleDateString() : "Not set"}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>to</span>
+                <span className={styles.infoValue}>
+                  {user.availabilityEnd ? new Date(user.availabilityEnd).toLocaleDateString() : "Not set"}
+                </span>
+              </div>
             </div>
-          </div>
-
-          <div className={styles.dateRange}>
-            <div className={styles.inputDate}>
-              <span>Available from: {user.availabilityStart ? new Date(user.availabilityStart).toLocaleDateString() : "..."}</span>
-            </div>
-            <div className={styles.inputDate}>
-              <span>To: {user.availabilityEnd ? new Date(user.availabilityEnd).toLocaleDateString() : "..."}</span>
-            </div>
-          </div>
-
-
-
-          <div className={styles.dateRange}>
-            <span>Mes Compétences ({skills.length}) : </span>
-            {skills.length > 0 ? (
-              skills.map(skill => (
-                <button
-                  key={skill.id}
-                  className={styles.skillButton}
-                  onClick={() => openSkillModal(skill)}
-                >
-                  {skill.name}
-                </button>
-
-      
-
-
-
-                
-
-                
-              ))
-            ) : (
-              <span>Aucune compétence</span>
-            )}
-          </div>
-          <div className={styles.dateRange}>
-            <span>Projects countributed : ({userprojects.length}) </span>
-            {userprojects.length > 0 ? (
-              userprojects.map(project => (
-
-                <button
-                  key={project.id}
-                  className={styles.skillButton}
-                  onClick={() => openProjectModal(project)}
-                >
-                  {project.name}
-                </button>
-              ))
-            ) : (
-              <span>No projects contributed</span>
-            )}
           </div>
         </div>
 
+        {/* Section Compétences */}
+        <div className={styles.infoSection}>
+          <h3 className={styles.sectionTitle}>
+            🛠️ My Skills ({skills.length})
+          </h3>
+          <div className={styles.subsection}>
+            <div className={styles.skillsGrid}>
+              {skills.length > 0 ? (
+                skills.map(skill => (
+                  <button
+                    key={skill.id}
+                    className={styles.skillButton}
+                    onClick={() => openSkillModal(skill)}
+                  >
+                    {skill.name}
+                  </button>
+                ))
+              ) : (
+                <div className={styles.emptyState}>
+                  No skills added yet
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Section Projets */}
+        <div className={styles.infoSection}>
+          <h3 className={styles.sectionTitle}>
+            🚀 My Projects ({userprojects.length})
+          </h3>
+          <div className={styles.subsection}>
+            <div className={styles.projectsGrid}>
+              {userprojects.length > 0 ? (
+                userprojects.map(project => (
+                  <button
+                    key={project.id}
+                    className={styles.projectButton}
+                    onClick={() => openProjectModal(project)}
+                  >
+                    {project.name}
+                  </button>
+                ))
+              ) : (
+                <div className={styles.emptyState}>
+                  No projects yet
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Messages */}
         {message && (
-          <div
-            className={`${styles.messageBox} ${message.includes("✅")
-              ? styles.success
-              : message.includes("⏳")
-                ? styles.info
-                : styles.error
-              }`}
-          >
+          <div className={`${styles.messageBox} ${
+            message.includes("✅") ? styles.success : 
+            message.includes("⏳") ? styles.info : 
+            styles.error
+          }`}>
             {message}
           </div>
         )}
 
-
-        <h2 className={styles.addSkillTitle}>Add a New Skill</h2>
-
-
-
+        {/* Formulaires Réorganisés */}
         <div className={styles.divider}>
-
-          <div className={styles.addSkillContainer}>
-            
-            <div className={styles.addSkillCard}>
-              <div className={styles.addSkillForm}>
-                
-                <h2 className={styles.addSkillTitle}>Add you a new skill</h2>
-                <div className={styles.formGroup}>
-                  <label htmlFor="skillSelect" className={styles.formLabel}>
-                    Select a skill
-                  </label>
-                  <select
-                    id="skillSelect"
-                    value={newSkillId}
-                    onChange={(e) => setNewSkillId(e.target.value)}
-                    className={styles.formSelect}
-                    disabled={loading}
-                  >
-                    <option value="">-- Choose a skill --</option>
-                    {availableSkills.map(skill => (
-                      <option key={skill.id} value={skill.id}>
-                        {skill.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  onClick={addSkill}
-                  className={styles.btnPrimary}
-                  disabled={loading || !newSkillId}
+          {/* Gérer les compétences */}
+          <div className={styles.formSection}>
+            <h3 className={styles.sectionTitle}>🛠️ Manage Skills</h3>
+            <div className={styles.subsection}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Add a skill</label>
+                <select
+                  value={newSkillId}
+                  onChange={(e) => setNewSkillId(e.target.value)}
+                  className={styles.formSelect}
+                  disabled={addingSkill}
                 >
-                  {loading ? 'Adding...' : 'Add Skill'}
+                  <option value="">-- Choose a skill --</option>
+                  {availableSkills.map(skill => (
+                    <option key={skill.id} value={skill.id}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  onClick={addSkill} 
+                  className={styles.btnPrimary}
+                  disabled={addingSkill || !newSkillId}
+                >
+                  {addingSkill ? (
+                    <>
+                      <span className={styles.spinner}></span>
+                      Adding...
+                    </>
+                  ) : (
+                    '+ Add Skill'
+                  )}
                 </button>
               </div>
             </div>
           </div>
 
-          
-
-
-          <div className={styles.addSkillContainer}>
-            <div className={styles.addSkillCard}>
-              <h2 className={styles.addSkillTitle}>Modifier les dates de disponibilitees</h2>
-
-              <div className={styles.addSkillForm}>
+          {/* Gérer les disponibilités */}
+          <div className={styles.formSection}>
+            <h3 className={styles.sectionTitle}>📅 My Availability</h3>
+            <div className={styles.subsection}>
+              <div className={styles.dateInputs}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="availabilityStart" className={styles.formLabel}>
-                    Date de debut de disponibilitee
-                  </label>
+                  <label className={styles.formLabel}>Start date</label>
                   <input
                     type="date"
-                    id="availabilityStart"
-                    value={availabilityStart || ""}
+                    value={availabilityStart}
                     onChange={(e) => setAvailabilityStart(e.target.value)}
                     className={styles.formInput}
                   />
-
                 </div>
                 <div className={styles.formGroup}>
-                  <label htmlFor="availabilityEnd" className={styles.formLabel}>
-                    Date de fin de disponibilitee
-                  </label>
+                  <label className={styles.formLabel}>End date</label>
                   <input
                     type="date"
-                    id="availabilityEnd"
-                    value={availabilityEnd || ""}
+                    value={availabilityEnd}
                     onChange={(e) => setAvailabilityEnd(e.target.value)}
                     className={styles.formInput}
                   />
                 </div>
-
-                <button
-                  onClick={addAvailability}
-                  className={styles.btnPrimary}
-                >
-                  Add New Availability Dates
-                </button>
-
-
               </div>
+              <button 
+                onClick={addAvailability} 
+                className={styles.btnSecondary}
+                disabled={updatingAvailability}
+              >
+                {updatingAvailability ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Updating...
+                  </>
+                ) : (
+                  'Update Availability'
+                )}
+              </button>
             </div>
           </div>
 
-
-          <div className={styles.addSkillContainer}>
-            <div className={styles.addSkillCard}>
-              <h2 className={styles.addSkillTitle}>Contribuer a d'autres Projets ({projects.length})</h2>
-              <div className={styles.addSkillForm}>
-                <h2>All Projects ({projects.length})</h2>
-
+          {/* Rejoindre un projet */}
+          <div className={styles.formSection}>
+            <h3 className={styles.sectionTitle}>🚀 Join a Project</h3>
+            <div className={styles.subsection}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Select a project</label>
                 <select
-                  id="skillSelect"
                   value={newProjectId}
                   onChange={(e) => setNewProjectId(e.target.value)}
                   className={styles.formSelect}
+                  disabled={addingProject}
                 >
                   <option value="">-- Choose a project --</option>
                   {projects.map(project => (
@@ -570,90 +571,86 @@ const Home = () => {
                     </option>
                   ))}
                 </select>
-
-                <button
-                  onClick={addProject}
+                <button 
+                  onClick={addProject} 
                   className={styles.btnPrimary}
+                  disabled={addingProject || !newProjectId}
                 >
-                  Add Project
+                  {addingProject ? (
+                    <>
+                      <span className={styles.spinner}></span>
+                      Adding...
+                    </>
+                  ) : (
+                    'Join Project'
+                  )}
                 </button>
-
-
-
               </div>
             </div>
-
           </div>
-
-
-
-
-          {/* Modal des détails de compétence */}
-          {isModalOpen && SelectedProject && (
-            <div className={styles.modalOverlay}>
-              <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={closeModal}>×</button>
-                <h2 className={styles.modalTitle}>{SelectedProject.name}</h2>
-                <div className={styles.modalInfo}>
-                  <div>
-                    <h3>Description</h3>
-                    <p>{SelectedProject.description || "Non renseigné"}</p>
-                  </div>
-                  <div>
-                    <h3>Technologies utilisées</h3>
-                    <p>{SelectedProject.requiredSkills || "Non renseigné"}</p>
-                  </div>
-                  <div>
-                    <h3>Durée</h3>
-                    <p>From {SelectedProject.startDate ? new Date(SelectedProject.startDate).toLocaleDateString() : "N/A"} to {SelectedProject.endDate ? new Date(SelectedProject.endDate).toLocaleDateString() : "N/A"}</p>
-                  </div>
-
-
-                </div>
-
-                                <button
-                  onClick={() => removeProject(SelectedProject.id)}
-                  className={styles.btnDanger}
-                  style={{ marginTop: '20px' }}
-                >
-                  🗑️ Remove from this project
-                </button>
-              </div>
-            </div>
-          )}
-
-
-          {isModalOpen && selectedSkill && (
-            <div className={styles.modalOverlay}>
-              <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={closeModal}>×</button>
-                <h2 className={styles.modalTitle}>{selectedSkill.name}</h2>
-                <div className={styles.modalInfo}>
-                  <div>
-                    <h3>Description</h3>
-                    <p>{selectedSkill.description || "Non renseigné"}</p>
-                  </div>
-                  <div>
-                    <h3>Technologies utilisées</h3>
-                    <p>{selectedSkill.technoUtilisees || "Non renseigné"}</p>
-                  </div>
-                  <div>
-                    <h3>Durée</h3>
-                    <p>{selectedSkill.duree || "Non renseigné"}</p>
-                  </div>
-                </div>
-                                <button
-                  onClick={() => removeSkill(selectedSkill.id)}
-                  className={styles.btnDanger}
-                  style={{ marginTop: '20px' }}
-                >
-                  🗑️ Remove this skill
-                </button>
-              </div>
-            </div>
-          )}
-
         </div>
+
+        {/* Modal Projet */}
+        {isModalOpen && SelectedProject && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <button className={styles.closeButton} onClick={closeModal}>×</button>
+              <h2 className={styles.modalTitle}>{SelectedProject.name}</h2>
+              <div className={styles.modalInfo}>
+                <div>
+                  <h3>Description</h3>
+                  <p>{SelectedProject.description || "Not specified"}</p>
+                </div>
+                <div>
+                  <h3>Technologies used</h3>
+                  <p>{SelectedProject.requiredSkills || "Not specified"}</p>
+                </div>
+                <div>
+                  <h3>Duration</h3>
+                  <p>From {SelectedProject.startDate ? new Date(SelectedProject.startDate).toLocaleDateString() : "N/A"} to {SelectedProject.endDate ? new Date(SelectedProject.endDate).toLocaleDateString() : "N/A"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => removeProject(SelectedProject.id)}
+                className={styles.btnDanger}
+                style={{ marginTop: '20px' }}
+              >
+                🗑️ Leave this project
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Compétence */}
+        {isModalOpen && selectedSkill && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <button className={styles.closeButton} onClick={closeModal}>×</button>
+              <h2 className={styles.modalTitle}>{selectedSkill.name}</h2>
+              <div className={styles.modalInfo}>
+                <div>
+                  <h3>Description</h3>
+                  <p>{selectedSkill.description || "Not specified"}</p>
+                </div>
+                <div>
+                  <h3>Technologies used</h3>
+                  <p>{selectedSkill.technoUtilisees || "Not specified"}</p>
+                </div>
+                <div>
+                  <h3>Duration</h3>
+                  <p>{selectedSkill.duree || "Not specified"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => removeSkill(selectedSkill.id)}
+                className={styles.btnDanger}
+                style={{ marginTop: '20px' }}
+              >
+                🗑️ Remove this skill
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

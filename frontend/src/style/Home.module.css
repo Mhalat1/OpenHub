@@ -1,7 +1,4 @@
-
-
-
-  /* ===== VARIABLES ===== */
+/* ===== VARIABLES ===== */
 :root {
   --primary: #6366f1;
   --primary-dark: #4f46e5;
@@ -26,10 +23,30 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   color: var(--text-primary);
-      padding: 6rem;
+  padding: 6rem;
 }
 
-/* ===== HEADER ===== */
+/* ===== LOADING AND ERROR STATES ===== */
+.loadingContainer, .errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+}
+
+.loadingContainer .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid transparent;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+/* ===== HEADER CORRIGÉ ===== */
 .profileHeader {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   border-radius: 24px;
@@ -39,10 +56,6 @@
   box-shadow: 0 20px 60px var(--shadow);
   position: relative;
   overflow: hidden;
-      display: flex;
-    gap: 4rem;
-    
-    justify-content: center;
 }
 
 .profileHeader::before {
@@ -61,6 +74,15 @@
   to { transform: rotate(360deg); }
 }
 
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  position: relative;
+  z-index: 1;
+  justify-content: center;
+}
+
 .profilePhoto {
   width: 120px;
   height: 120px;
@@ -68,9 +90,6 @@
   object-fit: cover;
   border: 4px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  margin-bottom: 1.5rem;
-  position: relative;
-  z-index: 1;
   transition: transform 0.3s ease;
 }
 
@@ -78,14 +97,18 @@
   transform: scale(1.05);
 }
 
-.profileHeader h2 {
+.nameContainer h2 {
   font-size: 2rem;
   font-weight: 700;
-  margin: 0.5rem 0;
+  margin: 0;
   color: white;
-  position: relative;
-  z-index: 1;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.userEmail {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.5rem 0 0 0;
+  font-size: 1.1rem;
 }
 
 /* ===== CONTENT ===== */
@@ -93,7 +116,8 @@
   margin: 0 auto;
 }
 
-.availabilitySection {
+/* ===== SECTIONS ORGANISÉES ===== */
+.infoSection {
   background: var(--bg-card);
   border-radius: 20px;
   padding: 2rem;
@@ -103,41 +127,66 @@
   transition: transform 0.3s ease;
 }
 
-.availabilitySection:hover {
+.infoSection:hover {
   transform: translateY(-2px);
 }
 
-.dateRange {
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary-light);
+}
+
+.subsection {
+  background: rgba(99, 102, 241, 0.03);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+/* ===== GRID INFORMATIONS ===== */
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.infoLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoValue {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ===== GRID COMPÉTENCES/PROJETS ===== */
+.skillsGrid, .projectsGrid {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: rgba(99, 102, 241, 0.05);
-  border-radius: 12px;
-  border-left: 4px solid var(--primary);
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
-.dateRange span {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.inputDate {
-  flex: 1;
-  min-width: 200px;
-}
-
-.inputDate span {
-  display: block;
-  color: var(--text-primary);
-  font-size: 1rem;
-}
-
-/* ===== BOUTONS COMPÉTENCES/PROJETS ===== */
-.skillButton {
+.skillButton, .projectButton {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
@@ -150,10 +199,22 @@
   box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
-.skillButton:hover {
+.skillButton:hover, .projectButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
   background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+}
+
+/* ===== ÉTATS VIDES ===== */
+.emptyState {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 2rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  width: 100%;
 }
 
 /* ===== MESSAGES ===== */
@@ -195,7 +256,7 @@
   color: white;
 }
 
-/* ===== DIVIDER (GRILLE) ===== */
+/* ===== DIVIDER (GRILLE FORMULAIRES) ===== */
 .divider {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -203,38 +264,22 @@
   margin-top: 2rem;
 }
 
-/* ===== CARTES D'AJOUT ===== */
-.addSkillContainer {
-  position: relative;
-}
-
-.addSkillCard {
+/* ===== SECTIONS FORMULAIRES ===== */
+.formSection {
   background: var(--bg-card);
-  border-radius: 20px;
-  padding: 2rem;
+  border-radius: 16px;
+  padding: 1.5rem;
   border: 1px solid var(--border);
-  box-shadow: 0 10px 40px var(--shadow);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  height: 100%;
 }
 
-.addSkillCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 50px rgba(99, 102, 241, 0.2);
-  border-color: var(--primary);
+.formSection:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
-.addSkillTitle {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
+/* ===== FORMULAIRES ===== */
 .addSkillForm {
   display: flex;
   flex-direction: column;
@@ -283,7 +328,15 @@
   color: var(--text-primary);
 }
 
-/* ===== BOUTON PRINCIPAL ===== */
+/* ===== INPUTS DATE ===== */
+.dateInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== BOUTONS ===== */
 .btnPrimary {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   color: white;
@@ -297,15 +350,82 @@
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.btnPrimary:hover {
+.btnPrimary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6);
 }
 
-.btnPrimary:active {
-  transform: translateY(0);
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnDanger {
+  background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.btnDanger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+/* ===== INDICATEUR DE CHARGEMENT ===== */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* ===== MODAL ===== */
@@ -447,7 +567,13 @@
     padding: 2rem 1rem;
   }
 
-  .profileHeader h2 {
+  .headerContent {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .nameContainer h2 {
     font-size: 1.5rem;
   }
 
@@ -461,9 +587,12 @@
     gap: 1.5rem;
   }
 
-  .dateRange {
-    flex-direction: column;
-    align-items: flex-start;
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dateInputs {
+    grid-template-columns: 1fr;
   }
 
   .modalContent {
@@ -473,5 +602,23 @@
 
   .modalTitle {
     font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .profileContainer {
+    padding: 0.5rem;
+  }
+  
+  .infoSection {
+    padding: 1rem;
+  }
+  
+  .subsection {
+    padding: 1rem;
+  }
+  
+  .skillsGrid, .projectsGrid {
+    justify-content: center;
   }
 }
