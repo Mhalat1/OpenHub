@@ -726,10 +726,10 @@ const Projects = () => {
               </div>
               
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Duration</label>
+                <label className={styles.formLabel}>Date de fin</label>
                 <input
                   type="text"
-                  placeholder="3 months, 1 year..."
+                  placeholder="../../...."
                   value={editingSkill.duree}
                   onChange={(e) => setEditingSkill({ ...editingSkill, duree: e.target.value })}
                   className={styles.formInput}
