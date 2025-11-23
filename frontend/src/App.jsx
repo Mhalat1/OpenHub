@@ -7,6 +7,7 @@ import Logout from "./pages/Logout";
 import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import UserCreate from "./pages/Register";
+import DonatePage from "./pages/DonatePage";
 
 function AppContent() {
   const location = useLocation();
