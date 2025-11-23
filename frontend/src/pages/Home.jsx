@@ -651,7 +651,7 @@ const Home = () => {
           </div>
         )}
       </div>
-      <a href="/donate" class="donate-button">💖 Faire un don</a>
+      <a href="/donate" className={styles['donate-button']}>💖 Faire un don</a>
 
     </div>
   );
