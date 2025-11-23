@@ -651,6 +651,7 @@ const Home = () => {
           </div>
         )}
       </div>
+      <a href="/donate">💖 Faire un don</a>
     </div>
   );
 };

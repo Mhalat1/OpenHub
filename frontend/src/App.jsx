@@ -26,6 +26,7 @@ function AppContent() {
         <Route path="/logout" element={<Logout />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<UserCreate />} />
+        <Route path="/donate" element={<DonatePage />} />
         <Route path="*" element={<div>Page non trouvée - 404</div>} />
 
       </Routes>
