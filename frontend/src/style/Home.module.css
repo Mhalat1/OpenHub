@@ -17,6 +17,40 @@
   --shadow: rgba(0, 0, 0, 0.3);
 }
 
+/* CSS */
+.donate-button {
+  display: inline-block;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(45deg, #ff416c, #ff4b2b, #ff416c, #ff4b2b);
+  background-size: 400% 400%;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+  animation: gradientMove 8s ease infinite;
+  box-shadow: 0 4px 15px rgba(255, 75, 43, 0.5);
+}
+
+/* Hover effect */
+.donate-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 75, 43, 0.7);
+}
+
+/* Continuous gradient animation */
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+
 /* ===== CONTAINER PRINCIPAL ===== */
 .profileContainer {
   min-height: 100vh;
