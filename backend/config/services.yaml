@@ -1,4 +1,11 @@
 services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
  
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
@@ -8,13 +15,7 @@ services:
     App\Security\LoginFailureHandler:
         public: true
 
-    App\Security\ApiTokenAuthenticator:
-        arguments:
-            $someDependency: '@some_dependency'
 
-    _defaults:
-        autowire: true
-        autoconfigure: true
-
-    App\:
-        resource: '../src/'
+    App\EventListener\RequestMetricsListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.request }
