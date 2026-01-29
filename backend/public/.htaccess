@@ -1,5 +1,5 @@
 # CORS headers - Support de plusieurs origines
-SetEnvIf Origin "^https://(openhub-frontend\.onrender\.com|www\.mh-logiciel\.fr|localhost:5173)$" ORIGIN_ALLOWED=$0
+SetEnvIf Origin "^https://(openhub-front\.onrender\.com|www\.mh-logiciel\.fr|localhost:5173)$" ORIGIN_ALLOWED=$0
 
 Header always set Access-Control-Allow-Origin "%{ORIGIN_ALLOWED}e" env=ORIGIN_ALLOWED
 Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE, PATCH"
