@@ -15,7 +15,3 @@ services:
     App\Security\LoginFailureHandler:
         public: true
 
-
-    App\EventListener\RequestMetricsListener:
-        tags:
-            - { name: kernel.event_listener, event: kernel.request }
