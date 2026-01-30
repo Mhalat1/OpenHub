@@ -9,7 +9,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class BackendMetricsController extends AbstractController
 {
-    #[Route('/metrics', name: 'metrics')]
+    #[Route('/metrics/backend', name: 'backend_metrics')]
     public function metrics(Request $request): Response
     {
         $userAgent = $request->headers->get('User-Agent', '');
