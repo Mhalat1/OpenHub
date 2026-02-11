@@ -1,0 +1,16 @@
+.env.dev
+config/jwt/
+var/
+vendor/
+node_modules/
+.DS_Store
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+.env
+.env.local
+.env.*.local
+/config/secrets/
+/var/
+/vendor/

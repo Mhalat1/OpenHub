@@ -1,0 +1,415 @@
+/* Variables CSS */
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary: #64748b;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* Container principal */
+.loginContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--background) 0%, #ffffff 100%);
+}
+
+/* Section Hero (Gauche) */
+.heroSection {
+    flex: 1;
+    background: linear-gradient(135deg, #407cff 0%, #000000 100%);
+    color: #fff;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+
+
+@keyframes float {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-20px, -20px) rotate(360deg); }
+}
+
+.logoContainer {
+  margin-bottom: 2rem;
+}
+
+.logo {
+    height: 200px;
+    width: auto;
+    z-index: 1;
+    position: relative;
+}
+
+.heroText h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.heroText p {
+    font-size: 1.2rem;
+    margin-bottom: 2.5rem;
+    text-align: center;
+    opacity: .9;
+    color: #0090ff;
+}
+
+.features {
+  display: flex;
+  gap: 1rem;
+  flex-direction: row;
+      max-width: 90vw;
+}
+
+.featureItem {
+      font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.featureIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+/* Section Formulaire (Droite) */
+.formSection {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.formContainer {
+  background: var(--surface);
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 440px;
+  border: 1px solid var(--border);
+}
+
+.formHeader {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.formHeader h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.formHeader p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Formulaire */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.input {
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--surface);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Bouton de soumission */
+.submitButton {
+  padding: 1rem 1.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submitButton.loading {
+  background: var(--secondary);
+}
+
+/* Spinner */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Messages d'erreur */
+.errorMessage {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--error);
+  padding: 1rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.errorIcon {
+  font-size: 1.2rem;
+}
+
+/* Section inscription */
+.registerSection {
+  margin-top: 2rem;
+}
+
+.divider {
+  text-align: center;
+  position: relative;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.divider span {
+  background: var(--surface);
+  padding: 0 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+.registerButton {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.registerButton:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.registerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mot de passe oublié */
+.forgotPassword {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.forgotLink {
+  background: none;
+  border: none;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.forgotLink:hover {
+  color: var(--primary-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .loginContainer {
+    flex-direction: column;
+  }
+  
+  .heroSection {
+    padding: 2rem 1rem;
+    min-height: 40vh;
+  }
+  
+  .heroText h1 {
+    font-size: 2rem;
+  }
+  .heroText p {
+    margin-bottom: 15px;
+  }
+  
+  .formSection {
+    padding: 1rem;
+  }
+  
+  .formContainer {
+    margin: 2rem;
+  }
+
+  .form{
+    max-width: 100%;
+    gap: 15px;
+  }
+
+    .formHeader h2 {
+    font-size: 25px;
+  }
+  .formHeader p {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .heroText p {
+    font-size: 13px;
+  }
+  .heroText h1 {
+    font-size: 20px;
+  }
+  .featureItem {
+    font-size: 10px;
+    padding: 0.5rem;
+  }
+
+  .formHeader h2 {
+    font-size: 20px;
+  }
+  .formHeader p {
+    font-size: 15px;
+  }
+  .form{
+    padding: 0px;
+        box-shadow: none;
+        gap: 2.5rem;
+        padding: 0px;
+  }
+
+  .logo{
+        height: 140px;
+  }
+
+
+  form {
+    padding: 2rem 0rem;
+  }
+  .formContainer {
+    padding: 1.5rem;
+    margin: 0px;
+
+  }
+  
+  .heroText h1 {
+    font-size: 1.75rem;
+  }
+  
+  .features {
+    gap: 0.75rem;
+            display: flex;
+        flex-direction: row;
+  }
+  
+  .featureItem {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+}

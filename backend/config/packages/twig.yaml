@@ -1,0 +1,13 @@
+twig:
+    file_name_pattern: '*.twig'
+    globals:
+        user_service: App\Service\UserService
+    #autoescape: 'name' pas besoin de l'ajouter c'est fait automatiquement les variables seront échappées 
+    #en fonction du contexte dans lequel elles sont utilisées (HTML, JavaScript, etc.) 
+    #pour éviter les vulnérabilités de type injection.
+    charset: 'UTF-8'
+
+when@test:
+    twig:
+        strict_variables: true
+

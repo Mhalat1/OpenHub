@@ -1,0 +1,268 @@
+.page {
+  background: linear-gradient(135deg, var(--primary) 0%, #000000 100%);
+  min-height: 80vh;
+  padding: 2rem;
+  font-family: "Inter", sans-serif;
+}
+
+.pageTitle {
+  text-align: center;
+  font-size: 2.2rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== SIDEBARS ===== */
+.sidebar {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== FRIENDS ===== */
+.friendList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.friendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.friendItem:hover {
+  background: #f3f4f6;
+}
+
+.avatar {
+  background: #6366f1;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friendEmail {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* ===== CONVERSATIONS ===== */
+.main {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+}
+
+.conversation {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.conversation:hover {
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.15);
+}
+
+.convHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 12px 12px 0 0;
+  cursor: pointer;
+}
+
+.convTitle {
+  font-weight: 600;
+  color: #111827;
+}
+
+.convDesc {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.convActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: 0.2s;
+}
+
+.deleteBtn:hover {
+  transform: scale(1.2);
+}
+
+.toggle {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.convBody {
+  padding: 1rem;
+}
+
+/* ===== MESSAGES ===== */
+.message {
+  background: #f3f4f6;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+}
+
+.ownMsg {
+  background: #e0e7ff;
+  border-left: 4px solid #4f46e5;
+}
+
+.msgHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.msgDate {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.msgDelete {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.msgForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.textarea {
+  resize: vertical;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.sendBtn {
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.sendBtn:hover {
+  background: #4f46e5;
+}
+
+/* ===== FORMS ===== */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.friendSelect {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.createBtn {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.createBtn:hover {
+  background: #4338ca;
+}
+
+/* ===== NOTIFICATIONS ===== */
+.notification {
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.loading {
+  text-align: center;
+  margin-top: 2rem;
+  font-weight: 500;
+  color: #6b7280;
+}

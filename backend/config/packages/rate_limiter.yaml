@@ -1,0 +1,14 @@
+# config/packages/rate_limiter.yaml
+framework:
+    rate_limiter:
+        # Define your limiters here
+        limiters:
+            api:
+                policy: 'sliding_window'
+                limit: 100
+                interval: '60 minutes'
+                
+            login:
+                policy: 'fixed_window'
+                limit: 5
+                interval: '15 minutes'

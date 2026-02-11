@@ -1,0 +1,21 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+ 
+    App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
+
+    App\Security\LoginSuccessHandler:
+        public: true
+
+    App\Security\LoginFailureHandler:
+        public: true
+
+    # 👇 AJOUTEZ CES LIGNES POUR CORS
+    App\EventListener\CORSListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: 255 }
+            - { name: kernel.event_listener, event: kernel.response, method: onKernelResponse, priority: 255 }
