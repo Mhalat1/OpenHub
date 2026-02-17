@@ -2,7 +2,7 @@
 
 namespace App\Repository;
 
-use App\Entity\UserFriends;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -13,7 +13,7 @@ class UserFriendsRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, UserFriends::class);
+        parent::__construct($registry, User::class);
     }
 
 //    /**

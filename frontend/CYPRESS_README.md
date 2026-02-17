@@ -1,8 +1,11 @@
 Cypress pour test E2E
 
 Installation
-bash
-npm install --save-dev cypress
+cd frontend
+
+# Avec npm
+npm install cypress --save-dev
+
 
 Initialisez Cypress :
 bash

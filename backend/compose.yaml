@@ -5,8 +5,9 @@ services:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
+      # password arbitraire que j'ai ajoutee moi meme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qJ8mR4kL9pN2xV7bF3tY6wE5rA1sD4gH=}
+
       POSTGRES_USER: ${POSTGRES_USER:-app}
     healthcheck:
       test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
@@ -15,9 +16,6 @@ services:
       start_period: 60s
     volumes:
       - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
 
 ###> symfony/mercure-bundle ###
   mercure:
@@ -40,7 +38,8 @@ services:
         http_port 80
         auto_https off
       
-    # Comment the following line to disable the development mode
+    # la partie suivante est a ajouter pour le healthcheck de mercure
+    # pour avoir les log durant le developpement
     command: /usr/bin/caddy run --config /etc/caddy/dev.Caddyfile
     healthcheck:
       test: ["CMD", "curl", "-f", "https://localhost/healthz"]
@@ -53,11 +52,8 @@ services:
 ###< symfony/mercure-bundle ###
 
 volumes:
-###> doctrine/doctrine-bundle ###
   database_data:
 ###< doctrine/doctrine-bundle ###
-
-###> symfony/mercure-bundle ###
   mercure_data:
   mercure_config:
 ###< symfony/mercure-bundle ###

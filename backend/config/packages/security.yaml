@@ -28,14 +28,14 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/frontend-metrics, roles: PUBLIC_ACCESS }
         - { path: ^/metrics/frontend, roles: PUBLIC_ACCESS }
         - { path: ^/metrics/backend, roles: PUBLIC_ACCESS }
         - { path: ^/api/test, roles: PUBLIC_ACCESS }
-        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/userCreate, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/donate, roles: PUBLIC_ACCESS }  
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
-        

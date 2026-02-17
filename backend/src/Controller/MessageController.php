@@ -125,12 +125,15 @@ class MessageController extends AbstractController
         return true;
     }
 
-
-
-    private function validateName(string $name, int $maxLength = 100): bool
+private function validateName(string $name, int $maxLength = 100): bool
 {
     // Vérifier la longueur
     if (empty($name) || mb_strlen($name) > $maxLength || mb_strlen($name) < 2) {
+        return false;
+    }
+    
+    // ✅ NOUVEAU : Pas d'espace, tiret ou apostrophe au début/fin
+    if (preg_match('/^[\s\-\']|[\s\-\']$/', $name)) {
         return false;
     }
     
@@ -1464,4 +1467,10 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
                 $em->clear();
         }
     }
+
+
+
+
+
+    
 }

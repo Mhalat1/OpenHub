@@ -4,6 +4,12 @@ lancer un test particulier JEST
 
 lancer test couverture pour JEST 
     npm test -- --coverage
+pour version page html du rapport de couverture JEST
+npm test -- --coverage --coverageReporters=html --coverageReporters=text
+
+aller sur ce lien pour voir rapport de couverture par pages
+http://127.0.0.1:5500/frontend/coverage/lcov-report/src/pages/index.html
+
 
 
 

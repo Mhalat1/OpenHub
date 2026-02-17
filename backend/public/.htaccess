@@ -1,9 +1,9 @@
 # CORS headers - Support de plusieurs origines
-SetEnvIf Origin "^(https?://(localhost:5173|127\.0\.0\.1)|https://openhub-frontend\.onrender\.com|https://www\.mh-logiciel\.fr)$" ORIGIN_ALLOWED=$0
+SetEnvIf Origin "^(https?://(localhost:5173)|https://openhub-frontend\.onrender\.com|https://www\.mh-logiciel\.fr)$" ORIGIN_ALLOWED=$0
 
 Header always set Access-Control-Allow-Origin "%{ORIGIN_ALLOWED}e" env=ORIGIN_ALLOWED
 Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE, PATCH"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Origin"
 Header always set Access-Control-Allow-Credentials "true"
 Header always set Access-Control-Max-Age "3600"
 

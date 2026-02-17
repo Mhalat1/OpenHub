@@ -11,14 +11,14 @@
          cacheDirectory=".phpunit.cache"
 >
     <php>
+        <ini name="memory_limit" value="512M"/>
+
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
         <env name="KERNEL_CLASS" value="App\Kernel"/>
-        
-        <!-- Configuration pour éviter les erreurs de base de données -->
-        <env name="DATABASE_URL" value="sqlite:///%kernel.project_dir%/var/test.db"/>
+        <env name="DATABASE_URL" value="mysql://root:@127.0.0.1:3310/openhub_local?serverVersion=8.0.32&amp;charset=utf8mb4"/>
     </php>
 
     <testsuites>

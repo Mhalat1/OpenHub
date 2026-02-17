@@ -245,14 +245,6 @@ public function getReceivedInvitations(): Collection
         return $this->projects;
     }
 
-    public function addProject(Project $project): static
-    {
-        if (!$this->projects->contains($project)) {
-            $this->projects->add($project);
-        }
-        return $this;
-    }
-
     public function removeUserProject(Project $project): static
     {
         $this->projects->removeElement($project);
@@ -306,4 +298,28 @@ public function getReceivedInvitations(): Collection
         }
         return $this;
     }
+
+
+
+    
+    public function getProjects(): Collection  // Changé de getProject() à getProjects()
+    {
+        return $this->projects;
+    }
+
+    public function addProject(Project $project): static
+    {
+        if (!$this->projects->contains($project)) {
+            $this->projects->add($project);
+        }
+        return $this;
+    }
+
+    public function removeProject(Project $project): static  // Changé de removeUserProject() à removeProject()
+    {
+        if ($this->projects->removeElement($project)) {
+        }
+        return $this;
+    }
+
 }

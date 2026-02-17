@@ -16,19 +16,19 @@ const Login = () => {
     setError("");
     setIsLoading(true);
 
-    // Validation côté client
-    if (!email || !password) {
-      setError("Veuillez remplir tous les champs");
-      setIsLoading(false);
-      return;
-    }
+  // Validation côté client
+  if (!email || !password) {
+    console.log('Empty fields');
+    setError("Veuillez remplir tous les champs");
+    setIsLoading(false);
+    return;
+  }
 
-    if (!email.includes('@')) {
-      setError("Format d'email invalide");
-      setIsLoading(false);
-      return;
-    }
-    console.log("API_URL =", API_URL);
+  if (!email.includes('@')) {
+    setError("Invalid email format");
+    setIsLoading(false);
+    return;
+  }
     try {
       const response = await fetch(`${API_URL}/api/login_check`, {
         method: "POST",
@@ -92,7 +92,7 @@ const Login = () => {
             <p>Accédez à votre espace personnel</p>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form onSubmit={handleSubmit} className={styles.form} noValidate >
             <div className={styles.inputGroup}>
               <label htmlFor="email" className={styles.label}>
                 Adresse email

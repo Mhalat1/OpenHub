@@ -1,17 +1,15 @@
+!!! important lancer bdd test avec wamp avant les test 
+
 commande pour lancer les tests :
 ```bash
 php bin/phpunit
 ```
-exemple test specifiauement pour le controller des projets :
-php bin/phpunit tests/ProjectsControllerTest.php
-exemple test specifiauement pour le controller des messages :
-php bin/phpunit tests/MessagesControllerTest.php
-exemple test specifiauement pour le controller des utilisateurs :
-php bin/phpunit tests/UserControllerTest.php
-exemple test specifiauement pour le controller des Login :
+exemple test specifiauement 
+php bin/phpunit tests/DonationControllerTest.php
 php bin/phpunit tests/LoginControllerTest.php
-exemple test specifiauement pour le controller des Authentification :
-php bin/phpunit tests/AuthenticationTest.php
+php bin/phpunit tests/MessagesControllerTest.php
+php bin/phpunit tests/ProjectsControllerTest.php
+php bin/phpunit tests/UserControllerTest.php
 
 exemple test pour lister toutes les routes de l'application :
  php bin/phpunit tests/DebugRoutesTest.php --filter testListAllRoutes
