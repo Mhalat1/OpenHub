@@ -3,26 +3,43 @@ name: Auto-Update README
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+    paths:
+      - 'backend/composer.json'
+      - 'backend/.env'
+      - 'README.template.md'
+      - 'backend/bin/generate-readme.sh'
+  workflow_dispatch:  # Permet de lancer manuellement
 
 jobs:
   generate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Make script executable
+        run: chmod +x backend/bin/generate-readme.sh
       
       - name: Generate README
-        run: |
-          chmod +x backend/bin/generate-readme.sh
-          ./backend/bin/generate-readme.sh
+        run: ./backend/bin/generate-readme.sh
       
       - name: Show generated README
         run: cat README.md
       
-      - name: Commit changes
+      - name: Commit and push if changed
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
           git add README.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "docs: auto-update README"
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: auto-update README [skip ci]"
+            git push
+            echo "✅ README mis à jour et pushé"
+          else
+            echo "ℹ️ Aucun changement dans README"
+          fi

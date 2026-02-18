@@ -8,14 +8,16 @@ cd $(dirname $0)/..
 PROJECT_NAME=$(grep '"name"' composer.json | cut -d '"' -f4 | cut -d '/' -f2)
 PHP_VERSION=$(grep '"php"' composer.json | grep -o '[0-9.]\+' | head -1)
 
-# Version Symfony depuis "symfony/framework-bundle" ou extra.symfony.require
-SYMFONY_VERSION=$(composer show symfony/framework-bundle 2>/dev/null | grep -o 'v[0-9.]\+' | head -1)
+# Version Symfony (avec fallback si composer pas dispo)
+if command -v composer &> /dev/null; then
+    SYMFONY_VERSION=$(composer show symfony/framework-bundle 2>/dev/null | grep -o 'v[0-9.]\+' | head -1)
+fi
 if [ -z "$SYMFONY_VERSION" ]; then
-    # Fallback: chercher dans la config symfony
-    SYMFONY_VERSION=$(grep -A2 '"symfony"' composer.json | grep '"require"' | grep -o '[0-9.]\+' | head -1 || echo "7.3")
+    # Fallback: lire depuis composer.json directement
+    SYMFONY_VERSION=$(grep -A5 '"symfony/framework-bundle"' composer.json | grep -o '[0-9]\.[0-9]' | head -1 || echo "7.3")
 fi
 
-# Type de base de données (par défaut mysql si non trouvé)
+# Type de base de données
 DB_TYPE="mysql"
 if [ -f ".env" ]; then
     DB_TYPE=$(grep -i "DATABASE_URL" .env | grep -o "mysql\|postgresql\|sqlite" | head -1 || echo "mysql")
@@ -23,30 +25,24 @@ fi
 
 DATE=$(date +%Y-%m-%d)
 
-# Versions installées
-COMPOSER_VERSION=$(composer --version 2>/dev/null | grep -o '[0-9.]\+' | head -1 || echo "2.6.5")
-NODE_VERSION=$(node --version 2>/dev/null || echo "18.18.0")
-YARN_VERSION=$(yarn --version 2>/dev/null || echo "1.22.19")
+# Valeurs par défaut pour GitHub Actions (où les commandes peuvent ne pas exister)
+COMPOSER_VERSION="2.6.5"
+NODE_VERSION="18.18.0" 
+YARN_VERSION="1.22.19"
 GIT_VERSION=$(git --version 2>/dev/null | grep -o '[0-9.]\+' | head -1 || echo "2.42.0")
-DOCKER_VERSION=$(docker --version 2>/dev/null | grep -o '[0-9.]\+' | head -1 || echo "24.0.6")
+DOCKER_VERSION="24.0.6"
 
 # Statistiques
-DEPENDENCIES_COUNT=$(composer show --direct --no-dev 2>/dev/null | wc -l)
-if [ "$DEPENDENCIES_COUNT" -eq 0 ]; then
-    # Fallback: compter manuellement
-    DEPENDENCIES_COUNT=$(grep -A100 '"require"' composer.json | grep -B100 -m1 '}' | grep -v 'require' | grep -v '}' | grep -c '"' || echo "25")
-fi
+DEPENDENCIES_COUNT=$(grep '"require"' composer.json | grep -o '"' | wc -l || echo "25")
+DEV_DEPENDENCIES=$(grep '"require-dev"' composer.json | grep -o '"' | wc -l || echo "4")
 
-DEV_DEPENDENCIES=$(composer show --direct --dev 2>/dev/null | wc -l)
-if [ "$DEV_DEPENDENCIES" -eq 0 ]; then
-    DEV_DEPENDENCIES=$(grep -A100 '"require-dev"' composer.json 2>/dev/null | grep -B100 -m1 '}' | grep -v 'require-dev' | grep -v '}' | grep -c '"' || echo "4")
-fi
-
-# Revenir à la racine et générer le README
+# Revenir à la racine
 cd ..
+
+# Générer le README depuis le template
 cp README.template.md README.md
 
-# Remplacer les variables (avec | comme séparateur pour éviter les conflits)
+# Remplacer TOUTES les variables
 sed -i "s|__PROJECT_NAME__|$PROJECT_NAME|g" README.md
 sed -i "s|__DATE__|$DATE|g" README.md
 sed -i "s|__PHP_VERSION__|$PHP_VERSION|g" README.md
@@ -60,9 +56,7 @@ sed -i "s|__DOCKER_VERSION__|$DOCKER_VERSION|g" README.md
 sed -i "s|__DEPENDENCIES_COUNT__|$DEPENDENCIES_COUNT|g" README.md
 sed -i "s|__DEV_DEPENDENCIES__|$DEV_DEPENDENCIES|g" README.md
 
-echo "✅ README.md généré à la racine avec les infos depuis backend/"
-echo "📊 Projet: $PROJECT_NAME"
-echo "📅 Date: $DATE"
-echo "🎯 Symfony: $SYMFONY_VERSION"
-echo "📦 Dépendances: $DEPENDENCIES_COUNT"
-echo "🔧 Dev: $DEV_DEPENDENCIES"
+echo "✅ README.md généré avec les valeurs :"
+echo "PROJECT_NAME: $PROJECT_NAME"
+echo "DATE: $DATE"
+echo "SYMFONY: $SYMFONY_VERSION"
