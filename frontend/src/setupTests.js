@@ -1,24 +1,24 @@
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 
 // ========== MOCKS ESSENTIELS ==========
 
 // Mock pour Vite import.meta.env
-Object.defineProperty(global, 'import', {
-  value: { 
-    meta: { 
-      env: { 
-        VITE_API_URL: 'http://localhost:3000',
-        MODE: 'test'
-      } 
-    } 
+Object.defineProperty(global, "import", {
+  value: {
+    meta: {
+      env: {
+        VITE_API_URL: "http://localhost:3000",
+        MODE: "test",
+      },
+    },
   },
-  writable: true
+  writable: true,
 });
 
 // Mock localStorage simplifié
 const localStorageMock = {
   store: {},
-  getItem: jest.fn((key) => localStorageMock.store[key] || 'mock-token'),
+  getItem: jest.fn((key) => localStorageMock.store[key] || "mock-token"),
   setItem: jest.fn((key, value) => {
     localStorageMock.store[key] = value;
   }),
@@ -37,7 +37,7 @@ global.fetch = jest.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({}),
-  })
+  }),
 );
 
 // Mock window functions
@@ -54,7 +54,7 @@ beforeAll(() => {
   // Ignorer TOUS les warnings pendant les tests
   console.warn = jest.fn();
   console.error = jest.fn();
-  
+
   // Optionnel: ignorer aussi console.log
   // console.log = jest.fn();
 });
@@ -70,24 +70,24 @@ afterAll(() => {
 beforeEach(() => {
   // Réinitialiser tous les mocks Jest
   jest.clearAllMocks();
-  
+
   // Réinitialiser le store localStorage
   localStorageMock.store = {};
   localStorageMock.getItem.mockClear();
   localStorageMock.setItem.mockClear();
   localStorageMock.removeItem.mockClear();
   localStorageMock.clear.mockClear();
-  
+
   // Réinitialiser fetch avec un mock par défaut
   fetch.mockImplementation(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve({}),
-    })
+    }),
   );
-  
+
   // Définir un token par défaut
-  localStorageMock.getItem.mockReturnValue('test-token-123');
+  localStorageMock.getItem.mockReturnValue("test-token-123");
 });
 
 // ========== FONCTIONS UTILITAIRES ==========

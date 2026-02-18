@@ -1,0 +1,28 @@
+# render.yaml
+services:
+  - type: web
+    name: openhub-api
+    env: php
+    buildCommand: composer install --no-interaction --no-dev --optimize-autoloader
+    startCommand: |
+      php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration &&
+      symfony server:start --port=$PORT --no-tls
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: openhub-db
+          property: connectionString
+      - key: TRUSTED_PROXIES
+        value: 127.0.0.1,REMOTE_ADDR
+      - key: TRUSTED_HOSTS
+        value: '^(localhost|openhub-api\.onrender\.com)$'
+
+databases:
+  - type: postgresql
+    name: openhub-db
+    plan: free
+    ipAllowList: []  # Permet l'accès public (sécurisé par mot de passe)

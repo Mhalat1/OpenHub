@@ -40,9 +40,16 @@ const Messages = () => {
       ]);
 
       // Check for authentication errors
-      if (userRes.status === 401 || friendsRes.status === 401 || 
-          convRes.status === 401 || msgRes.status === 401) {
-        setNotif({ type: "error", text: "Session expired. Please log in again." });
+      if (
+        userRes.status === 401 ||
+        friendsRes.status === 401 ||
+        convRes.status === 401 ||
+        msgRes.status === 401
+      ) {
+        setNotif({
+          type: "error",
+          text: "Session expired. Please log in again.",
+        });
         localStorage.removeItem("token");
         setLoading(false);
         return;
@@ -58,10 +65,9 @@ const Messages = () => {
       setUser(u);
       setFriends(f);
       setConversations(c);
-      
+
       // ✅ FIX: Handle paginated response structure
       setMessages(msgData.data || []); // Messages are in the 'data' property
-      
     } catch (err) {
       console.error("Fetch error:", err);
       setNotif({ type: "error", text: "Error loading data: " + err.message });
@@ -73,7 +79,7 @@ const Messages = () => {
   // ====== ACTIONS ======
   const createConversation = async (e) => {
     e.preventDefault();
-    
+
     // ✅ VALIDATION: Check user selection
     if (convUsers.length === 0) {
       setNotif({ type: "error", text: "Please select at least one friend." });
@@ -82,7 +88,10 @@ const Messages = () => {
 
     // ✅ VALIDATION: Title length
     if (newConv.title.length < 2 || newConv.title.length > 255) {
-      setNotif({ type: "error", text: "Title must be between 2 and 255 characters." });
+      setNotif({
+        type: "error",
+        text: "Title must be between 2 and 255 characters.",
+      });
       return;
     }
 
@@ -96,18 +105,19 @@ const Messages = () => {
           conv_users: convUsers,
         }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
-        throw new Error(data.message || data.error || "Failed to create conversation");
+        throw new Error(
+          data.message || data.error || "Failed to create conversation",
+        );
       }
-      
+
       setNotif({ type: "success", text: "Conversation created successfully!" });
       setNewConv({ title: "", description: "" });
       setConvUsers([]);
       await fetchData(); // Refresh data
-      
     } catch (err) {
       console.error("Create conversation error:", err);
       setNotif({ type: "error", text: err.message });
@@ -116,9 +126,9 @@ const Messages = () => {
 
   const sendMessage = async (e, convId) => {
     e.preventDefault();
-    
+
     const content = newMsg[convId]?.trim();
-    
+
     // ✅ VALIDATION: Empty message
     if (!content) {
       setNotif({ type: "error", text: "Message cannot be empty." });
@@ -127,7 +137,10 @@ const Messages = () => {
 
     // ✅ VALIDATION: Message length
     if (content.length > 250) {
-      setNotif({ type: "error", text: "Message cannot exceed 250 characters." });
+      setNotif({
+        type: "error",
+        text: "Message cannot exceed 250 characters.",
+      });
       return;
     }
 
@@ -140,17 +153,16 @@ const Messages = () => {
           conversation_id: convId,
         }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.message || data.error || "Failed to send message");
       }
-      
+
       setNotif({ type: "success", text: "Message sent!" });
       setNewMsg({ ...newMsg, [convId]: "" });
       await fetchData(); // Refresh data
-      
     } catch (err) {
       console.error("Send message error:", err);
       setNotif({ type: "error", text: err.message });
@@ -159,22 +171,21 @@ const Messages = () => {
 
   const deleteConversation = async (id) => {
     if (!window.confirm("Delete this conversation?")) return;
-    
+
     try {
       const res = await fetch(`${API_URL}/api/delete/conversation/${id}`, {
         method: "DELETE",
         headers,
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.message || "Failed to delete conversation");
       }
-      
+
       setNotif({ type: "success", text: "Conversation deleted." });
       await fetchData();
-      
     } catch (err) {
       console.error("Delete conversation error:", err);
       setNotif({ type: "error", text: err.message });
@@ -183,22 +194,21 @@ const Messages = () => {
 
   const deleteMessage = async (id) => {
     if (!window.confirm("Delete this message?")) return;
-    
+
     try {
       const res = await fetch(`${API_URL}/api/delete/message/${id}`, {
         method: "DELETE",
         headers,
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.message || "Failed to delete message");
       }
-      
+
       setNotif({ type: "success", text: "Message deleted." });
       await fetchData();
-      
     } catch (err) {
       console.error("Delete message error:", err);
       setNotif({ type: "error", text: err.message });
@@ -259,7 +269,9 @@ const Messages = () => {
                   {f.lastName?.[0]}
                 </div>
                 <div>
-                  <strong>{f.firstName} {f.lastName}</strong>
+                  <strong>
+                    {f.firstName} {f.lastName}
+                  </strong>
                   <div className={styles.friendEmail}>{f.email}</div>
                 </div>
               </li>
@@ -269,10 +281,14 @@ const Messages = () => {
 
         {/* ===== CONVERSATIONS ===== */}
         <main className={styles.main}>
-          <h2 className={styles.sectionTitle}>Conversations ({conversations.length})</h2>
+          <h2 className={styles.sectionTitle}>
+            Conversations ({conversations.length})
+          </h2>
 
           {conversations.map((conv) => {
-            const convMsgs = messages.filter((m) => m.conversationId === conv.id);
+            const convMsgs = messages.filter(
+              (m) => m.conversationId === conv.id,
+            );
             const isOpen = selectedConv === conv.id;
 
             return (
@@ -297,9 +313,7 @@ const Messages = () => {
                         🗑
                       </button>
                     )}
-                    <span className={styles.toggle}>
-                      {isOpen ? "▲" : "▼"}
-                    </span>
+                    <span className={styles.toggle}>{isOpen ? "▲" : "▼"}</span>
                   </div>
                 </div>
 
@@ -310,7 +324,9 @@ const Messages = () => {
                         <div
                           key={msg.id}
                           className={`${styles.message} ${
-                            msg.authorId === user?.id ? styles.ownMsg : styles.otherMsg
+                            msg.authorId === user?.id
+                              ? styles.ownMsg
+                              : styles.otherMsg
                           }`}
                         >
                           <div className={styles.msgHeader}>
@@ -383,7 +399,9 @@ const Messages = () => {
               className={styles.textarea}
             />
             <div className={styles.friendSelect}>
-              <p><strong>Select friends (at least 1):</strong></p>
+              <p>
+                <strong>Select friends (at least 1):</strong>
+              </p>
               {friends.length === 0 ? (
                 <p>No friends available</p>
               ) : (
@@ -396,7 +414,7 @@ const Messages = () => {
                         setConvUsers(
                           e.target.checked
                             ? [...convUsers, f.id]
-                            : convUsers.filter((id) => id !== f.id)
+                            : convUsers.filter((id) => id !== f.id),
                         )
                       }
                     />
@@ -405,7 +423,7 @@ const Messages = () => {
                 ))
               )}
             </div>
-            <button 
+            <button
               className={styles.createBtn}
               disabled={convUsers.length === 0}
             >

@@ -8,8 +8,6 @@ import "../style/BarreNav.css";
 
 const Navbar = () => {
   const location = useLocation();
-  
-
 
   return (
     <nav className="navbar">
@@ -44,9 +42,6 @@ const Navbar = () => {
             <span className="nav-label">logout</span>
           </Link>
         </li>
-        
-        
-        
       </ul>
     </nav>
   );

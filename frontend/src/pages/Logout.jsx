@@ -25,8 +25,8 @@ const LogoutButton = () => {
           You’ve been successfully logged out of your account.
         </p>
         <p className="logout-text">
-          You’ll be redirected to the login page shortly.  
-          If you prefer, you can return to the home page instead.
+          You’ll be redirected to the login page shortly. If you prefer, you can
+          return to the home page instead.
         </p>
 
         <div className="logout-actions">

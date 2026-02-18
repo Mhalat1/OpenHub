@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
-import userPhoto from '../images/users/user1.png';
-import styles from '../style/Home.module.css';
-import React, { useEffect, useState } from 'react';
-import Projects from './Projects';
+import { useNavigate } from "react-router-dom";
+import userPhoto from "../images/users/user1.png";
+import styles from "../style/Home.module.css";
+import React, { useEffect, useState } from "react";
+import Projects from "./Projects";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -17,11 +17,11 @@ const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [SelectedProject, setSelectedProject] = useState(null);
-  const [newSkillId, setNewSkillId] = useState('');
-  const [newProjectId, setNewProjectId] = useState('');
-  const [message, setMessage] = useState('');
-  const [availabilityStart, setAvailabilityStart] = useState('');
-  const [availabilityEnd, setAvailabilityEnd] = useState('');
+  const [newSkillId, setNewSkillId] = useState("");
+  const [newProjectId, setNewProjectId] = useState("");
+  const [message, setMessage] = useState("");
+  const [availabilityStart, setAvailabilityStart] = useState("");
+  const [availabilityEnd, setAvailabilityEnd] = useState("");
   const [addingSkill, setAddingSkill] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
   const [updatingAvailability, setUpdatingAvailability] = useState(false);
@@ -44,24 +44,24 @@ const Home = () => {
 
   const addAvailability = async () => {
     if (!availabilityStart) {
-      setMessage('❌ Please enter start date');
+      setMessage("❌ Please enter start date");
       return;
     }
     if (!availabilityEnd) {
-      setMessage('❌ Please enter end date');
+      setMessage("❌ Please enter end date");
       return;
     }
 
     try {
       setUpdatingAvailability(true);
-      setMessage('⏳ Updating availability...');
+      setMessage("⏳ Updating availability...");
       const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/api/user/availability`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           availabilityStart,
@@ -73,8 +73,8 @@ const Home = () => {
 
       if (result.success) {
         setMessage("✅ Availability updated successfully!");
-        setAvailabilityStart('');
-        setAvailabilityEnd('');
+        setAvailabilityStart("");
+        setAvailabilityEnd("");
         await fetchData();
       } else {
         setMessage(`❌ ${result.message}`);
@@ -89,7 +89,7 @@ const Home = () => {
 
   const addProject = async () => {
     if (!newProjectId) {
-      setMessage('❌ Please select a project');
+      setMessage("❌ Please select a project");
       return;
     }
 
@@ -101,24 +101,24 @@ const Home = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          project_id: parseInt(newProjectId)
+          project_id: parseInt(newProjectId),
         }),
       });
       const result = await response.json();
 
       if (result.success) {
         setMessage(`✅ ${result.project_name} added successfully`);
-        setNewProjectId('');
+        setNewProjectId("");
         await fetchUserProjects();
       } else {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Network error while adding project');
-      console.error('Error adding project:', error);
+      setMessage("❌ Network error while adding project");
+      console.error("Error adding project:", error);
     } finally {
       setAddingProject(false);
     }
@@ -126,23 +126,23 @@ const Home = () => {
 
   const addSkill = async () => {
     if (!newSkillId) {
-      setMessage('❌ Please select a skill');
+      setMessage("❌ Please select a skill");
       return;
     }
 
     try {
       setAddingSkill(true);
-      setMessage('⏳ Adding skill...');
+      setMessage("⏳ Adding skill...");
       const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/api/user/add/skills`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          skill_id: parseInt(newSkillId)
+          skill_id: parseInt(newSkillId),
         }),
       });
 
@@ -150,14 +150,14 @@ const Home = () => {
 
       if (result.success) {
         setMessage(`✅ ${result.skill_name} added successfully`);
-        setNewSkillId('');
+        setNewSkillId("");
         await fetchSkills();
       } else {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Network error while adding skill');
-      console.error('Error adding skill:', error);
+      setMessage("❌ Network error while adding skill");
+      console.error("Error adding skill:", error);
     } finally {
       setAddingSkill(false);
     }
@@ -171,7 +171,7 @@ const Home = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -194,7 +194,7 @@ const Home = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -205,7 +205,7 @@ const Home = () => {
       const data = await response.json();
       setUserProjects(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching user projects:', error);
+      console.error("Error fetching user projects:", error);
     }
   };
 
@@ -217,7 +217,7 @@ const Home = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -228,7 +228,7 @@ const Home = () => {
       const dataAllProject = await response.json();
       setProjects(Array.isArray(dataAllProject) ? dataAllProject : []);
     } catch (error) {
-      console.error('Error fetching all projects:', error);
+      console.error("Error fetching all projects:", error);
     }
   };
 
@@ -240,7 +240,7 @@ const Home = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -251,20 +251,20 @@ const Home = () => {
       const dataSkills = await response.json();
       setSkills(Array.isArray(dataSkills) ? dataSkills : []);
     } catch (error) {
-      console.error('Error fetching skills:', error);
+      console.error("Error fetching skills:", error);
     }
   };
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
-    console.log('Token:', token)
+    console.log("Token:", token);
 
     try {
       const userResponse = await fetch(`${API_URL}/api/getConnectedUser`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -275,9 +275,8 @@ const Home = () => {
       const dataUser = await userResponse.json();
       setUser(dataUser);
       await fetchSkills();
-
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error("Error fetching user:", error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -285,22 +284,22 @@ const Home = () => {
   };
 
   const removeProject = async (projectId) => {
-    if (!window.confirm('Are you sure you want to leave this project?')) {
+    if (!window.confirm("Are you sure you want to leave this project?")) {
       return;
     }
 
     try {
-      setMessage('⏳ Removing project...');
+      setMessage("⏳ Removing project...");
       const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/api/user/delete/project`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          project_id: projectId
+          project_id: projectId,
         }),
       });
 
@@ -314,28 +313,28 @@ const Home = () => {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Network error while removing project');
-      console.error('Error removing project:', error);
+      setMessage("❌ Network error while removing project");
+      console.error("Error removing project:", error);
     }
   };
 
   const removeSkill = async (skillId) => {
-    if (!window.confirm('Are you sure you want to remove this skill?')) {
+    if (!window.confirm("Are you sure you want to remove this skill?")) {
       return;
     }
 
     try {
-      setMessage('⏳ Removing skill...');
+      setMessage("⏳ Removing skill...");
       const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/api/user/delete/skill`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          skill_id: skillId
+          skill_id: skillId,
         }),
       });
 
@@ -349,8 +348,8 @@ const Home = () => {
         setMessage(`❌ ${result.message}`);
       }
     } catch (error) {
-      setMessage('❌ Network error while removing skill');
-      console.error('Error removing skill:', error);
+      setMessage("❌ Network error while removing skill");
+      console.error("Error removing skill:", error);
     }
   };
 
@@ -361,18 +360,20 @@ const Home = () => {
     fetchUserProjects();
   }, []);
 
-  if (loading) return (
-    <div className={styles.loadingContainer}>
-      <div className={styles.spinner}></div>
-      <p>Loading user data...</p>
-    </div>
-  );
-  
-  if (error) return (
-    <div className={styles.errorContainer}>
-      <p>Error: {error}</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Loading user data...</p>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className={styles.errorContainer}>
+        <p>Error: {error}</p>
+      </div>
+    );
 
   return (
     <div className={styles.profileContainer}>
@@ -380,7 +381,9 @@ const Home = () => {
       <div className={styles.profileHeader}>
         <div className={styles.headerContent}>
           <div className={styles.nameContainer}>
-            <h2>{user.firstName || "First name"} {user.lastName || "Last name"}</h2>
+            <h2>
+              {user.firstName || "First name"} {user.lastName || "Last name"}
+            </h2>
             <p className={styles.userEmail}>{user.email || "..."}</p>
           </div>
         </div>
@@ -395,13 +398,17 @@ const Home = () => {
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Available from</span>
                 <span className={styles.infoValue}>
-                  {user.availabilityStart ? new Date(user.availabilityStart).toLocaleDateString() : "Not set"}
+                  {user.availabilityStart
+                    ? new Date(user.availabilityStart).toLocaleDateString()
+                    : "Not set"}
                 </span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>to</span>
                 <span className={styles.infoValue}>
-                  {user.availabilityEnd ? new Date(user.availabilityEnd).toLocaleDateString() : "Not set"}
+                  {user.availabilityEnd
+                    ? new Date(user.availabilityEnd).toLocaleDateString()
+                    : "Not set"}
                 </span>
               </div>
             </div>
@@ -416,7 +423,7 @@ const Home = () => {
           <div className={styles.subsection}>
             <div className={styles.skillsGrid}>
               {skills.length > 0 ? (
-                skills.map(skill => (
+                skills.map((skill) => (
                   <button
                     key={skill.id}
                     className={styles.skillButton}
@@ -426,9 +433,7 @@ const Home = () => {
                   </button>
                 ))
               ) : (
-                <div className={styles.emptyState}>
-                  No skills added yet
-                </div>
+                <div className={styles.emptyState}>No skills added yet</div>
               )}
             </div>
           </div>
@@ -442,7 +447,7 @@ const Home = () => {
           <div className={styles.subsection}>
             <div className={styles.projectsGrid}>
               {userprojects.length > 0 ? (
-                userprojects.map(project => (
+                userprojects.map((project) => (
                   <button
                     key={project.id}
                     className={styles.projectButton}
@@ -452,9 +457,7 @@ const Home = () => {
                   </button>
                 ))
               ) : (
-                <div className={styles.emptyState}>
-                  No projects yet
-                </div>
+                <div className={styles.emptyState}>No projects yet</div>
               )}
             </div>
           </div>
@@ -462,11 +465,15 @@ const Home = () => {
 
         {/* Messages */}
         {message && (
-          <div className={`${styles.messageBox} ${
-            message.includes("✅") ? styles.success : 
-            message.includes("⏳") ? styles.info : 
-            styles.error
-          }`}>
+          <div
+            className={`${styles.messageBox} ${
+              message.includes("✅")
+                ? styles.success
+                : message.includes("⏳")
+                  ? styles.info
+                  : styles.error
+            }`}
+          >
             {message}
           </div>
         )}
@@ -486,14 +493,14 @@ const Home = () => {
                   disabled={addingSkill}
                 >
                   <option value="">-- Choose a skill --</option>
-                  {availableSkills.map(skill => (
+                  {availableSkills.map((skill) => (
                     <option key={skill.id} value={skill.id}>
                       {skill.name}
                     </option>
                   ))}
                 </select>
-                <button 
-                  onClick={addSkill} 
+                <button
+                  onClick={addSkill}
                   className={styles.btnPrimary}
                   disabled={addingSkill || !newSkillId}
                 >
@@ -503,7 +510,7 @@ const Home = () => {
                       Adding...
                     </>
                   ) : (
-                    '+ Add Skill'
+                    "+ Add Skill"
                   )}
                 </button>
               </div>
@@ -534,8 +541,8 @@ const Home = () => {
                   />
                 </div>
               </div>
-              <button 
-                onClick={addAvailability} 
+              <button
+                onClick={addAvailability}
                 className={styles.btnSecondary}
                 disabled={updatingAvailability}
               >
@@ -545,7 +552,7 @@ const Home = () => {
                     Updating...
                   </>
                 ) : (
-                  'Update Availability'
+                  "Update Availability"
                 )}
               </button>
             </div>
@@ -564,14 +571,14 @@ const Home = () => {
                   disabled={addingProject}
                 >
                   <option value="">-- Choose a project --</option>
-                  {projects.map(project => (
+                  {projects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
                   ))}
                 </select>
-                <button 
-                  onClick={addProject} 
+                <button
+                  onClick={addProject}
                   className={styles.btnPrimary}
                   disabled={addingProject || !newProjectId}
                 >
@@ -581,7 +588,7 @@ const Home = () => {
                       Adding...
                     </>
                   ) : (
-                    'Join Project'
+                    "Join Project"
                   )}
                 </button>
               </div>
@@ -593,7 +600,9 @@ const Home = () => {
         {isModalOpen && SelectedProject && (
           <div className={styles.modalOverlay}>
             <div className={styles.modalContent}>
-              <button className={styles.closeButton} onClick={closeModal}>×</button>
+              <button className={styles.closeButton} onClick={closeModal}>
+                ×
+              </button>
               <h2 className={styles.modalTitle}>{SelectedProject.name}</h2>
               <div className={styles.modalInfo}>
                 <div>
@@ -606,13 +615,22 @@ const Home = () => {
                 </div>
                 <div>
                   <h3>Duration</h3>
-                  <p>From {SelectedProject.startDate ? new Date(SelectedProject.startDate).toLocaleDateString() : "N/A"} to {SelectedProject.endDate ? new Date(SelectedProject.endDate).toLocaleDateString() : "N/A"}</p>
+                  <p>
+                    From{" "}
+                    {SelectedProject.startDate
+                      ? new Date(SelectedProject.startDate).toLocaleDateString()
+                      : "N/A"}{" "}
+                    to{" "}
+                    {SelectedProject.endDate
+                      ? new Date(SelectedProject.endDate).toLocaleDateString()
+                      : "N/A"}
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => removeProject(SelectedProject.id)}
                 className={styles.btnDanger}
-                style={{ marginTop: '20px' }}
+                style={{ marginTop: "20px" }}
               >
                 🗑️ Leave this project
               </button>
@@ -624,7 +642,9 @@ const Home = () => {
         {isModalOpen && selectedSkill && (
           <div className={styles.modalOverlay}>
             <div className={styles.modalContent}>
-              <button className={styles.closeButton} onClick={closeModal}>×</button>
+              <button className={styles.closeButton} onClick={closeModal}>
+                ×
+              </button>
               <h2 className={styles.modalTitle}>{selectedSkill.name}</h2>
               <div className={styles.modalInfo}>
                 <div>
@@ -643,7 +663,7 @@ const Home = () => {
               <button
                 onClick={() => removeSkill(selectedSkill.id)}
                 className={styles.btnDanger}
-                style={{ marginTop: '20px' }}
+                style={{ marginTop: "20px" }}
               >
                 🗑️ Remove this skill
               </button>
@@ -651,8 +671,9 @@ const Home = () => {
           </div>
         )}
       </div>
-      <a href="/donate" className={styles['donate-button']}>💖 Faire un don</a>
-
+      <a href="/donate" className={styles["donate-button"]}>
+        💖 Faire un don
+      </a>
     </div>
   );
 };

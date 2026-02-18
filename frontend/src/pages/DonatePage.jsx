@@ -10,14 +10,19 @@ const DonatePage = () => {
     setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/donate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/donate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount }),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error("Erreur lors de la création de la session de paiement.");
+        throw new Error(
+          "Erreur lors de la création de la session de paiement.",
+        );
       }
 
       const data = await response.json();

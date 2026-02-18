@@ -50,9 +50,27 @@ const mockUserNoAvailability = {
 };
 
 const mockSkills = [
-  { id: 1, name: "React", description: "Frontend framework", duree: "2 years", technoUtilisees: "JavaScript, JSX" },
-  { id: 2, name: "Node.js", description: "Backend runtime", duree: "1 year", technoUtilisees: "JavaScript" },
-  { id: 3, name: "Python", description: "Programming language", duree: "3 years", technoUtilisees: "Django, Flask" },
+  {
+    id: 1,
+    name: "React",
+    description: "Frontend framework",
+    duree: "2 years",
+    technoUtilisees: "JavaScript, JSX",
+  },
+  {
+    id: 2,
+    name: "Node.js",
+    description: "Backend runtime",
+    duree: "1 year",
+    technoUtilisees: "JavaScript",
+  },
+  {
+    id: 3,
+    name: "Python",
+    description: "Programming language",
+    duree: "3 years",
+    technoUtilisees: "Django, Flask",
+  },
 ];
 
 const mockProjects = [
@@ -185,7 +203,9 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Error: User API error: 401/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Error: User API error: 401/i),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -204,9 +224,9 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        const skillButtons = screen.getAllByRole('button').filter(
-          button => button.className.includes('skillButton')
-        );
+        const skillButtons = screen
+          .getAllByRole("button")
+          .filter((button) => button.className.includes("skillButton"));
         expect(skillButtons.length).toBe(3);
         expect(skillButtons[0]).toHaveTextContent("React");
         expect(skillButtons[1]).toHaveTextContent("Node.js");
@@ -256,9 +276,9 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        const projectButtons = screen.getAllByRole('button').filter(
-          button => button.className.includes('projectButton')
-        );
+        const projectButtons = screen
+          .getAllByRole("button")
+          .filter((button) => button.className.includes("projectButton"));
         expect(projectButtons.length).toBe(1);
         expect(projectButtons[0]).toHaveTextContent("Project Alpha");
       });
@@ -296,7 +316,10 @@ describe("Home Component - Complete Coverage", () => {
   describe("Ajout de compétences", () => {
     test("permet de sélectionner et d'ajouter une compétence", async () => {
       fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/user/add/skills") && options?.method === "POST") {
+        if (
+          url.includes("/api/user/add/skills") &&
+          options?.method === "POST"
+        ) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true, skill_name: "React" }),
@@ -326,16 +349,18 @@ describe("Home Component - Complete Coverage", () => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
       });
 
-      const selects = screen.getAllByRole('combobox');
+      const selects = screen.getAllByRole("combobox");
       const skillSelect = selects[0];
-      
+
       fireEvent.change(skillSelect, { target: { value: "1" } });
 
       const addButton = screen.getByText("+ Add Skill");
       fireEvent.click(addButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/React added successfully/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/React added successfully/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -355,10 +380,14 @@ describe("Home Component - Complete Coverage", () => {
   describe("Ajout de projets", () => {
     test("permet de rejoindre un projet", async () => {
       fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/user/add/project") && options?.method === "POST") {
+        if (
+          url.includes("/api/user/add/project") &&
+          options?.method === "POST"
+        ) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ success: true, project_name: "Project Alpha" }),
+            json: () =>
+              Promise.resolve({ success: true, project_name: "Project Alpha" }),
           });
         }
         if (url.includes("/api/getConnectedUser")) {
@@ -391,16 +420,18 @@ describe("Home Component - Complete Coverage", () => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
       });
 
-      const selects = screen.getAllByRole('combobox');
+      const selects = screen.getAllByRole("combobox");
       const projectSelect = selects[1];
-      
+
       fireEvent.change(projectSelect, { target: { value: "1" } });
 
       const joinButton = screen.getByText(/Join Project/i);
       fireEvent.click(joinButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Project Alpha added successfully/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Project Alpha added successfully/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -420,7 +451,10 @@ describe("Home Component - Complete Coverage", () => {
   describe("Gestion des disponibilités", () => {
     test("permet de mettre à jour les disponibilités", async () => {
       fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/user/availability") && options?.method === "POST") {
+        if (
+          url.includes("/api/user/availability") &&
+          options?.method === "POST"
+        ) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true }),
@@ -444,10 +478,10 @@ describe("Home Component - Complete Coverage", () => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
       });
 
-      const dateInputs = screen.getAllByDisplayValue('');
+      const dateInputs = screen.getAllByDisplayValue("");
       const startDateInput = dateInputs[0];
       const endDateInput = dateInputs[1];
-      
+
       fireEvent.change(startDateInput, { target: { value: "2024-01-01" } });
       fireEvent.change(endDateInput, { target: { value: "2024-12-31" } });
 
@@ -455,7 +489,9 @@ describe("Home Component - Complete Coverage", () => {
       fireEvent.click(updateButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Availability updated successfully/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Availability updated successfully/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -466,16 +502,18 @@ describe("Home Component - Complete Coverage", () => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
       });
 
-      const dateInputs = screen.getAllByDisplayValue('');
+      const dateInputs = screen.getAllByDisplayValue("");
       const endDateInput = dateInputs[1];
-      
+
       fireEvent.change(endDateInput, { target: { value: "2024-12-31" } });
 
       const updateButton = screen.getByText("Update Availability");
       fireEvent.click(updateButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Please enter start date/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Please enter start date/i),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -491,20 +529,30 @@ describe("Home Component - Complete Coverage", () => {
 
       // Attendre que les compétences soient chargées
       await waitFor(() => {
-        const skillButtons = screen.getAllByRole('button').filter(
-          button => button.className.includes('skillButton') && button.textContent === "React"
-        );
+        const skillButtons = screen
+          .getAllByRole("button")
+          .filter(
+            (button) =>
+              button.className.includes("skillButton") &&
+              button.textContent === "React",
+          );
         expect(skillButtons.length).toBe(1);
       });
 
-      const skillButtons = screen.getAllByRole('button').filter(
-        button => button.className.includes('skillButton') && button.textContent === "React"
-      );
+      const skillButtons = screen
+        .getAllByRole("button")
+        .filter(
+          (button) =>
+            button.className.includes("skillButton") &&
+            button.textContent === "React",
+        );
       fireEvent.click(skillButtons[0]);
 
       // Vérifier que le modal est ouvert
       await waitFor(() => {
-        expect(screen.getByRole('heading', { level: 2, name: "React" })).toBeInTheDocument();
+        expect(
+          screen.getByRole("heading", { level: 2, name: "React" }),
+        ).toBeInTheDocument();
         expect(screen.getByText("Frontend framework")).toBeInTheDocument();
       });
     });
@@ -518,21 +566,33 @@ describe("Home Component - Complete Coverage", () => {
 
       // Attendre que les projets soient chargés
       await waitFor(() => {
-        const projectButtons = screen.getAllByRole('button').filter(
-          button => button.className.includes('projectButton') && button.textContent === "Project Alpha"
-        );
+        const projectButtons = screen
+          .getAllByRole("button")
+          .filter(
+            (button) =>
+              button.className.includes("projectButton") &&
+              button.textContent === "Project Alpha",
+          );
         expect(projectButtons.length).toBe(1);
       });
 
-      const projectButtons = screen.getAllByRole('button').filter(
-        button => button.className.includes('projectButton') && button.textContent === "Project Alpha"
-      );
+      const projectButtons = screen
+        .getAllByRole("button")
+        .filter(
+          (button) =>
+            button.className.includes("projectButton") &&
+            button.textContent === "Project Alpha",
+        );
       fireEvent.click(projectButtons[0]);
 
       // Vérifier que le modal est ouvert
       await waitFor(() => {
-        expect(screen.getByRole('heading', { level: 2, name: "Project Alpha" })).toBeInTheDocument();
-        expect(screen.getByText("Test project description")).toBeInTheDocument();
+        expect(
+          screen.getByRole("heading", { level: 2, name: "Project Alpha" }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText("Test project description"),
+        ).toBeInTheDocument();
       });
     });
 
@@ -545,20 +605,30 @@ describe("Home Component - Complete Coverage", () => {
 
       // Ouvrir le modal
       await waitFor(() => {
-        const skillButtons = screen.getAllByRole('button').filter(
-          button => button.className.includes('skillButton') && button.textContent === "React"
-        );
+        const skillButtons = screen
+          .getAllByRole("button")
+          .filter(
+            (button) =>
+              button.className.includes("skillButton") &&
+              button.textContent === "React",
+          );
         expect(skillButtons.length).toBe(1);
       });
 
-      const skillButtons = screen.getAllByRole('button').filter(
-        button => button.className.includes('skillButton') && button.textContent === "React"
-      );
+      const skillButtons = screen
+        .getAllByRole("button")
+        .filter(
+          (button) =>
+            button.className.includes("skillButton") &&
+            button.textContent === "React",
+        );
       fireEvent.click(skillButtons[0]);
 
       // Vérifier que le modal est ouvert
       await waitFor(() => {
-        expect(screen.getByRole('heading', { level: 2, name: "React" })).toBeInTheDocument();
+        expect(
+          screen.getByRole("heading", { level: 2, name: "React" }),
+        ).toBeInTheDocument();
       });
 
       // Fermer le modal
@@ -567,129 +637,138 @@ describe("Home Component - Complete Coverage", () => {
 
       // Vérifier que le modal est fermé
       await waitFor(() => {
-        expect(screen.queryByRole('heading', { level: 2, name: "React" })).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole("heading", { level: 2, name: "React" }),
+        ).not.toBeInTheDocument();
       });
     });
 
+    test("supprime une compétence avec confirmation", async () => {
+      global.confirm.mockReturnValue(true);
 
+      // Configuration unique des mocks pour ce test
+      const mockFetch = jest.fn((url, options) => {
+        // User info
+        if (url.includes("/api/getConnectedUser")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockUser),
+          });
+        }
+        // Compétences initiales (avant suppression)
+        if (url.includes("/api/user/skills") && !options?.method) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockSkills),
+          });
+        }
+        // Compétences disponibles
+        if (url.includes("/api/skills")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockSkills),
+          });
+        }
+        // Tous les projets
+        if (url.includes("/api/allprojects")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockProjects),
+          });
+        }
+        // Projets de l'utilisateur
+        if (url.includes("/api/user/projects")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([mockProjects[0]]),
+          });
+        }
+        // Suppression de compétence
+        if (
+          url.includes("/api/user/delete/skill") &&
+          options?.method === "DELETE"
+        ) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, skill_name: "React" }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      });
 
- test("supprime une compétence avec confirmation", async () => {
-  global.confirm.mockReturnValue(true);
+      fetch.mockImplementation(mockFetch);
 
-  // Configuration unique des mocks pour ce test
-  const mockFetch = jest.fn((url, options) => {
-    // User info
-    if (url.includes("/api/getConnectedUser")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockUser),
+      renderWithRouter(<Home />);
+
+      // Attendre que l'utilisateur soit chargé
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
       });
-    }
-    // Compétences initiales (avant suppression)
-    if (url.includes("/api/user/skills") && !options?.method) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockSkills),
+
+      // Mettre à jour le mock pour les appels après suppression
+      mockFetch.mockImplementation((url, options) => {
+        // Compétences après suppression (sans React)
+        if (url.includes("/api/user/skills") && !options?.method) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockSkills.filter((s) => s.id !== 1)),
+          });
+        }
+        // Compétences disponibles
+        if (url.includes("/api/skills")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockSkills),
+          });
+        }
+        // Tous les projets
+        if (url.includes("/api/allprojects")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockProjects),
+          });
+        }
+        // Projets de l'utilisateur
+        if (url.includes("/api/user/projects")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([mockProjects[0]]),
+          });
+        }
+        // Suppression de compétence
+        if (
+          url.includes("/api/user/delete/skill") &&
+          options?.method === "DELETE"
+        ) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, skill_name: "React" }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
       });
-    }
-    // Compétences disponibles
-    if (url.includes("/api/skills")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockSkills),
-      });
-    }
-    // Tous les projets
-    if (url.includes("/api/allprojects")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockProjects),
-      });
-    }
-    // Projets de l'utilisateur
-    if (url.includes("/api/user/projects")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([mockProjects[0]]),
-      });
-    }
-    // Suppression de compétence
-    if (url.includes("/api/user/delete/skill") && options?.method === "DELETE") {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true, skill_name: "React" }),
-      });
-    }
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve([]),
+
+      // Vérifier que React n'est plus dans la liste des compétences
+      await waitFor(
+        () => {
+          const reactButtonsAfter = screen
+            .getAllByRole("button")
+            .filter(
+              (button) =>
+                button.className.includes("skillButton") &&
+                button.textContent === "React",
+            );
+          expect(reactButtonsAfter.length).toBe(0);
+        },
+        { timeout: 3000 },
+      );
     });
-  });
-
-  fetch.mockImplementation(mockFetch);
-
-  renderWithRouter(<Home />);
-
-  // Attendre que l'utilisateur soit chargé
-  await waitFor(() => {
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-  });
-
-
-
-  // Mettre à jour le mock pour les appels après suppression
-  mockFetch.mockImplementation((url, options) => {
-
-    // Compétences après suppression (sans React)
-    if (url.includes("/api/user/skills") && !options?.method) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockSkills.filter(s => s.id !== 1)),
-      });
-    }
-    // Compétences disponibles
-    if (url.includes("/api/skills")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockSkills),
-      });
-    }
-    // Tous les projets
-    if (url.includes("/api/allprojects")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockProjects),
-      });
-    }
-    // Projets de l'utilisateur
-    if (url.includes("/api/user/projects")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([mockProjects[0]]),
-      });
-    }
-    // Suppression de compétence
-    if (url.includes("/api/user/delete/skill") && options?.method === "DELETE") {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true, skill_name: "React" }),
-      });
-    }
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve([]),
-    });
-  });
-
-
-  // Vérifier que React n'est plus dans la liste des compétences
-  await waitFor(() => {
-    const reactButtonsAfter = screen.getAllByRole('button').filter(
-      button => button.className.includes('skillButton') && button.textContent === "React"
-    );
-    expect(reactButtonsAfter.length).toBe(0);
-  }, { timeout: 3000 });
-});
   });
 
   // ==================== LIENS ET NAVIGATION ====================
@@ -703,7 +782,7 @@ describe("Home Component - Complete Coverage", () => {
 
       const donateLink = screen.getByText("💖 Faire un don");
       expect(donateLink).toBeInTheDocument();
-      expect(donateLink.closest('a')).toHaveAttribute('href', '/donate');
+      expect(donateLink.closest("a")).toHaveAttribute("href", "/donate");
     });
   });
 });

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import styles from '../style/Profil.module.css';
+import React, { useEffect, useState } from "react";
+import styles from "../style/Profil.module.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -7,8 +7,8 @@ const Profil = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('public');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState("public");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [skills, setSkills] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,10 +16,10 @@ const Profil = () => {
   const [friends, setFriends] = useState([]);
   const [connectedUser, setUser] = useState([]);
   const [notification, setNotification] = useState({ message: "", type: "" });
-  
+
   const [sentInvitations, setSentInvitations] = useState([]);
   const [receivedInvitations, setReceivedInvitations] = useState([]);
-  const [actionLoading, setActionLoading] = useState({ type: '', id: null });
+  const [actionLoading, setActionLoading] = useState({ type: "", id: null });
 
   const fetchAllUsers = async () => {
     const token = localStorage.getItem("token");
@@ -28,13 +28,13 @@ const Profil = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
 
       const uniqueUsers = Array.from(
-        new Map(data.map(user => [user.id, user])).values()
+        new Map(data.map((user) => [user.id, user])).values(),
       );
 
       setUsers(uniqueUsers);
@@ -47,13 +47,16 @@ const Profil = () => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/invitations/received`, {
-        headers: { "Authorization": `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setReceivedInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching received invitations:", error);
-      setNotification({ message: "❌ Impossible de récupérer les invitations.", type: "error" });
+      setNotification({
+        message: "❌ Impossible de récupérer les invitations.",
+        type: "error",
+      });
     }
   };
 
@@ -61,12 +64,12 @@ const Profil = () => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/invitations/sent`, {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setSentInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching sent invitations:', error);
+      console.error("Error fetching sent invitations:", error);
     }
   };
 
@@ -77,7 +80,7 @@ const Profil = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
@@ -88,26 +91,32 @@ const Profil = () => {
   };
 
   const deleteFriend = async (friendId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet ami ?')) {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet ami ?")) {
       return;
     }
 
-    setActionLoading({ type: 'deleteFriend', id: friendId });
+    setActionLoading({ type: "deleteFriend", id: friendId });
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch(`${API_URL}/api/delete/friends/${friendId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+      const response = await fetch(
+        `${API_URL}/api/delete/friends/${friendId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
       if (response.ok) {
         await fetchUserFriends();
-        setNotification({ message: "✅ Ami supprimé avec succès !", type: "success" });
+        setNotification({
+          message: "✅ Ami supprimé avec succès !",
+          type: "success",
+        });
       } else {
         setNotification({ message: `❌ ${data.message}`, type: "error" });
       }
@@ -115,7 +124,7 @@ const Profil = () => {
       console.error("Erreur lors de la suppression :", error);
       setNotification({ message: "❌ Erreur réseau", type: "error" });
     } finally {
-      setActionLoading({ type: '', id: null });
+      setActionLoading({ type: "", id: null });
     }
   };
 
@@ -123,14 +132,14 @@ const Profil = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    setActionLoading({ type: 'sendInvitation', id: friend_id });
+    setActionLoading({ type: "sendInvitation", id: friend_id });
 
     try {
       const response = await fetch(`${API_URL}/api/send/invitation`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ friend_id }),
       });
@@ -138,20 +147,29 @@ const Profil = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setNotification({ message: data.message || "❌ Erreur lors de l'envoi de l'invitation.", type: "error" });
+        setNotification({
+          message: data.message || "❌ Erreur lors de l'envoi de l'invitation.",
+          type: "error",
+        });
         return;
       }
 
       if (response.ok) {
-        setNotification({ message: "✅ Invitation envoyée avec succès !", type: "success" });
+        setNotification({
+          message: "✅ Invitation envoyée avec succès !",
+          type: "success",
+        });
         await fetchSentInvitations();
         handleCloseModal();
       }
     } catch (error) {
-      setNotification({ message: "❌ Erreur réseau : impossible d'envoyer l'invitation.", type: "error" });
+      setNotification({
+        message: "❌ Erreur réseau : impossible d'envoyer l'invitation.",
+        type: "error",
+      });
       console.error("Error adding friend:", error);
     } finally {
-      setActionLoading({ type: '', id: null });
+      setActionLoading({ type: "", id: null });
     }
   };
 
@@ -163,7 +181,7 @@ const Profil = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -174,7 +192,7 @@ const Profil = () => {
       const dataUser = await userResponse.json();
       setUser(dataUser);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error("Error fetching user:", error);
       setError(error.message);
     }
   };
@@ -183,30 +201,39 @@ const Profil = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    setActionLoading({ type: 'deleteReceived', id: senderId });
+    setActionLoading({ type: "deleteReceived", id: senderId });
 
     try {
-      const response = await fetch(`${API_URL}/api/invitations/delete-received/${senderId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+      const response = await fetch(
+        `${API_URL}/api/invitations/delete-received/${senderId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setNotification({ message: "✅ Invitation supprimée avec succès.", type: "success" });
+        setNotification({
+          message: "✅ Invitation supprimée avec succès.",
+          type: "success",
+        });
         await fetchReceivedInvitations();
       } else {
-        setNotification({ message: `❌ ${data.message || "Erreur lors de la suppression."}`, type: "error" });
+        setNotification({
+          message: `❌ ${data.message || "Erreur lors de la suppression."}`,
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Erreur lors de la suppression :", error);
       setNotification({ message: "❌ Erreur réseau.", type: "error" });
     } finally {
-      setActionLoading({ type: '', id: null });
+      setActionLoading({ type: "", id: null });
     }
   };
 
@@ -214,30 +241,39 @@ const Profil = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    setActionLoading({ type: 'deleteSent', id: receiverId });
+    setActionLoading({ type: "deleteSent", id: receiverId });
 
     try {
-      const response = await fetch(`${API_URL}/api/invitations/delete-sent/${receiverId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+      const response = await fetch(
+        `${API_URL}/api/invitations/delete-sent/${receiverId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setNotification({ message: "✅ Invitation envoyée supprimée avec succès.", type: "success" });
+        setNotification({
+          message: "✅ Invitation envoyée supprimée avec succès.",
+          type: "success",
+        });
         await fetchSentInvitations();
       } else {
-        setNotification({ message: `❌ ${data.message || "Erreur lors de la suppression."}`, type: "error" });
+        setNotification({
+          message: `❌ ${data.message || "Erreur lors de la suppression."}`,
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Erreur lors de la suppression :", error);
       setNotification({ message: "❌ Erreur réseau.", type: "error" });
     } finally {
-      setActionLoading({ type: '', id: null });
+      setActionLoading({ type: "", id: null });
     }
   };
 
@@ -245,16 +281,19 @@ const Profil = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    setActionLoading({ type: 'acceptInvitation', id: senderId });
+    setActionLoading({ type: "acceptInvitation", id: senderId });
 
     try {
-      const response = await fetch(`${API_URL}/api/invitations/accept/${senderId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+      const response = await fetch(
+        `${API_URL}/api/invitations/accept/${senderId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -263,12 +302,15 @@ const Profil = () => {
         await fetchReceivedInvitations();
         await fetchUserFriends();
       } else {
-        setNotification({ message: data.message || "Erreur lors de l'acceptation", type: "error" });
+        setNotification({
+          message: data.message || "Erreur lors de l'acceptation",
+          type: "error",
+        });
       }
     } catch (error) {
       setNotification({ message: "Erreur réseau", type: "error" });
     } finally {
-      setActionLoading({ type: '', id: null });
+      setActionLoading({ type: "", id: null });
     }
   };
 
@@ -294,9 +336,11 @@ const Profil = () => {
     }
   }, [notification]);
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${user.firstName} ${user.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const isNotCurrentUser = connectedUser && user.id !== connectedUser.id;
@@ -314,18 +358,20 @@ const Profil = () => {
     setSelectedUser(null);
   };
 
-  if (loading) return (
-    <div className={styles.loadingContainer}>
-      <div className={styles.spinner}></div>
-      <p>Chargement des données...</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Chargement des données...</p>
+      </div>
+    );
 
-  if (error) return (
-    <div className={styles.errorContainer}>
-      <p>Erreur: {error}</p>
-    </div>
-  );
+  if (error)
+    return (
+      <div className={styles.errorContainer}>
+        <p>Erreur: {error}</p>
+      </div>
+    );
 
   return (
     <div className={styles.profileContainer}>
@@ -343,7 +389,6 @@ const Profil = () => {
         </div>
       </div>
 
-
       {/* Notification */}
       {notification.message && (
         <div className={`${styles.notification} ${styles[notification.type]}`}>
@@ -354,26 +399,26 @@ const Profil = () => {
       {/* Sub-navigation */}
       <div className={styles.subNav}>
         <button
-          className={`${styles.subNavButton} ${activeTab === 'public' ? styles.active : ''}`}
-          onClick={() => setActiveTab('public')}
+          className={`${styles.subNavButton} ${activeTab === "public" ? styles.active : ""}`}
+          onClick={() => setActiveTab("public")}
         >
           🌍 Utilisateurs Publics
         </button>
         <button
-          className={`${styles.subNavButton} ${activeTab === 'friends' ? styles.active : ''}`}
-          onClick={() => setActiveTab('friends')}
+          className={`${styles.subNavButton} ${activeTab === "friends" ? styles.active : ""}`}
+          onClick={() => setActiveTab("friends")}
         >
           👥 Amis ({friends.length})
         </button>
         <button
-          className={`${styles.subNavButton} ${activeTab === 'sent' ? styles.active : ''}`}
-          onClick={() => setActiveTab('sent')}
+          className={`${styles.subNavButton} ${activeTab === "sent" ? styles.active : ""}`}
+          onClick={() => setActiveTab("sent")}
         >
           📤 Invitations Envoyées ({sentInvitations.length})
         </button>
         <button
-          className={`${styles.subNavButton} ${activeTab === 'received' ? styles.active : ''}`}
-          onClick={() => setActiveTab('received')}
+          className={`${styles.subNavButton} ${activeTab === "received" ? styles.active : ""}`}
+          onClick={() => setActiveTab("received")}
         >
           📥 Invitations Reçues ({receivedInvitations.length})
         </button>
@@ -382,7 +427,7 @@ const Profil = () => {
       {/* Content Sections */}
       <div className={styles.contentSection}>
         {/* Public Users */}
-        {activeTab === 'public' && (
+        {activeTab === "public" && (
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>🌍 Utilisateurs Publics</h2>
             {filteredUsers.length === 0 ? (
@@ -398,16 +443,17 @@ const Profil = () => {
                     onClick={() => handleOpenModal(user)}
                   >
                     <div className={styles.userAvatar}>
-                      {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                      {user.firstName?.charAt(0)}
+                      {user.lastName?.charAt(0)}
                     </div>
                     <div className={styles.userInfo}>
-                      <h3 className={styles.userName}>{user.firstName} {user.lastName}</h3>
+                      <h3 className={styles.userName}>
+                        {user.firstName} {user.lastName}
+                      </h3>
                       <p className={styles.userEmail}>{user.email}</p>
                     </div>
                     <div className={styles.userAction}>
-                      <button className={styles.addFriendBtn}>
-                        +
-                      </button>
+                      <button className={styles.addFriendBtn}>+</button>
                     </div>
                   </div>
                 ))}
@@ -417,7 +463,7 @@ const Profil = () => {
         )}
 
         {/* Friends */}
-        {activeTab === 'friends' && (
+        {activeTab === "friends" && (
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>👥 Mes Amis</h2>
             {friends.length === 0 ? (
@@ -432,7 +478,8 @@ const Profil = () => {
                 {friends.map((friend) => (
                   <div key={friend.id} className={styles.friendCard}>
                     <div className={styles.friendAvatar}>
-                      {friend.firstName?.charAt(0)}{friend.lastName?.charAt(0)}
+                      {friend.firstName?.charAt(0)}
+                      {friend.lastName?.charAt(0)}
                     </div>
                     <div className={styles.friendInfo}>
                       <h4 className={styles.friendName}>
@@ -444,12 +491,16 @@ const Profil = () => {
                       <button
                         className={styles.unfriendBtn}
                         onClick={() => deleteFriend(friend.id)}
-                        disabled={actionLoading.type === 'deleteFriend' && actionLoading.id === friend.id}
+                        disabled={
+                          actionLoading.type === "deleteFriend" &&
+                          actionLoading.id === friend.id
+                        }
                       >
-                        {actionLoading.type === 'deleteFriend' && actionLoading.id === friend.id ? (
+                        {actionLoading.type === "deleteFriend" &&
+                        actionLoading.id === friend.id ? (
                           <span className={styles.spinner}></span>
                         ) : (
-                          '❌ Supprimer'
+                          "❌ Supprimer"
                         )}
                       </button>
                     </div>
@@ -461,7 +512,7 @@ const Profil = () => {
         )}
 
         {/* Sent Invitations */}
-        {activeTab === 'sent' && (
+        {activeTab === "sent" && (
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>📤 Invitations Envoyées</h2>
             {sentInvitations.length === 0 ? (
@@ -470,25 +521,32 @@ const Profil = () => {
               </div>
             ) : (
               <div className={styles.invitationsGrid}>
-                {sentInvitations.map(inv => (
+                {sentInvitations.map((inv) => (
                   <div key={inv.id} className={styles.invitationCard}>
                     <div className={styles.invitationAvatar}>
-                      {inv.firstName?.charAt(0)}{inv.lastName?.charAt(0)}
+                      {inv.firstName?.charAt(0)}
+                      {inv.lastName?.charAt(0)}
                     </div>
                     <div className={styles.invitationInfo}>
-                      <h4>{inv.firstName} {inv.lastName}</h4>
+                      <h4>
+                        {inv.firstName} {inv.lastName}
+                      </h4>
                       <p>{inv.email}</p>
                     </div>
                     <div className={styles.invitationActions}>
                       <button
                         className={styles.cancelBtn}
                         onClick={() => deleteSentInvitation(inv.id)}
-                        disabled={actionLoading.type === 'deleteSent' && actionLoading.id === inv.id}
+                        disabled={
+                          actionLoading.type === "deleteSent" &&
+                          actionLoading.id === inv.id
+                        }
                       >
-                        {actionLoading.type === 'deleteSent' && actionLoading.id === inv.id ? (
+                        {actionLoading.type === "deleteSent" &&
+                        actionLoading.id === inv.id ? (
                           <span className={styles.spinner}></span>
                         ) : (
-                          'Annuler'
+                          "Annuler"
                         )}
                       </button>
                     </div>
@@ -500,7 +558,7 @@ const Profil = () => {
         )}
 
         {/* Received Invitations */}
-        {activeTab === 'received' && (
+        {activeTab === "received" && (
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>📥 Invitations Reçues</h2>
             {receivedInvitations.length === 0 ? (
@@ -512,33 +570,44 @@ const Profil = () => {
                 {receivedInvitations.map((inv) => (
                   <div key={inv.id} className={styles.invitationCard}>
                     <div className={styles.invitationAvatar}>
-                      {inv.firstName?.charAt(0)}{inv.lastName?.charAt(0)}
+                      {inv.firstName?.charAt(0)}
+                      {inv.lastName?.charAt(0)}
                     </div>
                     <div className={styles.invitationInfo}>
-                      <h4>{inv.firstName} {inv.lastName}</h4>
+                      <h4>
+                        {inv.firstName} {inv.lastName}
+                      </h4>
                       <p>{inv.email}</p>
                     </div>
                     <div className={styles.invitationActions}>
                       <button
                         className={styles.acceptBtn}
                         onClick={() => acceptInvitation(inv.id)}
-                        disabled={actionLoading.type === 'acceptInvitation' && actionLoading.id === inv.id}
+                        disabled={
+                          actionLoading.type === "acceptInvitation" &&
+                          actionLoading.id === inv.id
+                        }
                       >
-                        {actionLoading.type === 'acceptInvitation' && actionLoading.id === inv.id ? (
+                        {actionLoading.type === "acceptInvitation" &&
+                        actionLoading.id === inv.id ? (
                           <span className={styles.spinner}></span>
                         ) : (
-                          'Accepter'
+                          "Accepter"
                         )}
                       </button>
                       <button
                         className={styles.rejectBtn}
                         onClick={() => deleteReceivedInvitation(inv.id)}
-                        disabled={actionLoading.type === 'deleteReceived' && actionLoading.id === inv.id}
+                        disabled={
+                          actionLoading.type === "deleteReceived" &&
+                          actionLoading.id === inv.id
+                        }
                       >
-                        {actionLoading.type === 'deleteReceived' && actionLoading.id === inv.id ? (
+                        {actionLoading.type === "deleteReceived" &&
+                        actionLoading.id === inv.id ? (
                           <span className={styles.spinner}></span>
                         ) : (
-                          'Refuser'
+                          "Refuser"
                         )}
                       </button>
                     </div>
@@ -553,14 +622,18 @@ const Profil = () => {
       {/* User Modal */}
       {isModalOpen && selectedUser && (
         <div className={styles.modalOverlay} onClick={handleCloseModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button className={styles.modalClose} onClick={handleCloseModal}>
               ✕
             </button>
 
             <div className={styles.modalHeader}>
               <div className={styles.modalAvatar}>
-                {selectedUser.firstName?.charAt(0)}{selectedUser.lastName?.charAt(0)}
+                {selectedUser.firstName?.charAt(0)}
+                {selectedUser.lastName?.charAt(0)}
               </div>
               <h2 className={styles.modalTitle}>
                 {selectedUser.firstName} {selectedUser.lastName}
@@ -578,16 +651,22 @@ const Profil = () => {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>📅 Disponible du:</span>
                     <span className={styles.infoValue}>
-                      {new Date(selectedUser.availabilityStart).toLocaleDateString()}
+                      {new Date(
+                        selectedUser.availabilityStart,
+                      ).toLocaleDateString()}
                     </span>
                   </div>
                 )}
 
                 {selectedUser.availabilityEnd && (
                   <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>📅 Disponible jusqu'au:</span>
+                    <span className={styles.infoLabel}>
+                      📅 Disponible jusqu'au:
+                    </span>
                     <span className={styles.infoValue}>
-                      {new Date(selectedUser.availabilityEnd).toLocaleDateString()}
+                      {new Date(
+                        selectedUser.availabilityEnd,
+                      ).toLocaleDateString()}
                     </span>
                   </div>
                 )}
@@ -600,15 +679,19 @@ const Profil = () => {
                     e.stopPropagation();
                     sendInvitation(selectedUser.id);
                   }}
-                  disabled={actionLoading.type === 'sendInvitation' && actionLoading.id === selectedUser.id}
+                  disabled={
+                    actionLoading.type === "sendInvitation" &&
+                    actionLoading.id === selectedUser.id
+                  }
                 >
-                  {actionLoading.type === 'sendInvitation' && actionLoading.id === selectedUser.id ? (
+                  {actionLoading.type === "sendInvitation" &&
+                  actionLoading.id === selectedUser.id ? (
                     <>
                       <span className={styles.spinner}></span>
                       Envoi...
                     </>
                   ) : (
-                    '➕ Ajouter comme ami'
+                    "➕ Ajouter comme ami"
                   )}
                 </button>
                 <button

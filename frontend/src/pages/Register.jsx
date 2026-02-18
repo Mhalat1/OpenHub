@@ -1,13 +1,18 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../style/register.module.css";
-import logo from '../images/logo.png';
+import logo from "../images/logo.png";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const initialState = {
-  firstName: "", lastName: "", email: "", password: "",
-  availabilityStart: "", availabilityEnd: "", skills: ""
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  availabilityStart: "",
+  availabilityEnd: "",
+  skills: "",
 };
 
 function formReducer(state, action) {
@@ -24,31 +29,32 @@ const Register = () => {
   const handleChange = (field, value) => {
     dispatch({ field, value });
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => prev - 1);
+    setCurrentStep((prev) => prev - 1);
   };
 
   const validateStep = (step) => {
     const newErrors = {};
-    
+
     if (step === 1) {
       if (!formState.firstName.trim()) newErrors.firstName = "Prénom requis";
       if (!formState.lastName.trim()) newErrors.lastName = "Nom requis";
     }
-    
+
     if (step === 2) {
-      if (!formState.email.includes('@')) newErrors.email = "Email invalide";
-      if (formState.password.length < 6) newErrors.password = "6 caractères minimum";
+      if (!formState.email.includes("@")) newErrors.email = "Email invalide";
+      if (formState.password.length < 6)
+        newErrors.password = "6 caractères minimum";
     }
 
     setErrors(newErrors);
@@ -57,9 +63,9 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateStep(3)) return;
-    
+
     setIsLoading(true);
 
     try {
@@ -73,8 +79,8 @@ const Register = () => {
 
       if (data.status) {
         setTimeout(() => {
-          navigate("/login", { 
-            state: { message: "Compte créé avec succès !" } 
+          navigate("/login", {
+            state: { message: "Compte créé avec succès !" },
           });
         }, 1500);
       } else {
@@ -88,7 +94,7 @@ const Register = () => {
   };
 
   const renderStep = () => {
-    switch(currentStep) {
+    switch (currentStep) {
       case 1:
         return (
           <div className={styles.step}>
@@ -96,17 +102,19 @@ const Register = () => {
               <div className={styles.stepIndicator}>1</div>
               <h2>Qui êtes-vous ?</h2>
             </div>
-            
+
             <div className={styles.inputGroup}>
               <label>Prénom</label>
               <input
                 type="text"
                 placeholder="Votre prénom"
                 value={formState.firstName}
-                onChange={(e) => handleChange('firstName', e.target.value)}
-                className={errors.firstName ? styles.errorInput : ''}
+                onChange={(e) => handleChange("firstName", e.target.value)}
+                className={errors.firstName ? styles.errorInput : ""}
               />
-              {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
+              {errors.firstName && (
+                <span className={styles.errorText}>{errors.firstName}</span>
+              )}
             </div>
 
             <div className={styles.inputGroup}>
@@ -115,13 +123,19 @@ const Register = () => {
                 type="text"
                 placeholder="Votre nom"
                 value={formState.lastName}
-                onChange={(e) => handleChange('lastName', e.target.value)}
-                className={errors.lastName ? styles.errorInput : ''}
+                onChange={(e) => handleChange("lastName", e.target.value)}
+                className={errors.lastName ? styles.errorInput : ""}
               />
-              {errors.lastName && <span className={styles.errorText}>{errors.lastName}</span>}
+              {errors.lastName && (
+                <span className={styles.errorText}>{errors.lastName}</span>
+              )}
             </div>
 
-            <button type="button" className={styles.primaryButton} onClick={nextStep}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={nextStep}
+            >
               Continuer
             </button>
           </div>
@@ -141,10 +155,12 @@ const Register = () => {
                 type="email"
                 placeholder="exemple@email.com"
                 value={formState.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                className={errors.email ? styles.errorInput : ''}
+                onChange={(e) => handleChange("email", e.target.value)}
+                className={errors.email ? styles.errorInput : ""}
               />
-              {errors.email && <span className={styles.errorText}>{errors.email}</span>}
+              {errors.email && (
+                <span className={styles.errorText}>{errors.email}</span>
+              )}
             </div>
 
             <div className={styles.inputGroup}>
@@ -153,17 +169,27 @@ const Register = () => {
                 type="password"
                 placeholder="6 caractères minimum"
                 value={formState.password}
-                onChange={(e) => handleChange('password', e.target.value)}
-                className={errors.password ? styles.errorInput : ''}
+                onChange={(e) => handleChange("password", e.target.value)}
+                className={errors.password ? styles.errorInput : ""}
               />
-              {errors.password && <span className={styles.errorText}>{errors.password}</span>}
+              {errors.password && (
+                <span className={styles.errorText}>{errors.password}</span>
+              )}
             </div>
 
             <div className={styles.buttonGroup}>
-              <button type="button" className={styles.secondaryButton} onClick={prevStep}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={prevStep}
+              >
                 Retour
               </button>
-              <button type="button" className={styles.primaryButton} onClick={nextStep}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={nextStep}
+              >
                 Continuer
               </button>
             </div>
@@ -183,7 +209,9 @@ const Register = () => {
               <input
                 type="date"
                 value={formState.availabilityStart}
-                onChange={(e) => handleChange('availabilityStart', e.target.value)}
+                onChange={(e) =>
+                  handleChange("availabilityStart", e.target.value)
+                }
               />
             </div>
 
@@ -192,7 +220,9 @@ const Register = () => {
               <input
                 type="date"
                 value={formState.availabilityEnd}
-                onChange={(e) => handleChange('availabilityEnd', e.target.value)}
+                onChange={(e) =>
+                  handleChange("availabilityEnd", e.target.value)
+                }
               />
             </div>
 
@@ -202,16 +232,24 @@ const Register = () => {
                 type="text"
                 placeholder="JavaScript, React, Node.js..."
                 value={formState.skills}
-                onChange={(e) => handleChange('skills', e.target.value)}
+                onChange={(e) => handleChange("skills", e.target.value)}
               />
               <small>Séparez par des virgules</small>
             </div>
 
             <div className={styles.buttonGroup}>
-              <button type="button" className={styles.secondaryButton} onClick={prevStep}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={prevStep}
+              >
                 Retour
               </button>
-              <button type="submit" className={styles.primaryButton} disabled={isLoading}>
+              <button
+                type="submit"
+                className={styles.primaryButton}
+                disabled={isLoading}
+              >
                 {isLoading ? "Création..." : "Créer mon compte"}
               </button>
             </div>
@@ -231,8 +269,8 @@ const Register = () => {
 
       {/* Progress bar */}
       <div className={styles.progressBar}>
-        <div 
-          className={styles.progress} 
+        <div
+          className={styles.progress}
           style={{ width: `${(currentStep / 3) * 100}%` }}
         ></div>
       </div>
@@ -245,7 +283,7 @@ const Register = () => {
       {/* Lien de connexion */}
       <div className={styles.loginLink}>
         <p>Déjà un compte ?</p>
-        <button 
+        <button
           type="button"
           className={styles.linkButton}
           onClick={() => navigate("/login")}
@@ -256,9 +294,7 @@ const Register = () => {
 
       {/* Messages d'erreur globaux */}
       {errors.submit && (
-        <div className={styles.errorMessage}>
-          {errors.submit}
-        </div>
+        <div className={styles.errorMessage}>{errors.submit}</div>
       )}
     </div>
   );
