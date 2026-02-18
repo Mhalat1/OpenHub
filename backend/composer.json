@@ -1,5 +1,5 @@
 {
-    "name": "OPENHUB",
+    "name": "openhub-backend",
     "description": "App de gestion de projet Open Source pour les développeurs",
     "type": "project",
     "license": "proprietary",
