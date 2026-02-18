@@ -1,4 +1,6 @@
 {
+    "name": "openhub/backend",
+    "description": "Backend for OpenHub application",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
