@@ -1,36 +1,28 @@
-# 🚀 Installation de __PROJECT_NAME__
+# 🚀 Installation de backend
 
-> **Dernière mise à jour :** __DATE__
-> **Projet :** __PROJECT_NAME__
-> **Symfony :** __SYMFONY_VERSION__
-> **PHP nécessaire :** __PHP_VERSION__+
-> **Base de données :** __DB_TYPE__
+> **Dernière mise à jour :** 2026-02-18
+> **Projet :** backend
+> **Symfony :** v7.3.10
+> **PHP nécessaire :** 8.2+
+> **Base de données :** 
 
 ## 📋 Prérequis
 
 | Outil | Version installée |
 |-------|-------------------|
-| Composer | __COMPOSER_VERSION__ |
-| Node.js | __NODE_VERSION__ |
-| Yarn | __YARN_VERSION__ |
-| Git | __GIT_VERSION__ |
-| Docker | __DOCKER_VERSION__ |
+| Composer | 32 |
+| Node.js | v20.15.0 |
+| Yarn | 1.22.19 |
+| Git | 2.49.0. |
+| Docker | 27.0.3 |
 
 ## ⚡ Installation rapide
 
 ```bash
-# 1. Cloner le projet
-git clone https://github.com/votre/__PROJECT_NAME__.git
-cd __PROJECT_NAME__/backend
-
-# 2. Installer les dépendances PHP
-composer install
-
-# 3. Installer les dépendances front (si nécessaire)
-yarn install
-# ou
-npm install
-
-# 4. Configurer l'environnement
+# Backend Symfony
+cd backend
 cp .env .env.local
-# Éditez .env.local avec vos identifiants (__DB_TYPE__)
+composer install
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
+symfony server:start
