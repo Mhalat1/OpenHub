@@ -33,4 +33,4 @@ npm install
 
 # 4. Configurer l'environnement
 cp .env .env.local
-# Éditez .env.local avec vos identifiants de base de données
+# Éditez .env.local avec vos identifiants de base de données (__DB_TYPE__)
