@@ -2,17 +2,28 @@ name: Auto-Update README
 
 on:
   push:
+    branches: [ main, master ]
     paths:
       - 'backend/composer.json'
       - 'backend/.env'
       - 'README.template.md'
       - 'backend/bin/generate-readme.sh'
+  workflow_dispatch:
 
 jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      
+      - name: Install Composer dependencies
+        working-directory: ./backend
+        run: composer install --no-dev --no-progress
       
       - name: Generate README
         run: |
@@ -24,9 +35,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add README.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "docs: auto-update README"
+          git diff --quiet && git diff --staged --quiet || git commit -m "docs: auto-update README [skip ci]"
           git push
-
-
-
-          C:\Users\halat\OneDrive\Desktop\OpenHub\github\workflows\update-readme.yml
