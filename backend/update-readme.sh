@@ -5,9 +5,13 @@ VERSION=$(node -p "require('./package.json').version")
 DATE=$(date +%Y-%m-%d)
 PROJECT=$(node -p "require('./package.json').name")
 
-# Mise à jour directe du README.md
-sed -i "s/Version: .*/Version: $VERSION/" README.md
-sed -i "s/Dernière mise à jour: .*/Dernière mise à jour: $DATE/" README.md
-sed -i "s/npx create-.*/npx create-$PROJECT@latest mon-projet/" README.md
+# CORRECTION: Remplacer dans l'URL du badge Version
+sed -i "s|badge/Version: [^-]*|badge/Version: $VERSION|" README.md
+
+# CORRECTION: Remplacer dans l'URL du badge Date
+sed -i "s|Dernière%20mise%20à%20jour-[^\-]*-[^\-]*-[^-]*|Dernière%20mise%20à%20jour-$DATE|" README.md
+
+# CORRECTION: Remplacer la commande d'installation
+sed -i "s|npx create-.*@latest|npx create-$PROJECT@latest|" README.md
 
 echo "✅ README mis à jour (v$VERSION - $DATE)"
