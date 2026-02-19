@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogPayload {
@@ -9,45 +11,38 @@ interface LogPayload {
   userAgent: string;
 }
 
-const LOGSTASH_URL = 'http://localhost:8080';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
-// Buffer pour batcher les logs et éviter trop de requêtes
 const buffer: LogPayload[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 const flush = async () => {
   if (buffer.length === 0) return;
   const logs = buffer.splice(0, buffer.length);
-
   try {
-    await fetch(LOGSTASH_URL, {
+    await fetch(`${API_URL}/api/logs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Envoi en batch
       body: JSON.stringify(logs.length === 1 ? logs[0] : logs),
     });
   } catch {
-    // Silencieux : on ne veut pas que le logging crashe l'app
-    console.warn('[Logger] Failed to send logs to Logstash');
+    console.warn('[Logger] Failed to send logs');
   }
 };
 
 const log = (level: LogLevel, message: string, context?: Record<string, unknown>) => {
   const payload: LogPayload = {
-    level,
-    message,
-    context,
+    level, message, context,
     timestamp: new Date().toISOString(),
     url: window.location.href,
     userAgent: navigator.userAgent,
   };
 
-  // Toujours logger en console aussi
   console[level](`[${level.toUpperCase()}] ${message}`, context ?? '');
 
+  if (import.meta.env.DEV) return;
 
-
-  // Flush après 2s d'inactivité
+  buffer.push(payload);
   if (flushTimer) clearTimeout(flushTimer);
   flushTimer = setTimeout(flush, 2000);
 };
@@ -59,16 +54,14 @@ export const logger = {
   error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
 };
 
-// Capture automatique des erreurs JS non gérées
 window.addEventListener('error', (event) => {
   logger.error('Unhandled JS error', {
-    message: event.message,
+    message:  event.message,
     filename: event.filename,
-    lineno: event.lineno,
+    lineno:   event.lineno,
   });
 });
 
-// Capture des Promise rejetées
 window.addEventListener('unhandledrejection', (event) => {
   logger.error('Unhandled Promise rejection', {
     reason: String(event.reason),
