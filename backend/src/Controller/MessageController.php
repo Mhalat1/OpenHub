@@ -16,24 +16,29 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use App\BusinessLimits;
+use Psr\Log\LoggerInterface;
 
 
 class MessageController extends AbstractController
 {
     private MessageRepository $messageRepository;
     private EntityManagerInterface $em;
+    private LoggerInterface $logger;
 
     // ✅ NOUVEAU : Constantes pour cohérence des parsers
     private const ENCODING = 'UTF-8';
     private const HTML_ENTITY_FLAGS = ENT_QUOTES | ENT_HTML5;
 
     
+    public function __construct(
+        MessageRepository $messageRepository,
+        EntityManagerInterface $em,
+        LoggerInterface $logger       
+    ) {
 
-    public function __construct(MessageRepository $messageRepository, EntityManagerInterface $em)
-    {
         $this->messageRepository = $messageRepository;
         $this->em = $em;
-
+        $this->logger = $logger;
         // ✅ Utiliser les constantes centralisées
         ini_set('pcre.backtrack_limit', (string) BusinessLimits::PCRE_BACKTRACK_LIMIT);
         ini_set('max_execution_time', (string) BusinessLimits::MAX_EXECUTION_TIME);
@@ -319,7 +324,10 @@ private function validateConversationDeleteRateLimit(User $user, EntityManagerIn
         return ['valid' => true, 'error' => null];
         
     } catch (\Exception $e) {
-        error_log("Rate limit check failed for user {$user->getId()}: {$e->getMessage()}");
+        $this->logger->warning('Rate limit check failed', [
+            'user_id' => $user->getId(),
+            'error'   => $e->getMessage(),
+        ]);
         return ['valid' => true, 'error' => null];
     }
 }
@@ -449,9 +457,10 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
             return ['valid' => true, 'error' => null];
             
         } catch (\Exception $e) {
-            // ✅ AJOUT : Gestion des erreurs de requête SQL
-            error_log("Rate limit check failed for user {$user->getId()}: {$e->getMessage()}");
-            
+            $this->logger->warning('Rate limit check failed', [
+                'user_id' => $user->getId(),
+                'error'   => $e->getMessage(),
+            ]);            
             // En cas d'erreur, on autorise par défaut (fail-open)
             // Alternative : return ['valid' => false, 'error' => 'Rate limit check failed'];
             return ['valid' => true, 'error' => null];
@@ -515,7 +524,10 @@ private function validateConversationCreateRateLimit(User $user, EntityManagerIn
         return ['valid' => true, 'error' => null];
         
     } catch (\Exception $e) {
-        error_log("Rate limit check failed for user {$user->getId()}: {$e->getMessage()}");
+        $this->logger->warning('Rate limit check failed', [
+            'user_id' => $user->getId(),
+            'error'   => $e->getMessage(),
+        ]);
         return ['valid' => true, 'error' => null]; // Fail-open
     }
 }
@@ -557,8 +569,9 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
         
         return $existing !== null;
     } catch (\Exception $e) {
-        // Si le champ conversationHash n'existe pas, on ignore l'erreur et on considère qu'il n'y a pas de doublon
-        error_log("Error checking duplicate conversation: {$e->getMessage()}");
+        $this->logger->warning('Error checking duplicate conversation', [
+            'error' => $e->getMessage(),
+        ]);
         return false;
     }
 }
@@ -592,7 +605,10 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
     $lastName = $user->getLastName();
     
     if (!$this->validateName($firstName)) {
-        error_log("Invalid firstName for user {$user->getId()}: {$firstName}");
+        $this->logger->warning('Invalid firstName', [
+            'user_id'    => $user->getId(),
+            'first_name' => $firstName,
+        ]);
         return new JsonResponse([
             'message' => 'Invalid user data',
             'error' => 'First name contains invalid characters'
@@ -600,7 +616,11 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
     }
     
     if (!$this->validateName($lastName)) {
-        error_log("Invalid lastName for user {$user->getId()}: {$lastName}");
+
+        $this->logger->warning('Invalid lastName', [
+            'user_id'   => $user->getId(),
+            'last_name' => $lastName,
+        ]);
         return new JsonResponse([
             'message' => 'Invalid user data',
             'error' => 'Last name contains invalid characters'
@@ -612,8 +632,11 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                     $email = $user->getEmail();
                     $emailValidation = $this->validateEmailandUniqueness($email, $user->getId(), $this->em);
                     if (!$emailValidation['valid']) {   
-                        error_log("Invalid email for user {$user->getId()}: {$emailValidation['error']}");
-                        return new JsonResponse([ 
+                    $this->logger->warning('Invalid email', [
+                        'user_id' => $user->getId(),
+                        'error'   => $emailValidation['error'],
+                    ]);
+                    return new JsonResponse([ 
                             'message' => 'Invalid user email format',
                             'error' => $emailValidation['error']
                         ], 500);
@@ -631,8 +654,10 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                         if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
                             $availabilityStart = $startDateStr;
                         } else {
-                            // Date corrompue en base - logger l'erreur
-                            error_log("Invalid availability start date for user {$user->getId()}: {$startDateStr}");
+                            $this->logger->warning('Invalid availability start date', [
+                                'user_id' => $user->getId(),
+                                'date'    => $startDateStr,
+                            ]);
                         }
                     }
                             if ($user->getAvailabilityEnd()) {
@@ -641,7 +666,10 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                         if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
                             $availabilityEnd = $endDateStr;
                         } else {
-                            error_log("Invalid availability end date for user {$user->getId()}: {$endDateStr}");
+                            $this->logger->warning('Invalid availability end date', [
+                                'user_id' => $user->getId(),
+                                'date'    => $endDateStr,
+                            ]);
                         }
                     }
 
@@ -697,15 +725,20 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
             // ✅ AJOUT : Valider le titre de la conversation
             $title = $conversation->getTitle();
             if (!$this->validateString($title, 255)) {
-                error_log("Invalid conversation title for ID {$conversation->getId()}");
-                continue; // Sauter cette conversation corrompue
+
+                $this->logger->warning('Invalid conversation title', [
+                    'conversation_id' => $conversation->getId(),
+                ]);
+            continue; // Sauter cette conversation corrompue
             }
 
             // ✅ AJOUT : Valider la description 
             $description = $conversation->getDescription() ?? '';
             if ($description !== '' && !$this->validateString($description, 1000)) {
-                error_log("Invalid conversation description for ID {$conversation->getId()}");
-                $description = ''; // Réinitialiser si invalide
+                $this->logger->warning('Invalid conversation description', [
+                'conversation_id' => $conversation->getId(),
+            ]);        
+            $description = ''; // Réinitialiser si invalide
             }
 
                 $users = [];
@@ -717,7 +750,10 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                             $lastName = $convUser->getLastName();
                             
                             if (!$this->validateName($firstName) || !$this->validateName($lastName)) {
-                                error_log("Invalid name for user {$convUser->getId()} in conversation {$conversation->getId()}");
+                                $this->logger->warning('Invalid participant name', [
+                                    'user_id'         => $convUser->getId(),
+                                    'conversation_id' => $conversation->getId(),
+                                ]);
                                 continue; // Sauter cet utilisateur corrompu
                             }
 
@@ -725,7 +761,9 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                             $email = $convUser->getEmail();
                             $emailCheck = $this->validateEmailandUniqueness($email, $convUser->getId(), $em);
                             if (!$emailCheck['valid']) {
-                                error_log("Invalid email for user {$convUser->getId()}");
+                                $this->logger->warning('Invalid participant email', [
+                                    'user_id' => $convUser->getId(),
+                                ]);
                                 continue; // Sauter cet utilisateur
                             }
 
@@ -739,7 +777,9 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
 
             // ✅ RÈGLE MÉTIER : Ne pas retourner de conversation sans participants valides
             if (empty($users)) {
-                error_log("Conversation {$conversation->getId()} has no valid participants");
+                $this->logger->warning('Conversation has no valid participants', [
+                    'conversation_id' => $conversation->getId(),
+                ]);
                 continue;
             }
 
@@ -858,7 +898,9 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
     // ✅ AJOUT : Valider le contenu du message
             $content = $message->getContent();
             if (!$this->validateMessageContent($content)) {
-                error_log("Invalid message content for ID {$message->getId()}");
+                $this->logger->warning('Invalid message content', [
+                    'message_id' => $message->getId(),
+                ]);
                 continue; // Sauter ce message corrompu
             }
 
@@ -870,7 +912,9 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
                 $this->em
             );
             if (!$emailCheck['valid']) {
-                error_log("Invalid author email for message {$message->getId()}");
+                $this->logger->warning('Invalid author email', [
+                    'message_id' => $message->getId(),
+                ]);
                 $authorEmail = 'unknown@invalid.com'; // Fallback sécurisé
             }
 
@@ -880,7 +924,9 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
             $nameParts = explode(' ', $authorName, 2);
             if (count($nameParts) === 2) {
                 if (!$this->validateName($nameParts[0]) || !$this->validateName($nameParts[1])) {
-                    error_log("Invalid author name for message {$message->getId()}");
+                    $this->logger->warning('Invalid author name', [
+                        'message_id' => $message->getId(),
+                    ]);
                     $authorName = 'Unknown User';
                 }
             } else {
@@ -890,13 +936,17 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
             // ✅ AJOUT : Valider le titre de la conversation
             $conversationTitle = $message->getConversationTitle();
             if (!$this->validateString($conversationTitle, 255)) {
-                error_log("Invalid conversation title for message {$message->getId()}");
+                $this->logger->warning('Invalid conversation title for message', [
+                    'message_id' => $message->getId(),
+                ]);
                 $conversationTitle = 'Untitled Conversation';
             }
 
             // ✅ RÈGLE MÉTIER : Vérifier que la conversation existe toujours
             if (!$message->getConversation()) {
-                error_log("Message {$message->getId()} has no associated conversation");
+                $this->logger->warning('Message has no associated conversation', [
+                    'message_id' => $message->getId(),
+                ]);
                 continue; // Sauter ce message orphelin
             }
 
@@ -1273,7 +1323,9 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
         $em->rollback();
         $em->clear();
         
-        error_log("Transaction failed in createMessage: {$e->getMessage()}");
+        $this->logger->error('Transaction failed in createMessage', [
+            'error' => $e->getMessage(),
+        ]);
         return new JsonResponse([
             'message' => 'Error creating message',
             'error' => $e->getMessage()
@@ -1331,17 +1383,19 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
                     // ✅ AJOUT : Valider les données de la conversation avant suppression (audit)
                     $title = $conversation->getTitle();
                     if (!$this->validateString($title, 255)) {
-                        error_log("Deleting conversation {$id} with invalid title: {$title}");
+                        $this->logger->warning('Deleting conversation with invalid title', [
+                            'conversation_id' => $id,
+                            'title'           => substr($title, 0, 50),
+                        ]);
                     }
 
                     // ✅ AJOUT : Logger la suppression pour audit
-                    error_log(sprintf(
-                        "User %d deleted conversation %d ('%s') with %d messages",
-                        $user->getId(),
-                        $conversation->getId(),
-                        substr($title, 0, 50), // Limiter la longueur dans les logs
-                        $messageCount
-                    ));
+                    $this->logger->info('Conversation deleted', [
+                        'user_id'         => $user->getId(),
+                        'conversation_id' => $conversation->getId(),
+                        'title'           => substr($title, 0, 50),
+                        'message_count'   => $messageCount,
+                    ]);
 
 
             $messages = $em->getRepository(Message::class)->findBy(['conversation' => $conversation]);
@@ -1415,7 +1469,10 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
 
               // ✅ AJOUT : Validation TYPES - Vérifier l'instance
         if (!$message instanceof Message) {
-            error_log("Invalid message type returned for ID {$id}");
+            $this->logger->warning('Invalid message type', [
+                'message_id' => $id,
+            ]);
+
             return new JsonResponse(['message' => 'Invalid message data'], 500);
         }
 
@@ -1427,30 +1484,36 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
         // ✅ AJOUT : Validation FORMAT - Vérifier l'intégrité avant suppression
         $content = $message->getContent();
         if (!$this->validateMessageContent($content)) {
-            error_log("Deleting message {$id} with invalid content");
+            $this->logger->warning('Deleting message with invalid content', [
+                'message_id' => $id,
+            ]);
         }
 
         // ✅ AJOUT : Validation FORMAT - Vérifier l'auteur
         $author = $message->getAuthor();
         if (!$author instanceof User) {
-            error_log("Message {$id} has invalid author");
+            $this->logger->warning('Message has invalid author', [
+                'message_id' => $id,
+            ]);
+
             return new JsonResponse(['message' => 'Invalid message author'], 500);
         }
 
         // ✅ AJOUT : Validation MÉTIER - Vérifier que la conversation existe
         $conversation = $message->getConversation();
         if (!$conversation instanceof Conversation) {
-            error_log("Message {$id} has no valid conversation");
+            
+        $this->logger->warning('Message has no valid conversation', [
+            'message_id' => $id,
+        ]);
+
             return new JsonResponse(['message' => 'Invalid message conversation'], 500);
         }
-
-        // ✅ AJOUT : Logger la suppression pour audit
-        error_log(sprintf(
-            "User %d deleted message %d from conversation %d",
-            $user->getId(),
-            $message->getId(),
-            $conversation->getId()
-        ));
+        $this->logger->info('Message deleted', [
+            'user_id'         => $user->getId(),
+            'message_id'      => $message->getId(),
+            'conversation_id' => $conversation->getId(),
+        ]);
 
 
             $em->remove($message);

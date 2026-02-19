@@ -20,107 +20,107 @@ class AuthController extends AbstractController
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtManager,
         private LoggerInterface $logger,
-
     ) {}
 
     #[Route('/api/login_check', name: 'api_login_check', methods: ['POST'])]
     public function login(Request $request): JsonResponse
-
-
     {
-
-    $this->logger->error('Test Papertrail', ['source' => 'openhub-backend']);
-
         $data = json_decode($request->getContent(), true);
-        
-        $email = $data['email'] ?? '';
+
+        $email    = $data['email']    ?? '';
         $password = $data['password'] ?? '';
 
-        // Debug
-        error_log("🔐 Login attempt for: " . $email);
+        $this->logger->info('Login attempt', [
+            'email' => $email,
+        ]);
 
-        // Trouver l'utilisateur
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
 
         if (!$user) {
-            error_log("❌ User not found: " . $email);
+            $this->logger->warning('User not found', [
+                'email' => $email,
+            ]);
             return $this->json([
                 'message' => 'Invalid credentials',
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Vérifier le mot de passe
         if (!$this->passwordHasher->isPasswordValid($user, $password)) {
-            error_log("❌ Invalid password for: " . $email);
+            $this->logger->warning('Invalid password', [
+                'email' => $email,
+            ]);
             return $this->json([
                 'message' => 'Invalid credentials',
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // 🔥 GÉNÉRER LE TOKEN JWT
         $token = $this->jwtManager->create($user);
-        
-        error_log("✅ Token generated for user: " . $user->getEmail());
+
+        $this->logger->info('Token generated', [
+            'user_id' => $user->getId(),
+            'email'   => $user->getEmail(),
+        ]);
 
         return $this->json([
             'token' => $token,
-            'user' => [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
+            'user'  => [
+                'id'        => $user->getId(),
+                'email'     => $user->getEmail(),
                 'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
+                'lastName'  => $user->getLastName(),
             ]
         ]);
     }
 
     #[Route('/api/register', name: 'api_register', methods: ['POST'])]
-    public function register(Request $request): JsonResponse  // ✅ CORRECT
+    public function register(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        
-        $email = $data['email'] ?? '';
-        $password = $data['password'] ?? '';
-        $firstName = $data['firstName'] ?? '';
-        $lastName = $data['lastName'] ?? '';
+        $data      = json_decode($request->getContent(), true);
+        $email     = $data['email']             ?? '';
+        $password  = $data['password']          ?? '';
+        $firstName = $data['firstName']         ?? '';
+        $lastName  = $data['lastName']          ?? '';
         $availabilityStart = $data['availabilityStart'] ?? null;
-        $availabilityEnd = $data['availabilityEnd'] ?? null;
-        $skills = $data['skills'] ?? null;
+        $availabilityEnd   = $data['availabilityEnd']   ?? null;
 
-        // Validation des champs requis
         if (empty($email) || empty($password) || empty($firstName) || empty($lastName)) {
             return $this->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Email, password, first name and last name are required'
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Vérifier si l'utilisateur existe déjà
         $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingUser) {
+            $this->logger->warning('Registration attempt with existing email', [
+                'email' => $email,
+            ]);
             return $this->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'This email is already in use'
             ], Response::HTTP_CONFLICT);
         }
 
-        // Créer le nouvel utilisateur
         $user = new User();
         $user->setEmail($email);
         $user->setFirstName($firstName);
         $user->setLastName($lastName);
         $user->setRoles(['ROLE_USER']);
-        
-        // Hasher le mot de passe
+
         $hashedPassword = $this->passwordHasher->hashPassword($user, $password);
         $user->setPassword($hashedPassword);
 
-        // Gérer les dates d'availability
         if ($availabilityStart) {
             try {
                 $user->setAvailabilityStart(new \DateTimeImmutable($availabilityStart));
             } catch (\Exception $e) {
+                $this->logger->warning('Invalid availability start date', [
+                    'email' => $email,
+                    'value' => $availabilityStart,
+                    'error' => $e->getMessage(),
+                ]);
                 return $this->json([
-                    'status' => false,
+                    'status'  => false,
                     'message' => 'Invalid availability start date format'
                 ], Response::HTTP_BAD_REQUEST);
             }
@@ -130,28 +130,37 @@ class AuthController extends AbstractController
             try {
                 $user->setAvailabilityEnd(new \DateTimeImmutable($availabilityEnd));
             } catch (\Exception $e) {
+                $this->logger->warning('Invalid availability end date', [
+                    'email' => $email,
+                    'value' => $availabilityEnd,
+                    'error' => $e->getMessage(),
+                ]);
                 return $this->json([
-                    'status' => false,
+                    'status'  => false,
                     'message' => 'Invalid availability end date format'
                 ], Response::HTTP_BAD_REQUEST);
             }
         }
 
-        // Enregistrer l'utilisateur
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
+        $this->logger->info('User registered', [
+            'user_id' => $user->getId(),
+            'email'   => $user->getEmail(),
+        ]);
+
         return $this->json([
-            'status' => true,
+            'status'  => true,
             'message' => 'User created successfully',
-            'user' => [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
+            'user'    => [
+                'id'                => $user->getId(),
+                'email'             => $user->getEmail(),
+                'firstName'         => $user->getFirstName(),
+                'lastName'          => $user->getLastName(),
                 'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
-                'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
-                'skills' => $user->getSkills() ?? [],
+                'availabilityEnd'   => $user->getAvailabilityEnd()?->format('Y-m-d'),
+                'skills'            => $user->getSkills() ?? [],
             ]
         ], Response::HTTP_CREATED);
     }
