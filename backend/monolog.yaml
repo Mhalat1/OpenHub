@@ -4,4 +4,4 @@ when@prod:
       papertrail:
         type:    service
         id:      App\Monolog\PapertrailHandler
-        level:   error
+        level:   debug

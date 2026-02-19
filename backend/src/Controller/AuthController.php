@@ -35,6 +35,7 @@ class AuthController extends AbstractController
         ]);
 
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        $this->logger->error('Test Papertrail ERROR', ['source' => 'openhub-backend']);
 
         if (!$user) {
             $this->logger->warning('User not found', [
