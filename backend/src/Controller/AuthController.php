@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 class AuthController extends AbstractController
 {
@@ -18,11 +19,18 @@ class AuthController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtManager,
+        private LoggerInterface $logger,
+
     ) {}
 
     #[Route('/api/login_check', name: 'api_login_check', methods: ['POST'])]
     public function login(Request $request): JsonResponse
+
+
     {
+
+    $this->logger->error('Test Papertrail', ['source' => 'openhub-backend']);
+
         $data = json_decode($request->getContent(), true);
         
         $email = $data['email'] ?? '';
