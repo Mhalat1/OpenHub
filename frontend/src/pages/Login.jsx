@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../style/login.module.css";
 import logo from "../images/logo.png";
+import { logger } from '@/services/logger';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const Login = () => {
@@ -39,6 +40,9 @@ const Login = () => {
       });
 
       const data = await response.json();
+      useEffect(() => {
+        logger.info("Login attempt", { email, success: response.ok });
+      }, [response.ok]);
 
       if (!response.ok) {
         throw new Error(data.message || "Identifiants incorrects");

@@ -1,0 +1,7 @@
+when@prod:
+  monolog:
+    handlers:
+      papertrail:
+        type:    service
+        id:      App\Monolog\PapertrailHandler
+        level:   error

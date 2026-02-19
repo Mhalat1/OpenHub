@@ -1,5 +1,5 @@
 {
-    "name": "openhub-backend",
+    "name": "openhub/backend",
     "description": "App de gestion de projet Open Source pour les développeurs",
     "type": "project",
     "license": "proprietary",
@@ -33,6 +33,7 @@
         "symfony/form": "7.3.*",
         "symfony/framework-bundle": "7.3.*",
         "symfony/maker-bundle": "^1.64",
+        "symfony/monolog-bundle": "*",
         "symfony/property-access": "7.3.*",
         "symfony/property-info": "7.3.*",
         "symfony/rate-limiter": "7.3.*",

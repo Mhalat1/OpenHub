@@ -8,9 +8,10 @@ services:
  
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
-    App\Security\LoginSuccessHandler:
-        public: true
 
-    App\Security\LoginFailureHandler:
-        public: true
-
+    App\Monolog\PapertrailHandler:
+        arguments:
+            $url:   '%env(PAPERTRAIL_URL)%'
+            $token: '%env(PAPERTRAIL_TOKEN)%'
+        tags:
+            - { name: monolog.handler }

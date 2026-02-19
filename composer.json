@@ -1,0 +1,5 @@
+{
+    "require": {
+        "symfony/monolog-bundle": "^4.0"
+    }
+}
