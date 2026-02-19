@@ -130,7 +130,7 @@ class MessageController extends AbstractController
         return true;
     }
 
-private function validateName(string $name, int $maxLength = 100): bool
+private function validateName(string $name, int $maxLength = 20): bool
 {
     // Vérifier la longueur
     if (empty($name) || mb_strlen($name) > $maxLength || mb_strlen($name) < 2) {

@@ -81,6 +81,19 @@ class AuthController extends AbstractController
         $password  = $data['password']          ?? '';
         $firstName = $data['firstName']         ?? '';
         $lastName  = $data['lastName']          ?? '';
+        // Validation du format des noms
+        if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $firstName) || mb_strlen($firstName) < 2 || mb_strlen($firstName) > 100) {
+            return $this->json([
+                'status'  => false,
+                'message' => 'Invalid first name format'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $lastName) || mb_strlen($lastName) < 2 || mb_strlen($lastName) > 100) {
+            return $this->json([
+                'status'  => false,
+                'message' => 'Invalid last name format'
+            ], Response::HTTP_BAD_REQUEST);
+        }
         $availabilityStart = $data['availabilityStart'] ?? null;
         $availabilityEnd   = $data['availabilityEnd']   ?? null;
 
