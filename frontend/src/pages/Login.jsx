@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../style/login.module.css";
 import logo from "../images/logo.png";
-import { logger } from '@/services/logger';
+import { logger } from '../services/logger';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const Login = () => {
