@@ -3,10 +3,10 @@ bash
 bash backend/bin/generate-readme.sh
 cela modifie le README.md avec les valeur a jour !!
 
-# 🚀 Installation de openhub-backend
+# 🚀 Installation de backend
 
-> **Dernière mise à jour :** 2026-02-18
-> **Projet :** openhub-backend
+> **Dernière mise à jour :** 2026-02-19
+> **Projet :** backend
 > **Symfony :** 7.3
 > **PHP nécessaire :** 8.2+
 > **Base de données :** mysql
@@ -18,7 +18,7 @@ cela modifie le README.md avec les valeur a jour !!
 | Composer | 2.6.5 |
 | Node.js | 18.18.0 |
 | Yarn | 1.22.19 |
-| Git | 2.52.0 |
+| Git | 2.53.0 |
 | Docker | 24.0.6 |
 
 ## ⚡ Installation rapide
