@@ -60,43 +60,36 @@ const Register = () => {
   const prevStep = () => {
     setCurrentStep((prev) => prev - 1);
   };
+const validateStep = (step) => {
+  const newErrors = {};
 
-  const validateStep = (step) => {
-    const newErrors = {};
+  if (step === 1) {
+    const firstNameError = validateName(formState.firstName);
+    const lastNameError  = validateName(formState.lastName);
+    if (firstNameError) newErrors.firstName = firstNameError;
+    if (lastNameError)  newErrors.lastName  = lastNameError;
+  }
 
-    if (step === 1) {
-      const firstNameError = validateName(formState.firstName);
-      const lastNameError  = validateName(formState.lastName);
-      if (firstNameError) newErrors.firstName = firstNameError;
-      if (lastNameError)  newErrors.lastName  = lastNameError;
+  if (step === 2) {
+    if (!formState.email.includes("@")) newErrors.email = "Email invalide";
+    if (formState.password.length < 6)  newErrors.password = "6 caractères minimum";
+  }
+
+  if (step === 3) {
+    if (formState.availabilityStart && formState.availabilityEnd &&
+        formState.availabilityStart >= formState.availabilityEnd)
+      newErrors.availabilityEnd = "La date de fin doit être après la date de début";
+
+    if (formState.availabilityStart) {
+      const today = new Date().toISOString().split("T")[0];
+      if (formState.availabilityStart < today)
+        newErrors.availabilityStart = "La date de début doit être dans le futur";
     }
+  }
 
-    if (step === 2) {
-      if (!formState.email.includes("@"))
-        newErrors.email = "Email invalide";
-      if (formState.password.length < 6)
-        newErrors.password = "6 caractères minimum";
-    }
-
-    if (step === 3) {
-      if (
-        formState.availabilityStart &&
-        formState.availabilityEnd &&
-        formState.availabilityStart >= formState.availabilityEnd
-      ) {
-        newErrors.availabilityEnd = "La date de fin doit être après la date de début";
-      }
-      if (formState.availabilityStart) {
-        const today = new Date().toISOString().split("T")[0];
-        if (formState.availabilityStart < today) {
-          newErrors.availabilityStart = "La date de début doit être dans le futur";
-        }
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
