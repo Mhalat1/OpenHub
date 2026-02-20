@@ -3,6 +3,7 @@ import userPhoto from "../images/users/user1.png";
 import styles from "../style/Home.module.css";
 import React, { useEffect, useState } from "react";
 import Projects from "./Projects";
+import React, { useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL;
 

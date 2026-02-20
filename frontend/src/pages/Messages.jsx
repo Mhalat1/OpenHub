@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "../style/Message.module.css";
+import React, { useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
