@@ -2,7 +2,6 @@ import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../style/register.module.css";
 import logo from "../images/logo.png";
-import React, { useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL;
 

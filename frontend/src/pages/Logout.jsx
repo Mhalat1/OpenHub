@@ -1,6 +1,5 @@
-import React from "react";
 import "../style/logout.css";
-
+import React, { useState } from "react";
 const LogoutButton = () => {
   const handleLogout = () => {
     // 🔐 Supprime le token JWT

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import React, { useEffect } from 'react';
 
 const DonatePage = () => {
   const [amount, setAmount] = useState(5);
