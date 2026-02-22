@@ -104,6 +104,13 @@ class AuthController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json([
+                'status'  => false,
+                'message' => 'Invalid email format (use format: nom@domaine.xxx)'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingUser) {
             $this->logger->warning('Registration attempt with existing email', [
