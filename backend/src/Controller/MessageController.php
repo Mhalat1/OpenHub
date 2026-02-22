@@ -472,28 +472,41 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
             return ['valid' => true, 'error' => null];
         }
     }
-
-    // ✅ NOUVELLE MÉTHODE : Validation d'état utilisateur
 private function validateUserState(User $user): array
 {
     // Vérifier les noms
     if (!$this->validateName($user->getFirstName()) || !$this->validateName($user->getLastName())) {
+        $this->logger->error('validateUserState FAILED: invalid name', [
+            'firstName' => $user->getFirstName(),
+            'lastName'  => $user->getLastName(),
+        ]);
         return ['valid' => false, 'error' => 'Invalid user name'];
     }
     
     // Vérifier l'email
     $emailCheck = $this->validateEmailandUniqueness($user->getEmail(), $user->getId(), $this->em);
     if (!$emailCheck['valid']) {
+        $this->logger->error('validateUserState FAILED: invalid email', [
+            'email' => $user->getEmail(),
+            'error' => $emailCheck['error'],
+        ]);
         return ['valid' => false, 'error' => 'Invalid user email'];
     }
     
-    // Vérifier les dates de disponibilité
-    $dateCheck = $this->validateAvailabilityDates(
-        $user->getAvailabilityStart(), 
-        $user->getAvailabilityEnd()
-    );
-    if (!$dateCheck['valid']) {
-        return ['valid' => false, 'error' => 'Invalid availability dates'];
+    // Vérifier les dates
+    if ($user->getAvailabilityStart() && $user->getAvailabilityEnd()) {
+        $dateCheck = $this->validateAvailabilityDates(
+            $user->getAvailabilityStart(), 
+            $user->getAvailabilityEnd()
+        );
+        if (!$dateCheck['valid']) {
+            $this->logger->error('validateUserState FAILED: invalid dates', [
+                'start' => $user->getAvailabilityStart()?->format('Y-m-d'),
+                'end'   => $user->getAvailabilityEnd()?->format('Y-m-d'),
+                'error' => $dateCheck['error'],
+            ]);
+            return ['valid' => false, 'error' => 'Invalid availability dates'];
+        }
     }
     
     return ['valid' => true, 'error' => null];
