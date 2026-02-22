@@ -37,5 +37,6 @@ security:
         - { path: ^/api/userCreate, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
-        - { path: ^/api/donate, roles: PUBLIC_ACCESS }  
+        - { path: ^/api/donate, roles: PUBLIC_ACCESS }
+        - { path: ^/api/test/papertrail, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

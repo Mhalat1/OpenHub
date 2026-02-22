@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Papertrail</title>
+</head>
+<body>
+    <h1>Test d'envoi de logs à Papertrail</h1>
+    
+    <button onclick="sendLog()">Envoyer un log de test</button>
+    
+    <div id="result" style="margin-top: 20px;"></div>
+    
+    <script>
+    function sendLog() {
+        const result = document.getElementById('result');
+        result.innerHTML = 'Envoi en cours...';
+        
+        fetch('/api/test/papertrail')
+            .then(response => response.json())
+            .then(data => {
+                result.innerHTML = '<pre style="background: #e0ffe0; padding: 10px;">' + 
+                    JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                result.innerHTML = '<pre style="background: #ffe0e0; padding: 10px;">Erreur: ' + 
+                    error + '</pre>';
+            });
+    }
+    </script>
+</body>
+</html>
