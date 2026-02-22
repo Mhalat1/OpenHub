@@ -417,6 +417,14 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
             'error' => 'Invalid email format'
         ];
     }
+
+    if  (!preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $email)) {
+        return [
+            'valid' => false,
+            'error' => 'Invalid email format (use format: nom@domaine.xxx)'
+        ];
+    }
+
     
     // ✅ ÉTAPE 2 : Vérification de l'unicité en base de données
     $existingUser = $em->getRepository(User::class)->findOneBy(['email' => $email]);
