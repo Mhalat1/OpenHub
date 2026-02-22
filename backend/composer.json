@@ -32,6 +32,7 @@
         "symfony/flex": "^2",
         "symfony/form": "7.3.*",
         "symfony/framework-bundle": "7.3.*",
+        "symfony/http-client": "7.3.*",
         "symfony/maker-bundle": "^1.64",
         "symfony/monolog-bundle": "^4.0",
         "symfony/property-access": "7.3.*",

@@ -2,13 +2,12 @@
 
 namespace App\Service;
 
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 
 class PapertrailLogger implements LoggerInterface
 {
     public function __construct(
-        private HttpClientInterface $httpClient,
         private string $url,
         private string $token
     ) {}
@@ -67,20 +66,34 @@ class PapertrailLogger implements LoggerInterface
                 date('Y-m-d H:i:s'),
                 $level,
                 $message,
-                json_encode($context)
+                !empty($context) ? json_encode($context) : ''
             );
 
-            $this->httpClient->request('POST', $this->url, [
-                'headers' => [
-                    'Content-Type' => 'application/octet-stream',
-                    'Authorization' => 'Bearer ' . $this->token,
+            // Utiliser file_get_contents avec un contexte HTTP
+            $options = [
+                'http' => [
+                    'method' => 'POST',
+                    'header' => [
+                        'Content-Type: application/octet-stream',
+                        'Authorization: Bearer ' . $this->token,
+                    ],
+                    'content' => $logLine,
+                    'timeout' => 1,
+                    'ignore_errors' => true
                 ],
-                'body' => $logLine,
-                'timeout' => 1,
-                'max_redirects' => 0,
-            ]);
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false
+                ]
+            ];
+
+            $streamContext = stream_context_create($options);
+            
+            // @ pour ignorer les warnings
+            @file_get_contents($this->url, false, $streamContext);
+            
         } catch (\Exception $e) {
-            // Silently fail - log to error log as fallback
+            // Fallback silencieux
             error_log('Papertrail error: ' . $e->getMessage());
         }
     }
