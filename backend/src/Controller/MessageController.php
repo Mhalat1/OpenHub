@@ -473,46 +473,94 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
             return ['valid' => true, 'error' => null];
         }
     }
-private function validateUserState(User $user): array
+
+    private function validateUserState(User $user): array
 {
+    // Forcer l'affichage dans les logs Render
+    error_log('=== VALIDATE USER STATE START ===');
+    error_log('User ID: ' . $user->getId());
+    error_log('Email: ' . $user->getEmail());
+    error_log('FirstName: "' . $user->getFirstName() . '"');
+    error_log('LastName: "' . $user->getLastName() . '"');
+    error_log('FirstName length: ' . mb_strlen($user->getFirstName()));
+    error_log('LastName length: ' . mb_strlen($user->getLastName()));
 
-$this->logger->error('NEW CODE IS RUNNING - validateUserState test');
+    $this->logger->error('NEW CODE IS RUNNING - validateUserState test');
 
-    // Vérifier les noms
-    if (!$this->validateName($user->getFirstName()) || !$this->validateName($user->getLastName())) {
-        $this->logger->error('validateUserState FAILED: invalid name', [
-            'firstName' => $user->getFirstName(),
-            'lastName'  => $user->getLastName(),
-        ]);
+    // Vérifier les noms avec logs forcés
+    $firstNameValid = $this->validateName($user->getFirstName());
+    $lastNameValid = $this->validateName($user->getLastName());
+    
+    error_log('FirstName valid: ' . ($firstNameValid ? 'true' : 'false'));
+    error_log('LastName valid: ' . ($lastNameValid ? 'true' : 'false'));
+
+    if (!$firstNameValid || !$lastNameValid) {
+        $reason = [];
+        if (!$firstNameValid) {
+            // Tester chaque condition
+            $firstName = $user->getFirstName();
+            
+            if (empty($firstName) || mb_strlen($firstName) > 20 || mb_strlen($firstName) < 2) {
+                $reason[] = 'length';
+                error_log('FAIL: FirstName length=' . mb_strlen($firstName) . ' (min=2, max=20)');
+            }
+            if (preg_match('/^[\s\-\']|[\s\-\']$/', $firstName)) {
+                $reason[] = 'start_end_invalid';
+                error_log('FAIL: FirstName starts/ends with invalid char');
+            }
+            if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $firstName)) {
+                $reason[] = 'invalid_chars';
+                error_log('FAIL: FirstName contains invalid characters');
+            }
+            if (preg_match('/\d/', $firstName)) {
+                $reason[] = 'contains_numbers';
+                error_log('FAIL: FirstName contains numbers');
+            }
+            
+            // Afficher les caractères dangereux
+            $dangerousChars = ['<', '>', '&', '"', '\\', '/', '@', '#', '$', '%', '^', '*', '(', ')', '=', '+', '[', ']', '{', '}'];
+            foreach ($dangerousChars as $char) {
+                if (str_contains($firstName, $char)) {
+                    $reason[] = 'dangerous_char_' . $char;
+                    error_log("FAIL: FirstName contains dangerous char: $char");
+                }
+            }
+            
+            if (preg_match('/[\s\'\-]{3,}/', $firstName)) {
+                $reason[] = 'too_many_consecutive';
+                error_log('FAIL: FirstName has too many consecutive special chars');
+            }
+        }
+        
+        error_log('validateUserState FAILED: ' . implode(', ', $reason));
+        
         return ['valid' => false, 'error' => 'Invalid user name'];
     }
     
     // Vérifier l'email
     $emailCheck = $this->validateEmailandUniqueness($user->getEmail(), $user->getId(), $this->em);
+    error_log('Email valid: ' . ($emailCheck['valid'] ? 'true' : 'false'));
+    
     if (!$emailCheck['valid']) {
-        $this->logger->error('validateUserState FAILED: invalid email', [
-            'email' => $user->getEmail(),
-            'error' => $emailCheck['error'],
-        ]);
+        error_log('Email error: ' . $emailCheck['error']);
         return ['valid' => false, 'error' => 'Invalid user email'];
     }
     
-    // Vérifier les dates
+    // Vérifier les dates si présentes
     if ($user->getAvailabilityStart() && $user->getAvailabilityEnd()) {
         $dateCheck = $this->validateAvailabilityDates(
             $user->getAvailabilityStart(), 
             $user->getAvailabilityEnd()
         );
+        error_log('Dates valid: ' . ($dateCheck['valid'] ? 'true' : 'false'));
+        
         if (!$dateCheck['valid']) {
-            $this->logger->error('validateUserState FAILED: invalid dates', [
-                'start' => $user->getAvailabilityStart()?->format('Y-m-d'),
-                'end'   => $user->getAvailabilityEnd()?->format('Y-m-d'),
-                'error' => $dateCheck['error'],
-            ]);
+            error_log('Date error: ' . $dateCheck['error']);
             return ['valid' => false, 'error' => 'Invalid availability dates'];
         }
     }
     
+    error_log('validateUserState PASSED');
     return ['valid' => true, 'error' => null];
 }
 
