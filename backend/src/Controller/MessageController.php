@@ -267,14 +267,20 @@ private function sanitizeForJson($value)
 
 private function validateAvailabilityDates(?\DateTimeImmutable $minDate, ?\DateTimeImmutable $maxDate): array
 {
-    // Si aucune date n'est définie, c'est valide
+    // Si aucune date n'est définie, c'est non valide
     if (!$minDate && !$maxDate) {
-        return ['valid' => true, 'error' => null];
+        return [
+            'valid' => false, 
+            'error' => 'maxDate date must be after minDate date'
+        ];
     }
 
-    // Si seulement une date est définie, c'est valide
+    // Si seulement une date est définie, c'est non valide
     if (!$minDate || !$maxDate) {
-        return ['valid' => true, 'error' => null];
+        return [
+            'valid' => false, 
+            'error' => 'Both minDate and maxDate must be defined'
+        ];
     }
 
     // ✅ RÈGLE 1 : Date de fin APRÈS date de début
@@ -298,10 +304,10 @@ private function validateAvailabilityDates(?\DateTimeImmutable $minDate, ?\DateT
 
     // ✅ RÈGLE 3 : Les deux dates doivent être dans le futur
     $today = new \DateTimeImmutable();
-    if ($minDate < $today || $maxDate < $today) {
+    if ($maxDate < $today) {
         return [
             'valid' => false,
-            'error' => 'Dates must be in the future'
+            'error' => 'End Date must be in the future'
         ];
     }
 
