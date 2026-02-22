@@ -1063,10 +1063,31 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
 public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
 {
     $user = $security->getUser();
+
+        $user = $security->getUser();
+
+    // --- TEST DE DIAGNOSTIC ULTIME ---
+    error_log('>>> DIAG: createConversation STARTED');
+    if (!$this->papertrailLogger) {
+        error_log('>>> DIAG: $papertrailLogger is NULL!');
+    } else {
+        error_log('>>> DIAG: $papertrailLogger exists, attempting to log...');
+        try {
+            $this->papertrailLogger->info('>>> DIAG: If you see this in Papertrail, handler works!');
+            error_log('>>> DIAG: Log method call completed (no exception thrown)');
+        } catch (\Exception $e) {
+            error_log('>>> DIAG: EXCEPTION during log: ' . $e->getMessage());
+        }
+    }
+    error_log('>>> DIAG: Test finished, continuing normal flow.');
+    // --- FIN DU TEST ---
+
     if (!$user instanceof User) {
-        $this->papertrailLogger->warning('Tentative création conversation - utilisateur non authentifié');
+        $this->papertrailLogger?->warning('Tentative création conversation - utilisateur non authentifié'); // Utilisation de ?-> pour sécurité
         return new JsonResponse(['message' => 'User not authenticated'], 401);
     }
+
+
 
     // LOG 1 : Début du processus
     $this->papertrailLogger->info('Début création conversation', [
