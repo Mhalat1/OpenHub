@@ -302,14 +302,15 @@ private function validateAvailabilityDates(?\DateTimeImmutable $minDate, ?\DateT
         ];
     }
 
-    // ✅ RÈGLE 3 : date de fin doit être dans le futur
+
     $today = new \DateTimeImmutable();
-    if ($maxDate > $today) {
+    if ($maxDate <= $today) {  // ← Changement ici : si la date est aujourd'hui ou dans le passé
         return [
             'valid' => false,
-            'error' => 'End Date must be in the future'
+            'error' => 'End Date must be in the future'  // ← Le message reste correct
         ];
     }
+
 
     return ['valid' => true, 'error' => null];
 }
