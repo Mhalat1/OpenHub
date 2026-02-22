@@ -1048,225 +1048,250 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
     ], 200);
 }
 
+
+
+
+
+
+
+
+
+
+
+
 #[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
 public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
 {
     $user = $security->getUser();
     if (!$user instanceof User) {
+        $this->papertrailLogger->warning('Tentative création conversation - utilisateur non authentifié');
         return new JsonResponse(['message' => 'User not authenticated'], 401);
     }
 
+    // LOG 1 : Début du processus
+    $this->papertrailLogger->info('Début création conversation', [
+        'user_id' => $user->getId(),
+        'email' => $user->getEmail()
+    ]);
 
-     // ✅ ÉTAPE 1 : Valider l'état du compte utilisateur
+    // ✅ ÉTAPE 1 : Valider l'état du compte utilisateur
+    $this->papertrailLogger->debug('Validation état utilisateur', [
+        'user_id' => $user->getId()
+    ]);
+    
     $userValidation = $this->validateUserState($user);
     if (!$userValidation['valid']) {
+        $this->papertrailLogger->warning('Échec validation état utilisateur', [
+            'user_id' => $user->getId(),
+            'error' => $userValidation['error']
+        ]);
         return new JsonResponse([
             'message' => 'Cannot create conversation: invalid user state',
             'error' => $userValidation['error']
         ], 400);
     }
 
-
     // ✅ AJOUT : Validations AVANT la transaction
+    $this->papertrailLogger->debug('Vérification rate limit', [
+        'user_id' => $user->getId()
+    ]);
+    
     $rateLimitCheck = $this->validateConversationCreateRateLimit($user, $em);
     if (!$rateLimitCheck['valid']) {
+        $this->papertrailLogger->warning('Rate limit dépassé', [
+            'user_id' => $user->getId(),
+            'error' => $rateLimitCheck['error']
+        ]);
         return new JsonResponse(['message' => $rateLimitCheck['error']], 429);
     }
     
     // ✅ AJOUT : DÉBUT DE TRANSACTION
     $em->beginTransaction();
+    $this->papertrailLogger->debug('Transaction démarrée', [
+        'user_id' => $user->getId()
+    ]);
 
     try {
-
-         // ✅ PROTECTION XXE : Vérifier le Content-Type
-     // ✅ ÉTAPE 1 : Récupérer le Content-Type de la requête HTTP
+        // ✅ PROTECTION XXE : Vérifier le Content-Type
         $contentType = $request->headers->get('Content-Type', '');
-        // ✅ ÉTAPE 2 : Vérifier que ça commence par 'application/json'
         if (!str_starts_with($contentType, 'application/json')) {
+            $this->papertrailLogger->warning('Content-Type invalide', [
+                'user_id' => $user->getId(),
+                'content_type' => $contentType
+            ]);
             return new JsonResponse([
                 'message' => 'Invalid Content-Type. Only application/json is accepted'
-            ], 415); // 415 Unsupported Media Type
+            ], 415);
         }
 
-
-        // ✅ ÉTAPE 1 : Parser le JSON (sans décodage)
-
+        // Parser le JSON
         $rawContent = $request->getContent();
+        $this->papertrailLogger->debug('Réception données', [
+            'user_id' => $user->getId(),
+            'size' => strlen($rawContent)
+        ]);
 
         // Protection contre les payloads massifs
-        if (strlen($rawContent) > 10000) { // 100KB max
+        if (strlen($rawContent) > 10000) {
+            $this->papertrailLogger->warning('Payload trop volumineux', [
+                'user_id' => $user->getId(),
+                'size' => strlen($rawContent)
+            ]);
             return new JsonResponse(['message' => 'Request too large'], 413);
         }
 
-        
+        $data = json_decode($rawContent, true, 10);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return new JsonResponse(['message' => 'Invalid JSON: '], 400);
+            $this->papertrailLogger->warning('JSON invalide', [
+                'user_id' => $user->getId(),
+                'error' => json_last_error_msg()
+            ]);
+            return new JsonResponse(['message' => 'Invalid JSON'], 400);
         }
-        $data = json_decode($rawContent, true, 10); // Max 10 niveaux de profondeur
-        // Vérifier qu'il n'y a pas de champs interdits
+
+        // Vérifier les champs interdits
         $allowedFields = ['title', 'description', 'conv_users'];
         $extraFields = array_diff(array_keys($data), $allowedFields);
         if (!empty($extraFields)) {
+            $this->papertrailLogger->warning('Champs interdits détectés', [
+                'user_id' => $user->getId(),
+                'extra_fields' => $extraFields
+            ]);
             throw new Exception('Champs interdits détectés');
         }
 
-        // ✅ ÉTAPE 2 : VALIDATION PRÉLIMINAIRE (avant décodage/sanitization)
+        // Validation préliminaire
         if (empty($data['title']) || !is_string($data['title'])) {
+            $this->papertrailLogger->warning('Titre manquant ou invalide', [
+                'user_id' => $user->getId()
+            ]);
             return new JsonResponse(['message' => 'Title is required and must be a string'], 400);
         }
-        
-        if (isset($data['description']) && !is_string($data['description'])) {
-            return new JsonResponse(['message' => 'Description must be a string'], 400);
-        }
 
-        if (isset($data['conv_users']) && !is_array($data['conv_users'])) {
-            return new JsonResponse(['message' => 'conv_users must be an array'], 400);
-        }
-
-        // ✅ ÉTAPE 3 : Décodage canonique (seulement si validation initiale OK)
+        // Décodage canonique
+        $this->papertrailLogger->debug('Décodage canonique du titre', [
+            'user_id' => $user->getId(),
+            'title_original' => substr($data['title'], 0, 50)
+        ]);
         $data['title'] = $this->canonicalDecode($data['title']);
-        
-        if (isset($data['description']) && !empty($data['description'])) {
-            $data['description'] = $this->canonicalDecode($data['description']);
-        }
 
-        // ✅ ÉTAPE 4 : Validation stricte APRÈS décodage
+        // Validation stricte
         if (!$this->validateString($data['title'], 255)) {
-            return new JsonResponse([
-                'message' => 'Invalid title format. Only letters, numbers, spaces, and basic punctuation are allowed. Maximum length is 255 characters.'
-            ], 400);
+            $this->papertrailLogger->warning('Titre invalide après décodage', [
+                'user_id' => $user->getId(),
+                'title' => substr($data['title'], 0, 50)
+            ]);
+            return new JsonResponse(['message' => 'Invalid title format'], 400);
         }
 
-        if (isset($data['description']) && !empty($data['description']) && !$this->validateString($data['description'], 1000)) {
-            return new JsonResponse([
-                'message' => 'Invalid description format. Only letters, numbers, spaces, and basic punctuation are allowed. Maximum length is 1000 characters.'
-            ], 400);
-        }
+        // Création de la conversation
+        $this->papertrailLogger->info('Création de la conversation en base', [
+            'user_id' => $user->getId(),
+            'title' => $data['title']
+        ]);
 
-        // ✅ AJOUT : Validation croisée titre/description
-        if (!empty($data['description']) && $data['title'] === $data['description']) {
-            return new JsonResponse([
-                'message' => 'Title and description cannot be identical'
-            ], 400);
-        }
-
-        // ✅ ÉTAPE 5 : Sanitization (dernière étape)
-        $data = $this->sanitizeData($data);
-
-
-
-        // ✅ ÉTAPE 6 : Typage fort et création de l'entité
         $conversation = new Conversation();
-
         $conversation->setTitle($data['title']);
         $conversation->setDescription($data['description'] ?? '');
         $conversation->setCreatedBy($user);
         $conversation->setCreatedAt(new \DateTimeImmutable());
         $conversation->setLastMessageAt(null);
-
-        // Ajouter le créateur
         $conversation->addUser($user);
 
-        // ✅ ÉTAPE 7 : Validation de cohérence des participants
-            $conversationUsers = [];
-            $userIdsToInvite = $data['conv_users'] ?? [];
+        // Gestion des participants
+        $userIdsToInvite = $data['conv_users'] ?? [];
+        if (!empty($userIdsToInvite)) {
+            $this->papertrailLogger->debug('Ajout des participants', [
+                'user_id' => $user->getId(),
+                'participant_count' => count($userIdsToInvite)
+            ]);
 
-            // Vérifier que c'est un tableau
-            if (!is_array($userIdsToInvite)) {
-                $userIdsToInvite = [];
-            }
-
-            // ✅ UTILISER le validateur
             $check = $this->validateConversationParticipants($user, $userIdsToInvite, $em);
-
-            // Si erreur → arrêter et renvoyer l'erreur
             if (!$check['valid']) {
+                $this->papertrailLogger->warning('Participants invalides', [
+                    'user_id' => $user->getId(),
+                    'error' => $check['error']
+                ]);
                 return new JsonResponse(['message' => $check['error']], 400);
             }
 
-            // Si OK → ajouter les utilisateurs validés
             foreach ($check['validUsers'] as $friendUser) {
                 $conversation->addUser($friendUser);
-                $conversationUsers[] = [
-                    'id' => $friendUser->getId(),
-                    'name' => $this->sanitizeForJson($friendUser->getFirstName() . ' ' . $friendUser->getLastName()),
-                    'email' => $this->sanitizeForJson($friendUser->getEmail())
-                ];
-
             }
+        }
 
-            
-        // ✅ AJOUT : VÉRIFICATION DES DOUBLONS 
+        // Vérification des doublons
         if ($this->checkDuplicateConversation($user, $userIdsToInvite, $data['title'], $em)) {
+            $this->papertrailLogger->warning('Conversation en double détectée', [
+                'user_id' => $user->getId(),
+                'title' => $data['title']
+            ]);
             $em->rollback();
             return new JsonResponse([
                 'message' => 'A conversation with the same title already exists between these users',
                 'error' => 'DUPLICATE_CONVERSATION'
-            ], 409); // 409 Conflict
+            ], 409);
         }
-        
-            $conversationHash = $this->generateConversationHash(
-                array_merge([$user->getId()], $userIdsToInvite),
-                $data['title']
-            );
 
-            // Si votre entité Conversation a le champ conversationHash
-            if (method_exists($conversation, 'setConversationHash')) {
-                $conversation->setConversationHash($conversationHash);
-            }
-
-            
-            // ✅ Libérer le tableau temporaire
-            $check = null;
-        
-
-        // Persister la conversation
+        // Persistance
         $em->persist($conversation);
         $em->flush();
 
+        // LOG DE SUCCÈS - TRÈS IMPORTANT
+        $this->papertrailLogger->info('✅ Conversation créée avec succès', [
+            'user_id' => $user->getId(),
+            'conversation_id' => $conversation->getId(),
+            'title' => $data['title'],
+            'participant_count' => count($conversation->getUsers())
+        ]);
 
+        $em->commit();
+        
+        $this->papertrailLogger->debug('Transaction commitée', [
+            'user_id' => $user->getId(),
+            'conversation_id' => $conversation->getId()
+        ]);
 
-
-
-        // ✅ ÉTAPE 8 : Nettoyer les données pour la réponse JSON
-        $response = [
+        return new JsonResponse([
             'id' => $conversation->getId(),
-            'title' => $this->sanitizeForJson($conversation->getTitle()),
-            'description' => $this->sanitizeForJson($conversation->getDescription()),
-            'createdBy' => $this->sanitizeForJson($user->getFirstName() . ' ' . $user->getLastName()),
+            'title' => $conversation->getTitle(),
+            'description' => $conversation->getDescription(),
+            'createdBy' => $user->getFirstName() . ' ' . $user->getLastName(),
             'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
             'createdById' => $conversation->getCreatedBy()?->getId(),
             'lastMessageAt' => $conversation->getLastMessageAt(),
-            'users' => $conversationUsers,
-            'userCount' => count($conversationUsers)
-        ];
-        
+            'users' => [], // À compléter si besoin
+            'userCount' => count($conversation->getUsers())
+        ], 201);
 
-        // ✅ Libérer les références locales
-        $conversation = null;
-        $conversationUsers = null;
-        $data = null;
-        $rawContent = null;
-        
-     // ✅ AJOUT : COMMIT si tout OK
-        $em->commit();
-
-        return new JsonResponse($response, 201);
-        
     } catch (\InvalidArgumentException $e) {
-        // ✅ AJOUT : ROLLBACK sur erreur validation (400)
+        $this->papertrailLogger->error('Erreur de validation', [
+            'user_id' => $user->getId(),
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
         $em->rollback();
         $em->clear();
         return new JsonResponse(['message' => $e->getMessage()], 400);
 
-        
     } catch (\Exception $e) {
-        // ✅ AJOUT : ROLLBACK sur erreur système (500)
+        $this->papertrailLogger->error('Erreur système création conversation', [
+            'user_id' => $user->getId(),
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
         $em->rollback();
         $em->clear();
         return new JsonResponse(['error' => $e->getMessage()], 500);
     }
 }
+
+
+
+
+
+
+
 
 #[Route('/api/create/message', name: 'create_message', methods: ['POST'])]
 public function createMessage(
