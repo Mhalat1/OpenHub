@@ -9,20 +9,17 @@ monolog:
             level: debug
         
         papertrail:
-            type: whatfailuregroup
-            members: [papertrail_http]
+            type: buffer
+            handler: papertrail_http
+            level: info
+            channels: [papertrail]
         
         papertrail_http:
-            type: buffer
-            handler: papertrail_http_buffer
-        
-        papertrail_http_buffer:
             type: curl
-            level: info
-            channel: papertrail
             url: '%env(PAPERTRAIL_URL)%'
-            method: POST
+            level: info
             headers:
-                Content-Type: application/json
-                Authorization: 'Bearer %env(PAPERTRAIL_TOKEN)%'
+                Content-Type: "application/json"
+                Authorization: "Bearer %env(PAPERTRAIL_TOKEN)%"
             formatter: monolog.formatter.json
+            # Pas de méthode, curl utilise POST par défaut avec des données
