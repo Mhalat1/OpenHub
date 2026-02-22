@@ -7,13 +7,13 @@ monolog:
             type: stream
             path: php://stderr
             level: debug
-            formatter: monolog.formatter.json
         
         papertrail:
             type: syslog
             ident: 'openhub'
             facility: user
             level: info
-            host: '%env(PAPERTRAIL_HOST)%'
-            port: '%env(int:PAPERTRAIL_PORT)%'
+            # Solution: fournir des valeurs par défaut
+            host: '%env(default::PAPERTRAIL_HOST)%'
+            port: '%env(default::PAPERTRAIL_PORT)%'
             channel: papertrail
