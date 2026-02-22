@@ -1,8 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../images/logo.png";
-import { logger } from '../services/logger';
-import styles from "../style/login.module.css";
-import React, { useState, useEffect } from "react"; 
+import styles from "../style/login.module.css"; 
+import logo from '../images/logo.png';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const Login = () => {
@@ -11,36 +10,25 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const [loginResponse, setLoginResponse] = useState(null); 
-
-    useEffect(() => {
-      if (loginResponse) {
-        logger.info("Login attempt", { 
-          email: loginResponse.email, 
-          success: loginResponse.success 
-        });
-      }
-    }, [loginResponse]);
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // Validation côté client
-    if (!email || !password) {
-      console.log("Empty fields");
-      setError("Veuillez remplir tous les champs");
-      setIsLoading(false);
-      return;
-    }
+  // Validation côté client
+  if (!email || !password) {
+    console.log('Empty fields');
+    setError("Veuillez remplir tous les champs");
+    setIsLoading(false);
+    return;
+  }
 
-    if (!email.includes("@")) {
-      setError("Invalid email format");
-      setIsLoading(false);
-      return;
-    }
+  if (!email.includes('@')) {
+    setError("Invalid email format");
+    setIsLoading(false);
+    return;
+  }
     try {
       const response = await fetch(`${API_URL}/api/login_check`, {
         method: "POST",
@@ -51,7 +39,6 @@ const Login = () => {
       });
 
       const data = await response.json();
-      setLoginResponse({ email, success: response.ok });
 
       if (!response.ok) {
         throw new Error(data.message || "Identifiants incorrects");
@@ -60,8 +47,8 @@ const Login = () => {
       if (data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user_email", email); // Pour l'UX
-        navigate("/home", {
-          state: { message: "Connexion réussie !" },
+        navigate("/home", { 
+          state: { message: "Connexion réussie !" } 
         });
       } else {
         throw new Error("Token manquant dans la réponse");
@@ -105,7 +92,7 @@ const Login = () => {
             <p>Accédez à votre espace personnel</p>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form} noValidate>
+          <form onSubmit={handleSubmit} className={styles.form} noValidate >
             <div className={styles.inputGroup}>
               <label htmlFor="email" className={styles.label}>
                 Adresse email
@@ -136,9 +123,9 @@ const Login = () => {
               />
             </div>
 
-            <button
-              type="submit"
-              className={`${styles.submitButton} ${isLoading ? styles.loading : ""}`}
+            <button 
+              type="submit" 
+              className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}
               disabled={isLoading}
             >
               {isLoading ? (
@@ -176,7 +163,7 @@ const Login = () => {
 
           {/* Lien mot de passe oublié */}
           <div className={styles.forgotPassword}>
-            <button
+            <button 
               className={styles.forgotLink}
               onClick={() => navigate("/reset-password")}
             >
