@@ -1,7 +1,7 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "../style/register.module.css";
 import logo from "../images/logo.png";
+import styles from "../style/register.module.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -37,6 +37,62 @@ const validateName = (name) => {
   return null; // valide
 };
 
+const validateEmail = (email) => {
+    console.log('Validating email:', email);
+  const trimmed = email.trim();
+  
+  if (!trimmed) return "Email requis";
+  
+  // Vérification de base
+  if (!trimmed.includes('@')) {
+    return "L'email doit contenir un @";
+  }
+  
+  // Séparer en partie locale et domaine
+  const parts = trimmed.split('@');
+  if (parts.length !== 2) {
+    return "Format d'email invalide";
+  }
+  
+  const [local, domain] = parts;
+  
+  // Vérifier que les parties ne sont pas vides
+  if (!local) {
+    return "La partie locale de l'email ne peut pas être vide";
+  }
+  
+  if (!domain) {
+    return "Le domaine de l'email ne peut pas être vide";
+  }
+  
+  // Vérifier que le domaine contient un point (TLD)
+  if (!domain.includes('.')) {
+    return "Le domaine doit contenir un point (ex: gmail.com)";
+  }
+  
+  // Vérifier que le point n'est pas au début ou à la fin du domaine
+  if (domain.startsWith('.') || domain.endsWith('.')) {
+    return "Format de domaine invalide";
+  }
+  
+  // Vérifier qu'il n'y a pas d'espaces
+  if (trimmed.includes(' ')) {
+    return "L'email ne peut pas contenir d'espaces";
+  }
+  
+  // Validation plus stricte avec regex (même que PHP FILTER_VALIDATE_EMAIL)
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(trimmed)) {
+    return "Format d'email invalide. Utilisez le format: nom@domaine.xxx (ex: jean@example.com)";
+  }
+  
+
+  
+  return null; // Email valide
+};
+
+
 const Register = () => {
   const [formState, dispatch] = useReducer(formReducer, initialState);
   const [errors, setErrors]   = useState({});
@@ -70,10 +126,14 @@ const validateStep = (step) => {
     if (lastNameError)  newErrors.lastName  = lastNameError;
   }
 
-  if (step === 2) {
-    if (!formState.email.includes("@")) newErrors.email = "Email invalide";
-    if (formState.password.length < 6)  newErrors.password = "6 caractères minimum";
-  }
+
+      if (step === 2) {
+      // ✅ Utilisation de la nouvelle validation d'email
+      const emailError = validateEmail(formState.email);
+      if (emailError) newErrors.email = emailError;
+    }
+
+
 
   if (step === 3) {
     if (formState.availabilityStart && formState.availabilityEnd &&
@@ -92,10 +152,41 @@ const validateStep = (step) => {
 };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateStep(3)) return;
 
-    setIsLoading(true);
+  e.preventDefault();
+  
+  // Valider l'étape 3 d'abord (pour les dates)
+  if (!validateStep(3)) return;
+  
+  // Valider l'email et mot de passe à nouveau
+  const emailError = validateEmail(formState.email);
+  if (emailError) {
+    setErrors(prev => ({ ...prev, email: emailError }));
+    setCurrentStep(2); // Retourner à l'étape 2
+    return;
+  }
+  
+  // Valider le mot de passe
+  if (!formState.password || formState.password.length < 6) {
+    setErrors(prev => ({ ...prev, password: "Mot de passe invalide" }));
+    setCurrentStep(2);
+    return;
+  }
+  
+  // Valider les noms
+  const firstNameError = validateName(formState.firstName);
+  const lastNameError = validateName(formState.lastName);
+  if (firstNameError || lastNameError) {
+    setErrors(prev => ({ 
+      ...prev, 
+      firstName: firstNameError || '',
+      lastName: lastNameError || '' 
+    }));
+    setCurrentStep(1);
+    return;
+  }
+
+  setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/userCreate`, {
         method: "POST",
@@ -191,6 +282,9 @@ const validateStep = (step) => {
               {errors.email && (
                 <span className={styles.errorText}>{errors.email}</span>
               )}
+              <small className={styles.hint}>
+                Format: nom@domaine.com (ex: jean.dupont@gmail.com)
+              </small>
             </div>
 
             <div className={styles.inputGroup}>

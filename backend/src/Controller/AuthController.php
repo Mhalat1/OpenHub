@@ -104,23 +104,54 @@ class AuthController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        
+    // ✅ VALIDATION STRICTE DU FORMAT EMAIL (xxx@xxx.xx)
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return $this->json([
+            'status'  => false,
+            'message' => 'Invalid email format. Use format: name@domain.xxx (ex: jean@example.com)'
+        ], Response::HTTP_BAD_REQUEST);
+    }
+    
+    // ✅ VALIDATION SUPPLEMENTAIRE : Vérifier la présence d'un point dans le domaine
+    $parts = explode('@', $email);
+    if (count($parts) === 2) {
+        $domain = $parts[1];
+        // Vérifier que le domaine contient un point (TLD)
+        if (!str_contains($domain, '.')) {
             return $this->json([
                 'status'  => false,
-                'message' => 'Invalid email format (use format: nom@domaine.xxx)'
+                'message' => 'Invalid email format. Domain must contain a dot (ex: gmail.com)'
             ], Response::HTTP_BAD_REQUEST);
         }
-
-        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
-        if ($existingUser) {
-            $this->logger->warning('Registration attempt with existing email', [
-                'email' => $email,
-            ]);
+        
+        // Vérifier que le TLD a au moins 2 caractères
+        $tldParts = explode('.', $domain);
+        $tld = end($tldParts);
+        if (strlen($tld) < 2) {
             return $this->json([
                 'status'  => false,
-                'message' => 'This email is already in use'
-            ], Response::HTTP_CONFLICT);
+                'message' => 'Invalid email format. Extension must be at least 2 characters (ex: .com, .fr)'
+            ], Response::HTTP_BAD_REQUEST);
         }
+    }
+
+    $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+    if ($existingUser) {
+        $this->logger->warning('Registration attempt with existing email', [
+            'email' => $email,
+        ]);
+        return $this->json([
+            'status'  => false,
+            'message' => 'This email is already in use'
+        ], Response::HTTP_CONFLICT);
+    }
+
+
+
+        
+
 
         $user = new User();
         $user->setEmail($email);
