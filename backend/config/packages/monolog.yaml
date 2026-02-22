@@ -53,3 +53,13 @@ when@prod:
                 channels: [deprecation]
                 path: php://stderr
                 formatter: monolog.formatter.json
+
+            papertrail:
+                type: syslog
+                ident: 'openhub'
+                facility: user
+                level: info
+                host: 'logs.collector.eu-01.cloud.solarwinds.com'
+                port: 514  # Port UDP standard
+                channel: papertrail
+                formatter: monolog.formatter.json
