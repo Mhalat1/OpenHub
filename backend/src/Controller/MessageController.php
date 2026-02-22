@@ -16,14 +16,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use App\BusinessLimits;
-use App\Service\PapertrailLogger;
+use Psr\Log\LoggerInterface;
 
 
 class MessageController extends AbstractController
 {
     private MessageRepository $messageRepository;
     private EntityManagerInterface $em;
-    private PapertrailLogger $logger;
+    private LoggerInterface $logger;
 
     // ✅ NOUVEAU : Constantes pour cohérence des parsers
     private const ENCODING = 'UTF-8';
@@ -33,7 +33,7 @@ class MessageController extends AbstractController
     public function __construct(
         MessageRepository $messageRepository,
         EntityManagerInterface $em,
-        PapertrailLogger $logger       
+        LoggerInterface $logger       
     ) {
 
         $this->messageRepository = $messageRepository;
