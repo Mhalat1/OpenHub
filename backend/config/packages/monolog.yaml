@@ -1,6 +1,6 @@
 monolog:
     channels:
-        - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+        - deprecation
         - papertrail
 
 when@dev:
@@ -55,9 +55,12 @@ when@prod:
                 path: php://stderr
                 formatter: monolog.formatter.json
 
-            # REMPLACER le handler syslog par le handler personnalisé
+            # Handler personnalisé pour Papertrail - VERSION FINALE
             papertrail:
                 type: service
                 id: App\Monolog\PapertrailHandler
                 channels: [papertrail]
                 level: debug
+                # Ajouts importants
+                handler: papertrail
+                bubble: false
