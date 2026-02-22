@@ -9,8 +9,10 @@ services:
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
 
-    App\Service\PapertrailLogger:
+    App\Monolog\PapertrailHandler:
         arguments:
-            $httpClient: '@http_client'
-            $url: '%env(PAPERTRAIL_URL)%'
+            $url:   '%env(PAPERTRAIL_URL)%'
             $token: '%env(PAPERTRAIL_TOKEN)%'
+        tags:
+            - { name: monolog.handler }
+
