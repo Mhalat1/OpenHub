@@ -474,6 +474,9 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
     }
 private function validateUserState(User $user): array
 {
+
+$this->logger->error('NEW CODE IS RUNNING - validateUserState test');
+
     // Vérifier les noms
     if (!$this->validateName($user->getFirstName()) || !$this->validateName($user->getLastName())) {
         $this->logger->error('validateUserState FAILED: invalid name', [
