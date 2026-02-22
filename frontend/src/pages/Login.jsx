@@ -11,6 +11,17 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [loginResponse, setLoginResponse] = useState(null); 
+
+    useEffect(() => {
+      if (loginResponse) {
+        logger.info("Login attempt", { 
+          email: loginResponse.email, 
+          success: loginResponse.success 
+        });
+      }
+    }, [loginResponse]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,9 +51,7 @@ const Login = () => {
       });
 
       const data = await response.json();
-      useEffect(() => {
-        logger.info("Login attempt", { email, success: response.ok });
-      }, [response.ok]);
+      setLoginResponse({ email, success: response.ok });
 
       if (!response.ok) {
         throw new Error(data.message || "Identifiants incorrects");
