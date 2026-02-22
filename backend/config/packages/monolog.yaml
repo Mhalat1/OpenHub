@@ -9,11 +9,20 @@ monolog:
             level: debug
         
         papertrail:
-            type: syslog
-            ident: 'openhub'
-            facility: user
+            type: whatfailuregroup
+            members: [papertrail_http]
+        
+        papertrail_http:
+            type: buffer
+            handler: papertrail_http_buffer
+        
+        papertrail_http_buffer:
+            type: curl
             level: info
-            # Solution: fournir des valeurs par défaut
-            host: '%env(default::PAPERTRAIL_HOST)%'
-            port: '%env(default::PAPERTRAIL_PORT)%'
             channel: papertrail
+            url: '%env(PAPERTRAIL_URL)%'
+            method: POST
+            headers:
+                Content-Type: application/json
+                Authorization: 'Bearer %env(PAPERTRAIL_TOKEN)%'
+            formatter: monolog.formatter.json
