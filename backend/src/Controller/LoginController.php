@@ -15,6 +15,8 @@ class LoginController extends AbstractController
     public function login(): Response
     {
         $error = $this->authService->getLastError();
+        error_log("🔴 TEST LOG depuis OpenHub - " . date('Y-m-d H:i:s'));
+
         $lastUsername = $this->authService->getLastUsername();
 
         return $this->json([

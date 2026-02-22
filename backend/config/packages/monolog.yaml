@@ -1,0 +1,22 @@
+monolog:
+    channels:
+        - papertrail
+    
+    handlers:
+        main:
+            type: stream
+            path: php://stderr
+            level: debug
+            formatter: monolog.formatter.json
+        
+        papertrail:
+            type: syslog
+            ident: 'openhub'
+            facility: user
+            level: info
+            logopts:
+                - pid
+                - ndelay
+            host: '%env(PAPERTRAIL_HOST)%'
+            port: '%env(int:PAPERTRAIL_PORT)%'
+            channel: papertrail
