@@ -16,3 +16,6 @@ services:
         tags:
             - { name: monolog.handler }
 
+    App\Controller\MessageController:
+        arguments:
+            $papertrailLogger: '@monolog.logger.papertrail'
