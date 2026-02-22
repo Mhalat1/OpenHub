@@ -8,16 +8,7 @@ services:
  
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
-    # Handler Papertrail - Version explicite
-    App\Monolog\PapertrailHandler:
-        class: App\Monolog\PapertrailHandler
+    App\Service\PapertrailService:
         arguments:
             $url: '%env(PAPERTRAIL_URL)%'
             $token: '%env(PAPERTRAIL_TOKEN)%'
-            $level: !php/const Monolog\Level::Debug
-        tags:
-            - { name: monolog.handler, channel: papertrail, alias: papertrail }
-
-    App\Controller\MessageController:
-        arguments:
-            $papertrailLogger: '@monolog.logger.papertrail'

@@ -16,35 +16,36 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use App\BusinessLimits;
-use Psr\Log\LoggerInterface;
+use App\Service\PapertrailService;
 
 
 class MessageController extends AbstractController
 {
     private MessageRepository $messageRepository;
     private EntityManagerInterface $em;
-    private LoggerInterface $papertrailLogger; 
+    private PapertrailService $papertrailLogger;  // Changement de type
 
+    
 
     // ✅ NOUVEAU : Constantes pour cohérence des parsers
     private const ENCODING = 'UTF-8';
     private const HTML_ENTITY_FLAGS = ENT_QUOTES | ENT_HTML5;
 
-    
     public function __construct(
         MessageRepository $messageRepository,
         EntityManagerInterface $em,
-        LoggerInterface $papertrailLogger,
+        PapertrailService $papertrailLogger  // Injection directe
     ) {
-
         $this->messageRepository = $messageRepository;
         $this->em = $em;
         $this->papertrailLogger = $papertrailLogger;
-        // ✅ Utiliser les constantes centralisées
+            // ✅ Utiliser les constantes centralisées
         ini_set('pcre.backtrack_limit', (string) BusinessLimits::PCRE_BACKTRACK_LIMIT);
         ini_set('max_execution_time', (string) BusinessLimits::MAX_EXECUTION_TIME);
         mb_internal_encoding(self::ENCODING);
     }
+
+
 
 
     private function canonicalDecode(string $input): string
