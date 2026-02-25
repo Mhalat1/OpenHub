@@ -8,13 +8,7 @@ if (isset($_SERVER['RENDER']) || isset($_ENV['RENDER'])) {
         'disable_dotenv' => true,
     ];
 }
-
-if ($_SERVER['REQUEST_URI'] === '/health') {
-    http_response_code(200);
-    echo 'OK';
-    exit;
-}
-
+// 👆 FIN DES MODIFICATIONS
 
 require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
 
