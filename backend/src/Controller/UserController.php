@@ -27,99 +27,124 @@ final class UserController extends AbstractController
         $this->userRepository = $this->manager->getRepository(User::class);
         $this->userService = $userService;
     }
+#[Route('/api/userCreate', name: 'user_create', methods: ['POST'])]
+public function userCreate(Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse
+{
+    $data = json_decode($request->getContent(), true);
 
-    #[Route('/api/userCreate', name: 'user_create', methods: ['POST'])]
-    public function userCreate(Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
+    $email = $data['email'] ?? null;
+    $password = $data['password'] ?? null;
+    $firstName = $data['firstName'] ?? null;
+    $lastName = $data['lastName'] ?? null;
+    $availabilityStart = $data['availabilityStart'] ?? null;
+    $availabilityEnd = $data['availabilityEnd'] ?? null;
+    $skills = $data['skills'] ?? null;  // ← "PHP,React" ou ["PHP", "React"]
 
-        $email = $data['email'] ?? null;
-        $password = $data['password'] ?? null;
-        $firstName = $data['firstName'] ?? null;
-        $lastName = $data['lastName'] ?? null;
-        $availabilityStart = $data['availabilityStart'] ?? null;
-        $availabilityEnd = $data['availabilityEnd'] ?? null;
-        $skills = $data['skills'] ?? null;
+    if (!$email || !$password) {
+        return new JsonResponse([
+            'status' => false,
+            'message' => 'Email and password are required'
+        ], 400);
+    }
 
-        if (!$email || !$password) {
-            return new JsonResponse([
-                'status' => false,
-                'message' => 'Email and password are required'
-            ], 400);
-        }
+    $emailExists = $this->userRepository->findOneBy(['email' => $email]);
+    if ($emailExists) {
+        return new JsonResponse([
+            'status' => false,
+            'message' => 'This email is already in use'
+        ], 409);
+    }
 
-        $emailExists = $this->userRepository->findOneBy(['email' => $email]);
-
-        if ($emailExists) {
-            return new JsonResponse([
-                'status' => false,
-                'message' => 'This email is already in use'
-            ], 409);
-        }
-
-
-         // Validation des dates de disponibilité
+    // Validation des dates (identique)
     if ($availabilityStart || $availabilityEnd) {
         $today = new \DateTimeImmutable();
-        
         if ($availabilityStart) {
             $startDate = new \DateTimeImmutable($availabilityStart);
             if ($startDate < $today) {
-                return new JsonResponse([
-                    'status' => false,
-                    'message' => 'La date de début de disponibilité doit être dans le futur'
-                ], 400);
+                return new JsonResponse(['status' => false, 'message' => 'La date de début doit être dans le futur'], 400);
             }
         }
-        
         if ($availabilityEnd) {
             $endDate = new \DateTimeImmutable($availabilityEnd);
             if ($endDate < $today) {
-                return new JsonResponse([
-                    'status' => false,
-                    'message' => 'La date de fin de disponibilité doit être dans le futur'
-                ], 400);
+                return new JsonResponse(['status' => false, 'message' => 'La date de fin doit être dans le futur'], 400);
             }
         }
+        if ($availabilityStart && $availabilityEnd && $endDate < $startDate) {
+            return new JsonResponse(['status' => false, 'message' => 'La date de fin doit être après la date de début'], 400);
+        }
+    }
+
+    // Création de l'utilisateur
+    $user = new User();
+    $user->setEmail($email);
+    $user->setPassword($passwordHasher->hashPassword($user, $password));
+    $user->setFirstName($firstName);
+    $user->setLastName($lastName);
+    $user->setRoles(['ROLE_USER']);
+    $user->setAvailabilityStart($availabilityStart ? new \DateTimeImmutable($availabilityStart) : null);
+    $user->setAvailabilityEnd($availabilityEnd ? new \DateTimeImmutable($availabilityEnd) : null);
+
+    // 🔥 TRAITEMENT DES COMPÉTENCES 🔥
+    if ($skills) {
+        $skillsRepo = $this->manager->getRepository(Skills::class);
         
-        // Validation supplémentaire : end doit être après start
-        if ($availabilityStart && $availabilityEnd) {
-            if ($endDate < $startDate) {
-                return new JsonResponse([
-                    'status' => false,
-                    'message' => 'La date de fin doit être après la date de début'
-                ], 400);
+        // Si c'est une chaîne "PHP,React"
+        if (is_string($skills)) {
+            $skillNames = array_map('trim', explode(',', $skills));
+        } 
+        // Si c'est déjà un tableau ["PHP", "React"]
+        elseif (is_array($skills)) {
+            $skillNames = $skills;
+        } else {
+            $skillNames = [];
+        }
+
+        foreach ($skillNames as $skillName) {
+            if (empty($skillName)) continue;
+            
+            // Chercher si la compétence existe déjà
+            $skill = $skillsRepo->findOneBy(['name' => $skillName]);
+            
+            // Si elle n'existe pas, la créer
+            if (!$skill) {
+                $skill = new Skills();
+                $skill->setName($skillName);
+                $skill->setDescription($skillName); // ou une description par défaut
+                $skill->setTechnoUtilisees($skillName);
+                $skill->setDuree(new \DateTimeImmutable('+1 year')); // durée par défaut
+                $this->manager->persist($skill);
             }
+            
+            // Ajouter la compétence à l'utilisateur
+            $user->addSkill($skill);
         }
     }
 
+    // Sauvegarde
+    $this->manager->persist($user);
+    $this->manager->flush();
 
-        $user = new User();
-        $user->setEmail($email);
-        $user->setPassword($passwordHasher->hashPassword($user, $password));
-        $user->setFirstName($firstName);
-        $user->setLastName($lastName);
-        $user->setRoles(['ROLE_USER']);
-        $user->setAvailabilityStart($availabilityStart ? new \DateTimeImmutable($availabilityStart) : null);
-        $user->setAvailabilityEnd($availabilityEnd ? new \DateTimeImmutable($availabilityEnd) : null);
-
-        $this->manager->persist($user);
-        $this->manager->flush();
-
-        return new JsonResponse([
-            'status' => true,
-            'message' => 'User created successfully',
-            'user' => [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
-                'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
-                'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
-                'skills' => $user->getSkills(),
-            ]
-        ], 201);
+    // Récupérer les noms des compétences pour la réponse
+    $skillNames = [];
+    foreach ($user->getSkills() as $skill) {
+        $skillNames[] = $skill->getName();
     }
+
+    return new JsonResponse([
+        'status' => true,
+        'message' => 'User created successfully',
+        'user' => [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
+            'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
+            'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
+            'skills' => $skillNames,  // ← Maintenant inclus !
+        ]
+    ], 201);
+}
 
     #[Route('/api/getAllUsers', name: 'get_all_users', methods: ['GET'])]
     public function getAllUsers(): JsonResponse
