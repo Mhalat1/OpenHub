@@ -188,7 +188,7 @@ const validateStep = (step) => {
 
   setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/userCreate`, {
+      const response = await fetch(`${API_URL}api/userCreate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState),
