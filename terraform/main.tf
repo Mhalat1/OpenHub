@@ -27,6 +27,13 @@ variable "papertrail_token" {
   default     = "hVEc15AdNgNV65kzNCpehWxuI49gLMWcTonnuGEDAuKTTc6m-lMLLRKjxK5Mx6A8z5bhsRw"
 }
 
+variable "database_url" {
+  description = "Database URL Aiven"
+  type        = string
+  sensitive   = true
+}
+
+
 # SERVICE BACKEND
 resource "render_web_service" "openhub_backend" {
   name   = "openhub-backend"
