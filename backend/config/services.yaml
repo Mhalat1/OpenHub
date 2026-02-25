@@ -10,5 +10,11 @@ services:
 
     App\Service\PapertrailService:
         arguments:
+            $traceIdGenerator: '@App\Service\TraceIdGenerator'
             $url: '%env(PAPERTRAIL_URL)%'
             $token: '%env(PAPERTRAIL_TOKEN)%'
+
+
+    App\Service\TraceIdGenerator:
+        shared: true  
+
