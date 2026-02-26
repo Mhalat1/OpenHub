@@ -34,7 +34,6 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{js,jsx}\""
-
   },
   "eslintConfig": {
     "extends": [
