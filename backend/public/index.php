@@ -2,13 +2,50 @@
 
 use App\Kernel;
 
+// CORS - en premier avant tout
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+$allowed_patterns = [
+    '/^https:\/\/openhub-frontend-[a-z0-9]+\.onrender\.com$/',
+    '/^https:\/\/localhost(:\d+)?$/',
+    '/^https:\/\/www\.mh-logiciel\.fr$/',
+];
+
+$allowed = false;
+foreach ($allowed_patterns as $pattern) {
+    if (preg_match($pattern, $origin)) {
+        $allowed = true;
+        break;
+    }
+}
+
+if ($allowed) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
+}
+
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, Origin');
+header('Access-Control-Max-Age: 3600');
+header('Vary: Origin');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    $_SERVER['PHP_AUTH_DIGEST'] = $_SERVER['HTTP_AUTHORIZATION'];
+} elseif (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+    $_SERVER['PHP_AUTH_DIGEST'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+}
+
+// Désactive .env sur Render
 if (isset($_SERVER['RENDER']) || isset($_ENV['RENDER'])) {
-    // Désactive la recherche du fichier .env sur Render
     $_SERVER['APP_RUNTIME_OPTIONS'] = [
         'disable_dotenv' => true,
     ];
 }
-// 👆 FIN DES MODIFICATIONS
 
 require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
 
