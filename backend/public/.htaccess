@@ -1,24 +1,37 @@
-# CORS - Support de plusieurs origines
-SetEnvIf Origin "^(https?://localhost:5173|https://[\w-]+\.onrender\.com|https://www\.mh-logiciel\.fr)$" ORIGIN_ALLOWED=$0
+<?php
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-Header always unset Access-Control-Allow-Origin
-Header always set Access-Control-Allow-Origin "%{ORIGIN_ALLOWED}e" env=ORIGIN_ALLOWED
-Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE, PATCH"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Origin"
-Header always set Access-Control-Allow-Credentials "true"
-Header always set Access-Control-Max-Age "3600"
-Header always set Vary "Origin"
+$allowed_patterns = [
+    '/^https:\/\/openhub-frontend-[a-z0-9]+\.onrender\.com$/',
+    '/^https:\/\/localhost(:\d+)?$/',
+    '/^https:\/\/www\.mh-logiciel\.fr$/',
+];
 
-# Transmettre le header Authorization à PHP
-RewriteEngine On
-RewriteCond %{HTTP:Authorization} .+
-RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+$allowed = false;
+foreach ($allowed_patterns as $pattern) {
+    if (preg_match($pattern, $origin)) {
+        $allowed = true;
+        break;
+    }
+}
 
-# Gestion des requêtes OPTIONS (preflight)
-RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ - [R=200,L]
+if ($allowed) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
+}
 
-# Redirection vers index.php
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, Origin');
+header('Access-Control-Max-Age: 3600');
+header('Vary: Origin');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    $_SERVER['PHP_AUTH_DIGEST'] = $_SERVER['HTTP_AUTHORIZATION'];
+} elseif (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+    $_SERVER['PHP_AUTH_DIGEST'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+}
