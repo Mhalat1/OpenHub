@@ -4,7 +4,9 @@ namespace App\Controller;
 use Prometheus\CollectorRegistry;
 use Prometheus\Storage\InMemory;
 use Prometheus\RenderTextFormat;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
 class BackendMetricsController
@@ -16,35 +18,40 @@ class BackendMetricsController
         $this->tmpDir = sys_get_temp_dir();
     }
 
+    // React ou ton frontend appelle cet endpoint pour incrémenter les compteurs
+    #[Route('/metrics/backend/collect', name: 'backend_metrics_collect', methods: ['POST'])]
+    public function collect(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $status = $data['status'] ?? 200;
+        $duration = $data['duration'] ?? 0;
+
+        if ($status >= 500) {
+            $this->increment('bm_5xx.txt');
+        } elseif ($status >= 400) {
+            $this->increment('bm_4xx.txt');
+        } else {
+            $this->increment('bm_2xx.txt');
+        }
+
+        // Stocke le temps de réponse pour P95
+        $path = $this->tmpDir . '/bm_times.txt';
+        $times = file_exists($path) ? json_decode(file_get_contents($path), true) : [];
+        $times[] = (float)$duration;
+        if (count($times) > 1000) $times = array_slice($times, -1000);
+        file_put_contents($path, json_encode($times));
+
+        return new JsonResponse(['ok' => true]);
+    }
+
     #[Route('/metrics/backend', name: 'backend_metrics')]
     public function metrics(): Response
     {
         $registry = new CollectorRegistry(new InMemory());
 
-        // Parse les vrais logs Apache
-        $logFile = '/var/log/apache2/access.log';
-        $req2xx = 0; $req4xx = 0; $req5xx = 0;
-        $responseTimes = [];
-
-        if (file_exists($logFile)) {
-            $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            // Dernières 10000 lignes
-            $lines = array_slice($lines, -10000);
-            foreach ($lines as $line) {
-                // Parse status code
-                if (preg_match('/" (\d{3}) /', $line, $m)) {
-                    $status = (int)$m[1];
-                    if ($status >= 500) $req5xx++;
-                    elseif ($status >= 400) $req4xx++;
-                    else $req2xx++;
-                }
-                // Parse response time si disponible
-                if (preg_match('/(\d+)$/', $line, $m)) {
-                    $responseTimes[] = (int)$m[1] / 1000000;
-                }
-            }
-        }
-
+        $req2xx = (int)@file_get_contents($this->tmpDir . '/bm_2xx.txt');
+        $req4xx = (int)@file_get_contents($this->tmpDir . '/bm_4xx.txt');
+        $req5xx = (int)@file_get_contents($this->tmpDir . '/bm_5xx.txt');
         $totalRequests = $req2xx + $req4xx + $req5xx;
 
         // Total requêtes
@@ -73,12 +80,16 @@ class BackendMetricsController
         $registry->getOrRegisterGauge('app', 'availability_percent', 'Availability %')
             ->set($availability);
 
-        // P95 depuis les logs
+        // P95
         $p95 = 0;
-        if (!empty($responseTimes)) {
-            sort($responseTimes);
-            $index = (int)ceil(0.95 * count($responseTimes)) - 1;
-            $p95 = round($responseTimes[$index], 3);
+        $path = $this->tmpDir . '/bm_times.txt';
+        if (file_exists($path)) {
+            $times = json_decode(file_get_contents($path), true);
+            if (!empty($times)) {
+                sort($times);
+                $index = (int)ceil(0.95 * count($times)) - 1;
+                $p95 = round($times[$index], 3);
+            }
         }
         $registry->getOrRegisterGauge('app', 'response_time_p95_seconds', 'P95 response time')
             ->set($p95);
@@ -108,5 +119,11 @@ class BackendMetricsController
         return new Response($result, 200, [
             'Content-Type' => RenderTextFormat::MIME_TYPE
         ]);
+    }
+
+    private function increment(string $file): void
+    {
+        $path = $this->tmpDir . '/' . $file;
+        file_put_contents($path, (int)@file_get_contents($path) + 1);
     }
 }
