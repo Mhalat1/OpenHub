@@ -34,6 +34,14 @@ variable "database_url" {
 }
 
 
+variable "jwt_passphrase" {
+  description = "JWT Passphrase"
+  type        = string
+  sensitive   = true
+}
+
+
+
 # SERVICE BACKEND
 resource "render_web_service" "openhub_backend" {
   name   = "openhub-backend"
@@ -52,14 +60,14 @@ resource "render_web_service" "openhub_backend" {
   root_directory = "backend"  # ← AJOUTÉ !
   
   env_vars = {
-    APP_ENV = { value = "prod" }
-    APP_DEBUG = { value = "0" }
-    DATABASE_URL = { value = var.database_url }
-    PAPERTRAIL_URL = { value = "https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs" }
+    DATABASE_URL     = { value = var.database_url }
+    JWT_PRIVATE_KEY  = { value = file("${path.module}/private.pem") }
+    JWT_PUBLIC_KEY   = { value = file("${path.module}/public.pem") }
+    JWT_PASSPHRASE   = { value = var.jwt_passphrase }
+    PAPERTRAIL_URL   = { value = "https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs" }
     PAPERTRAIL_TOKEN = { value = var.papertrail_token }
     APACHE_DOCUMENT_ROOT = { value = "/opt/render/project/src/backend/public" }
   }
-  
   health_check_path = "/health"
 }
 
