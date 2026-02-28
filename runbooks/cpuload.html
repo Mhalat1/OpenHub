@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - CPU Load</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Runbook: Charge CPU</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Charge CPU moyenne élevée<br>
+            <strong>Condition:</strong> load > 5 sur 1 minute<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>La charge CPU dépasse le seuil critique. Cela peut entraîner des lenteurs, des timeouts, et une dégradation de l'expérience utilisateur.</p>
+        </div>
+        
+        <div class="section">
+            <h2>⚡ Actions immédiates</h2>
+            
+            <h3>1. Identifier les processus gourmands</h3>
+            <pre># Via Render Dashboard
+https://dashboard.render.com/web/openhub-backend/metrics
+
+# Top processus (si accès SSH)
+top -b -n 1 | head -20
+ps aux --sort=-%cpu | head -10</pre>
+            
+            <h3>2. Analyser les requêtes PHP lentes</h3>
+            <pre># Activer slow log temporairement
+# Dans php.ini
+slowlog = /var/log/php-slow.log
+request_slowlog_timeout = 5s
+
+# Redémarrer PHP-FPM
+sudo service php8.1-fpm restart
+
+# Analyser
+tail -f /var/log/php-slow.log</pre>
+            
+            <h3>3. Vérifier les requêtes DB</h3>
+            <pre># MySQL
+SHOW FULL PROCESSLIST;
+SHOW STATUS LIKE 'Threads_connected';
+
+# PostgreSQL
+SELECT * FROM pg_stat_activity WHERE state = 'active';</pre>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Diagnostic</h2>
+            
+            <table>
+                <tr>
+                    <th>Symptôme</th>
+                    <th>Cause possible</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>CPU utilisateur élevé</td>
+                    <td>Code PHP inefficace</td>
+                    <td>Optimiser algorithmes</td>
+                </tr>
+                <tr>
+                    <td>CPU système élevé</td>
+                    <td>I/O, appels système</td>
+                    <td>Vérifier accès disque/network</td>
+                </tr>
+                <tr>
+                    <td>Nombreux processus</td>
+                    <td>Trop de workers PHP</td>
+                    <td>Ajuster pm.max_children</td>
+                </tr>
+                <tr>
+                    <td>Requêtes DB lentes</td>
+                    <td>Index manquants</td>
+                    <td>Ajouter indexes</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Solutions</h2>
+            
+            <h3>Ajuster PHP-FPM</h3>
+            <pre># /etc/php/8.1/fpm/pool.d/www.conf
+pm = dynamic
+pm.max_children = 5  # Réduire si CPU limité
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3</pre>
+            
+            <h3>Optimiser les requêtes</h3>
+            <pre>-- Ajouter des indexes
+CREATE INDEX idx_users_email ON users(email);
+
+-- Analyser les requêtes lentes
+EXPLAIN SELECT * FROM large_table WHERE condition;</pre>
+            
+            <h3>Mettre en cache</h3>
+            <pre>// Redis/Memcached
+$users = cache()->remember('active_users', 3600, function() {
+    return DB::table('users')->where('active', 1)->get();
+});</pre>
+            
+            <h3>Scale temporaire</h3>
+            <pre># Render Dashboard → Settings
+# Augmenter le plan temporairement</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/cpuload</p>
+    </div>
+</body>
+</html>

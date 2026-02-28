@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Réponses lentes</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🐢 Runbook: Réponses lentes (P95 > 1s)</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Temps de réponse P95 > 1 seconde<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Le 95ème percentile des temps de réponse dépasse 1 seconde. Cela signifie que 5% des requêtes prennent plus d'une seconde, ce qui dégrade l'expérience utilisateur.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Identifier les requêtes lentes</h2>
+            
+            <h3>1. Analyser les logs d'accès</h3>
+            <pre># Trouver les requêtes lentes dans nginx
+awk '{if ($NF > 1) print $0}' /var/log/nginx/access.log
+
+# Trier par temps de réponse
+awk '{print $NF, $7}' /var/log/nginx/access.log | sort -rn | head -20
+
+# Avec format de log incluant temps
+log_format timed '$remote_addr - $remote_user [$time_local] '
+                 '"$request" $status $body_bytes_sent '
+                 '$request_time $upstream_response_time';</pre>
+            
+            <h3>2. Activer slow query log</h3>
+            <pre># MySQL
+SET GLOBAL slow_query_log = 'ON';
+SET GLOBAL long_query_time = 1;  # Requêtes > 1 seconde
+
+# PostgreSQL
+# Dans postgresql.conf
+log_min_duration_statement = 1000  # millisecondes</pre>
+            
+            <h3>3. Profiler le code PHP</h3>
+            <pre>// Utiliser Laravel Debugbar en dev
+// Ou ajouter du logging
+$start = microtime(true);
+// code à mesurer
+$time = microtime(true) - $start;
+Log::channel('slow')->warning('Slow operation', [
+    'time' => $time,
+    'route' => request()->path()
+]);</pre>
+        </div>
+        
+        <div class="section">
+            <h2>⚡ Causes fréquentes</h2>
+            
+            <table>
+                <tr>
+                    <th>Cause</th>
+                    <th>Indice</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>Requêtes N+1</td>
+                    <td>Nombreuses requêtes DB</td>
+                    <td>Eager loading</td>
+                </tr>
+                <tr>
+                    <td>Index manquants</td>
+                    <td>Full table scans</td>
+                    <td>Ajouter indexes</td>
+                </tr>
+                <tr>
+                    <td>Données volumineuses</td>
+                    <td>SELECT sans LIMIT</td>
+                    <td>Pagination</td>
+                </tr>
+                <tr>
+                    <td>Cache non utilisé</td>
+                    <td>Mêmes données chargées</td>
+                    <td>Mettre en cache</td>
+                </tr>
+                <tr>
+                    <td>API externe lente</td>
+                    <td>Temps passé en HTTP</td>
+                    <td>Cache ou async</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Optimisations</h2>
+            
+            <h3>Eager Loading (Laravel)</h3>
+            <pre>// Mauvais (N+1)
+$posts = Post::all();
+foreach($posts as $post) {
+    echo $post->user->name;
+}
+
+// Bon (eager loading)
+$posts = Post::with('user')->get();</pre>
+            
+            <h3>Ajouter des indexes</h3>
+            <pre>-- Trouver les requêtes lentes
+-- Ajouter des indexes
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_posts_user_id ON posts(user_id);</pre>
+            
+            <h3>Mettre en cache</h3>
+            <pre>// Cache Redis/Memcached
+$users = Cache::remember('active_users', 3600, function() {
+    return User::where('active', 1)->get();
+});</pre>
+            
+            <h3>Pagination</h3>
+            <pre>// Au lieu de all()
+$posts = Post::paginate(20);
+
+// Avec curseur pour gros volumes
+foreach (Post::cursor() as $post) {
+    // Traitement par lot
+}</pre>
+            
+            <h3>Optimiser les appels API</h3>
+            <pre>// Mettre en cache les réponses externes
+$data = Cache::remember('api_data', 300, function() {
+    return Http::get('https://api.externe.com/data')->json();
+});</pre>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Monitoring</h2>
+            
+            <pre># Grafana
+- Dashboard temps de réponse
+- Par endpoint
+- Par méthode
+- Par heure de la journée
+
+# Alerts
+- Seuil par endpoint (certains peuvent être lents)
+- Tendances sur la journée</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/slow-responses</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runbooks - OpenHub Backend</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <!-- En-tête -->
+        <h1>
+            <span>📚</span>
+            Runbooks - OpenHub Backend
+        </h1>
+        
+        <!-- Statistiques -->
+        <div class="header-stats">
+            <div class="stat-item">
+                <div class="stat-value">14</div>
+                <div class="stat-label">Runbooks</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Critiques</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Majeurs</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Info</div>
+            </div>
+        </div>
+        
+        <!-- Barre de recherche -->
+        <div class="search-box">
+            <input type="text" placeholder="🔍 Rechercher un runbook..." id="searchInput">
+        </div>
+        
+        <!-- Section CRITIQUE -->
+        <h2 class="category-title">🔴 Alertes Critiques (P1)</h2>
+        <div class="grid" id="critical-alerts">
+            <!-- 1. Disponibilité -->
+            <div class="card critical">
+                <div class="card-header">
+                    <span class="badge critical">CRITIQUE - P1</span>
+                    <span>📊</span>
+                </div>
+                <div class="card-body">
+                    <h3>Disponibilité application</h3>
+                    <p>Seuil: < 95% · Pending: 1m<br>Impact: Application inaccessible</p>
+                    <div class="meta-info">
+                        <span><i>⏱️</i> 1m pending</span>
+                        <span><i>🎯</i> app_availability</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="availabilitypercent.html" class="btn btn-critical">📖 Voir le runbook</a>
+                        <a href="https://grafana.openhub.internal/d/availability" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2. Backend Down -->
+            <div class="card critical">
+                <div class="card-header">
+                    <span class="badge critical">CRITIQUE - P1</span>
+                    <span>💀</span>
+                </div>
+                <div class="card-body">
+                    <h3>Backend hors ligne (Down)</h3>
+                    <p>PHP est down - Instance backend hors ligne<br>Application totalement inaccessible</p>
+                    <div class="meta-info">
+                        <span><i>🚨</i> URGENT</span>
+                        <span><i>🔴</i> Instance down</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="backend-down.html" class="btn btn-critical">🔄 Redémarrer</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 3. Erreurs HTTP 5xx -->
+            <div class="card critical">
+                <div class="card-header">
+                    <span class="badge critical">CRITIQUE - P1</span>
+                    <span>🔥</span>
+                </div>
+                <div class="card-body">
+                    <h3>Erreurs HTTP 5xx</h3>
+                    <p>Erreurs serveur détectées<br>Application instable</p>
+                    <div class="meta-info">
+                        <span><i>📊</i> 500/502/503</span>
+                        <span><i>⚠️</i> Action requise</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="http-5xx.html" class="btn btn-critical">🔍 Diagnostiquer</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 4. Chute requêtes 2xx -->
+            <div class="card critical">
+                <div class="card-header">
+                    <span class="badge critical">CRITIQUE - P1</span>
+                    <span>📉</span>
+                </div>
+                <div class="card-body">
+                    <h3>Chute requêtes 2xx</h3>
+                    <p>0 requêtes réussies depuis 5 min<br>Aucune requête réussie</p>
+                    <div class="meta-info">
+                        <span><i>⏰</i> 5 min</span>
+                        <span><i>📊</i> 0 succès</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="requetes-2xx.html" class="btn btn-critical">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 5. Absence de trafic -->
+            <div class="card critical">
+                <div class="card-header">
+                    <span class="badge critical">CRITIQUE - P1</span>
+                    <span>🔇</span>
+                </div>
+                <div class="card-body">
+                    <h3>Absence de trafic</h3>
+                    <p>Aucune requête depuis 5 min<br>Application inaccessible</p>
+                    <div class="meta-info">
+                        <span><i>⏰</i> 5 min</span>
+                        <span><i>📊</i> 0 requêtes</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="trafic.html" class="btn btn-critical">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 6. Mémoire PHP Peak -->
+            <div class="card critical">
+                <div class="card-header">
+                    <span class="badge critical">CRITIQUE - P1</span>
+                    <span>💾</span>
+                </div>
+                <div class="card-body">
+                    <h3>Mémoire PHP Peak</h3>
+                    <p>Seuil: > 256 MB<br>Risque de crash PHP</p>
+                    <div class="meta-info">
+                        <span><i>🧠</i> >256MB</span>
+                        <span><i>⚠️</i> Crash imminent</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="memoire-php-peak.html" class="btn btn-critical">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section MAJEUR -->
+        <h2 class="category-title">🟠 Alertes Majeures (P2)</h2>
+        <div class="grid" id="warning-alerts">
+            <!-- 7. Charge CPU -->
+            <div class="card warning">
+                <div class="card-header">
+                    <span class="badge warning">MAJEUR - P2</span>
+                    <span>⚡</span>
+                </div>
+                <div class="card-body">
+                    <h3>Charge CPU</h3>
+                    <p>Seuil: > 5 · Pending: 1m<br>Impact: Lenteurs applicatives</p>
+                    <div class="meta-info">
+                        <span><i>⚡</i> Load >5</span>
+                        <span><i>📊</i> 1m avg</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="cpuload.html" class="btn btn-warning">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 8. Mémoire PHP Usage -->
+            <div class="card warning">
+                <div class="card-header">
+                    <span class="badge warning">MAJEUR - P2</span>
+                    <span>📈</span>
+                </div>
+                <div class="card-body">
+                    <h3>Mémoire PHP Usage</h3>
+                    <p>Seuil: > 200 MB<br>Consommation mémoire élevée</p>
+                    <div class="meta-info">
+                        <span><i>🧠</i> >200MB</span>
+                        <span><i>📊</i> Usage élevé</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="memoire-php-usage.html" class="btn btn-warning">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 9. Erreurs HTTP 4xx -->
+            <div class="card warning">
+                <div class="card-header">
+                    <span class="badge warning">MAJEUR - P2</span>
+                    <span>🚫</span>
+                </div>
+                <div class="card-body">
+                    <h3>Erreurs HTTP 4xx</h3>
+                    <p>Spike d'erreurs client<br>Problèmes côté client</p>
+                    <div class="meta-info">
+                        <span><i>📊</i> 400/404/429</span>
+                        <span><i>👥</i> Côté client</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="http4xx.html" class="btn btn-warning">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 10. Temps réponse P95 -->
+            <div class="card warning">
+                <div class="card-header">
+                    <span class="badge warning">MAJEUR - P2</span>
+                    <span>⏱️</span>
+                </div>
+                <div class="card-body">
+                    <h3>Temps réponse P95</h3>
+                    <p>Seuil: > 1s<br>Application lente</p>
+                    <div class="meta-info">
+                        <span><i>🐢</i> >1s</span>
+                        <span><i>📊</i> P95 élevé</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="slow-responses.html" class="btn btn-warning">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 11. Bounce/Instabilité -->
+            <div class="card warning">
+                <div class="card-header">
+                    <span class="badge warning">MAJEUR - P2</span>
+                    <span>🔄</span>
+                </div>
+                <div class="card-body">
+                    <h3>Bounce / Instabilité</h3>
+                    <p>Redémarrages répétés<br>Application instable</p>
+                    <div class="meta-info">
+                        <span><i>🔄</i> Bounce</span>
+                        <span><i>⚠️</i> Instable</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="bounce.html" class="btn btn-warning">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 12. Erreurs JavaScript -->
+            <div class="card warning">
+                <div class="card-header">
+                    <span class="badge warning">MAJEUR - P2</span>
+                    <span>🟨</span>
+                </div>
+                <div class="card-body">
+                    <h3>Erreurs JavaScript</h3>
+                    <p>Erreurs JS côté client<br>Fonctionnalités frontend cassées</p>
+                    <div class="meta-info">
+                        <span><i>🖥️</i> Frontend</span>
+                        <span><i>🐞</i> Bugs JS</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="js_errors_total.html" class="btn btn-warning">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section INFO / AUTRE -->
+        <h2 class="category-title">🔵 Alertes Informatives</h2>
+        <div class="grid" id="info-alerts">
+            <!-- 13. Redémarrage détecté -->
+            <div class="card info">
+                <div class="card-header">
+                    <span class="badge info">INFO</span>
+                    <span>🔄</span>
+                </div>
+                <div class="card-body">
+                    <h3>Redémarrage détecté</h3>
+                    <p>Backend a redémarré<br>Coupure temporaire</p>
+                    <div class="meta-info">
+                        <span><i>⏱️</i> Info</span>
+                        <span><i>📊</i> Monitoring</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="backendrerun.html" class="btn btn-primary">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 14. PHP Info -->
+            <div class="card info">
+                <div class="card-header">
+                    <span class="badge info">INFO</span>
+                    <span>ℹ️</span>
+                </div>
+                <div class="card-body">
+                    <h3>PHP Info</h3>
+                    <p>Configuration PHP<br>Extensions et paramètres</p>
+                    <div class="meta-info">
+                        <span><i>⚙️</i> Config</span>
+                        <span><i>📦</i> Extensions</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="php_info.html" class="btn btn-primary">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 15. Pages vues -->
+            <div class="card info">
+                <div class="card-header">
+                    <span class="badge info">INFO</span>
+                    <span>👁️</span>
+                </div>
+                <div class="card-body">
+                    <h3>Pages vues</h3>
+                    <p>Monitoring trafic<br>Anomalie de volume</p>
+                    <div class="meta-info">
+                        <span><i>📊</i> Trafic</span>
+                        <span><i>📈</i> Analytics</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="page_views_total.html" class="btn btn-primary">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 16. CLS Ratio (Web Vitals) -->
+            <div class="card info">
+                <div class="card-header">
+                    <span class="badge info">INFO</span>
+                    <span>📏</span>
+                </div>
+                <div class="card-body">
+                    <h3>CLS Ratio</h3>
+                    <p>Core Web Vitals<br>Stabilité visuelle</p>
+                    <div class="meta-info">
+                        <span><i>📏</i> >0.1</span>
+                        <span><i>🎨</i> Layout</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="cls_ratio.html" class="btn btn-primary">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 17. FID High -->
+            <div class="card info">
+                <div class="card-header">
+                    <span class="badge info">INFO</span>
+                    <span>👆</span>
+                </div>
+                <div class="card-body">
+                    <h3>FID (First Input Delay)</h3>
+                    <p>Core Web Vitals<br>Interactivité lente</p>
+                    <div class="meta-info">
+                        <span><i>⏱️</i> >100ms</span>
+                        <span><i>🖱️</i> Interaction</span>
+                    </div>
+                    <div class="button-group">
+                        <a href="fid-high.html" class="btn btn-primary">📖 Voir runbook</a>
+                        <a href="#" class="btn btn-secondary">📊 Metrics Grafana</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer avec raccourcis -->
+        <div class="footer">
+            <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
+            <p>
+                <strong>Dernière mise à jour:</strong> 28/02/2026 · 
+                <strong>Maintenu par:</strong> Backend Team · 
+                <strong>Version:</strong> 1.0<br>
+                <small style="color: #999;">En cas d'incident, utilisez ces runbooks pour une résolution rapide</small>
+            </p>
+        </div>
+    </div>
+    
+    <!-- Script pour la recherche -->
+    <script>
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            let searchText = this.value.toLowerCase();
+            let cards = document.querySelectorAll('.card');
+            
+            cards.forEach(card => {
+                let title = card.querySelector('h3').innerText.toLowerCase();
+                let desc = card.querySelector('p').innerText.toLowerCase();
+                
+                if (title.includes(searchText) || desc.includes(searchText)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

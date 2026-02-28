@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Service\PapertrailService;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -11,7 +12,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 
 class AuthController extends AbstractController
 {
@@ -19,7 +19,7 @@ class AuthController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtManager,
-        private LoggerInterface $logger,
+        private PapertrailService $papertrailLogger,
     ) {}
 
     #[Route('/api/login_check', name: 'api_login_check', methods: ['POST'])]
@@ -30,15 +30,14 @@ class AuthController extends AbstractController
         $email    = $data['email']    ?? '';
         $password = $data['password'] ?? '';
 
-        $this->logger->info('Login attempt', [
+        $this->papertrailLogger->info('Login attempt', [
             'email' => $email,
         ]);
 
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
-        $this->logger->error('Test Papertrail ERROR', ['source' => 'openhub-backend']);
 
         if (!$user) {
-            $this->logger->warning('User not found', [
+            $this->papertrailLogger->warning('User not found during login', [
                 'email' => $email,
             ]);
             return $this->json([
@@ -47,8 +46,9 @@ class AuthController extends AbstractController
         }
 
         if (!$this->passwordHasher->isPasswordValid($user, $password)) {
-            $this->logger->warning('Invalid password', [
-                'email' => $email,
+            $this->papertrailLogger->warning('Invalid password attempt', [
+                'user_id' => $user->getId(),
+                'email'   => $email,
             ]);
             return $this->json([
                 'message' => 'Invalid credentials',
@@ -57,7 +57,7 @@ class AuthController extends AbstractController
 
         $token = $this->jwtManager->create($user);
 
-        $this->logger->info('Token generated', [
+        $this->papertrailLogger->info('Token generated - Login successful', [
             'user_id' => $user->getId(),
             'email'   => $user->getEmail(),
         ]);
@@ -81,77 +81,100 @@ class AuthController extends AbstractController
         $password  = $data['password']          ?? '';
         $firstName = $data['firstName']         ?? '';
         $lastName  = $data['lastName']          ?? '';
+
+        $this->papertrailLogger->info('Registration attempt', [
+            'email' => $email,
+        ]);
+
         // Validation du format des noms
         if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $firstName) || mb_strlen($firstName) < 2 || mb_strlen($firstName) > 100) {
+            $this->papertrailLogger->warning('Invalid firstName format on registration', [
+                'email'      => $email,
+                'first_name' => $firstName,
+            ]);
             return $this->json([
                 'status'  => false,
                 'message' => 'Invalid first name format'
             ], Response::HTTP_BAD_REQUEST);
         }
+
         if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $lastName) || mb_strlen($lastName) < 2 || mb_strlen($lastName) > 100) {
+            $this->papertrailLogger->warning('Invalid lastName format on registration', [
+                'email'     => $email,
+                'last_name' => $lastName,
+            ]);
             return $this->json([
                 'status'  => false,
                 'message' => 'Invalid last name format'
             ], Response::HTTP_BAD_REQUEST);
         }
+
         $availabilityStart = $data['availabilityStart'] ?? null;
         $availabilityEnd   = $data['availabilityEnd']   ?? null;
 
         if (empty($email) || empty($password) || empty($firstName) || empty($lastName)) {
+            $this->papertrailLogger->warning('Missing required fields on registration', [
+                'email'              => $email,
+                'has_password'       => !empty($password),
+                'has_first_name'     => !empty($firstName),
+                'has_last_name'      => !empty($lastName),
+            ]);
             return $this->json([
                 'status'  => false,
                 'message' => 'Email, password, first name and last name are required'
             ], Response::HTTP_BAD_REQUEST);
         }
 
-
-        
-    // ✅ VALIDATION STRICTE DU FORMAT EMAIL (xxx@xxx.xx)
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return $this->json([
-            'status'  => false,
-            'message' => 'Invalid email format. Use format: name@domain.xxx (ex: jean@example.com)'
-        ], Response::HTTP_BAD_REQUEST);
-    }
-    
-    // ✅ VALIDATION SUPPLEMENTAIRE : Vérifier la présence d'un point dans le domaine
-    $parts = explode('@', $email);
-    if (count($parts) === 2) {
-        $domain = $parts[1];
-        // Vérifier que le domaine contient un point (TLD)
-        if (!str_contains($domain, '.')) {
+        // Validation stricte du format email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->papertrailLogger->warning('Invalid email format on registration', [
+                'email' => $email,
+            ]);
             return $this->json([
                 'status'  => false,
-                'message' => 'Invalid email format. Domain must contain a dot (ex: gmail.com)'
+                'message' => 'Invalid email format. Use format: name@domain.xxx (ex: jean@example.com)'
             ], Response::HTTP_BAD_REQUEST);
         }
-        
-        // Vérifier que le TLD a au moins 2 caractères
-        $tldParts = explode('.', $domain);
-        $tld = end($tldParts);
-        if (strlen($tld) < 2) {
+
+        // Validation supplémentaire du domaine
+        $parts = explode('@', $email);
+        if (count($parts) === 2) {
+            $domain = $parts[1];
+            if (!str_contains($domain, '.')) {
+                $this->papertrailLogger->warning('Email domain missing dot on registration', [
+                    'email'  => $email,
+                    'domain' => $domain,
+                ]);
+                return $this->json([
+                    'status'  => false,
+                    'message' => 'Invalid email format. Domain must contain a dot (ex: gmail.com)'
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $tldParts = explode('.', $domain);
+            $tld = end($tldParts);
+            if (strlen($tld) < 2) {
+                $this->papertrailLogger->warning('Email TLD too short on registration', [
+                    'email' => $email,
+                    'tld'   => $tld,
+                ]);
+                return $this->json([
+                    'status'  => false,
+                    'message' => 'Invalid email format. Extension must be at least 2 characters (ex: .com, .fr)'
+                ], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
+        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        if ($existingUser) {
+            $this->papertrailLogger->warning('Registration attempt with already existing email', [
+                'email' => $email,
+            ]);
             return $this->json([
                 'status'  => false,
-                'message' => 'Invalid email format. Extension must be at least 2 characters (ex: .com, .fr)'
-            ], Response::HTTP_BAD_REQUEST);
+                'message' => 'This email is already in use'
+            ], Response::HTTP_CONFLICT);
         }
-    }
-
-    $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
-    if ($existingUser) {
-        $this->logger->warning('Registration attempt with existing email', [
-            'email' => $email,
-        ]);
-        return $this->json([
-            'status'  => false,
-            'message' => 'This email is already in use'
-        ], Response::HTTP_CONFLICT);
-    }
-
-
-
-        
-
 
         $user = new User();
         $user->setEmail($email);
@@ -166,7 +189,7 @@ class AuthController extends AbstractController
             try {
                 $user->setAvailabilityStart(new \DateTimeImmutable($availabilityStart));
             } catch (\Exception $e) {
-                $this->logger->warning('Invalid availability start date', [
+                $this->papertrailLogger->warning('Invalid availability start date on registration', [
                     'email' => $email,
                     'value' => $availabilityStart,
                     'error' => $e->getMessage(),
@@ -182,7 +205,7 @@ class AuthController extends AbstractController
             try {
                 $user->setAvailabilityEnd(new \DateTimeImmutable($availabilityEnd));
             } catch (\Exception $e) {
-                $this->logger->warning('Invalid availability end date', [
+                $this->papertrailLogger->warning('Invalid availability end date on registration', [
                     'email' => $email,
                     'value' => $availabilityEnd,
                     'error' => $e->getMessage(),
@@ -197,7 +220,7 @@ class AuthController extends AbstractController
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        $this->logger->info('User registered', [
+        $this->papertrailLogger->info('✅ User registered successfully', [
             'user_id' => $user->getId(),
             'email'   => $user->getEmail(),
         ]);

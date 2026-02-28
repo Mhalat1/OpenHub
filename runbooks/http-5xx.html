@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Erreurs HTTP 5xx</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Runbook: Erreurs HTTP 5xx</h1>
+        
+        <div class="alert-badge" style="background:#d32f2f; color:white; padding:5px 10px; display:inline-block; border-radius:5px;">CRITIQUE - P1</div>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Erreurs HTTP 5xx détectées<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com<br>
+            <strong>Action:</strong> Intervention requise immédiatement
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Des erreurs serveur (500-599) sont détectées. Cela indique un problème côté serveur qui empêche le traitement correct des requêtes. Impact direct sur les utilisateurs.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Analyse des codes</h2>
+            
+            <table>
+                <tr>
+                    <th>Code</th>
+                    <th>Signification</th>
+                    <th>Cause probable</th>
+                </tr>
+                <tr>
+                    <td><strong>500 Internal Server Error</strong></td>
+                    <td>Erreur générique</td>
+                    <td>Exception PHP non catchée, erreur fatale</td>
+                </tr>
+                <tr>
+                    <td><strong>502 Bad Gateway</strong></td>
+                    <td>Proxy reçoit réponse invalide</td>
+                    <td>PHP-FPM crashé ou timeout</td>
+                </tr>
+                <tr>
+                    <td><strong>503 Service Unavailable</strong></td>
+                    <td>Service temporairement indispo</td>
+                    <td>Maintenance, surcharge</td>
+                </tr>
+                <tr>
+                    <td><strong>504 Gateway Timeout</strong></td>
+                    <td>Timeout proxy</td>
+                    <td>Requête trop longue</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>⚡ Actions immédiates</h2>
+            
+            <div class="step">
+                <h3>1. Vérifier les logs PHP</h3>
+                <pre># Logs d'erreur PHP
+tail -100 /var/log/php.log
+tail -100 /var/log/php-fpm.log
+
+# Chercher les erreurs fatales
+grep -i "fatal\|error\|exception" /var/log/php.log -B5 -A5</pre>
+            </div>
+            
+            <div class="step">
+                <h3>2. Vérifier les logs accès</h3>
+                <pre># Voir quelles URLs génèrent des 5xx
+grep " 5[0-9][0-9] " /var/log/nginx/access.log | awk '{print $7}' | sort | uniq -c | sort -rn
+
+# Voir par IP
+grep " 500 " /var/log/nginx/access.log | awk '{print $1}' | sort | uniq -c | sort -rn</pre>
+            </div>
+            
+            <div class="step">
+                <h3>3. Vérifier l'état des services</h3>
+                <pre># Statut PHP-FPM
+sudo service php8.1-fpm status
+sudo systemctl status php-fpm
+
+# Vérifier base de données
+mysqladmin ping
+pg_isready</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Résolution par type</h2>
+            
+            <h3>500 - Erreur PHP</h3>
+            <pre># Activer l'affichage temporaire des erreurs
+// Dans index.php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+# Voir la stack trace dans les logs
+# Corriger le bug identifié</pre>
+            
+            <h3>502 - Bad Gateway</h3>
+            <pre># PHP-FPM est probablement crashé
+sudo service php8.1-fpm restart
+
+# Vérifier les logs avant crash
+# Augmenter les timeouts si nécessaire</pre>
+            
+            <h3>503 - Service Unavailable</h3>
+            <pre># Vérifier si mode maintenance activé
+# Désactiver si accidentel
+php artisan up  # Laravel
+
+# Vérifier les ressources
+# Si surcharge, augmenter workers</pre>
+            
+            <h3>504 - Gateway Timeout</h3>
+            <pre># Augmenter les timeouts
+# Dans nginx config
+proxy_read_timeout 60s;
+fastcgi_read_timeout 60s;
+
+# Optimiser les requêtes lentes</pre>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Vérification post-résolution</h2>
+            
+            <pre># Tester les endpoints problématiques
+curl -I https://openhub-backend.onrender.com/endpoint-probleme
+
+# Vérifier que les 5xx diminuent
+tail -f /var/log/nginx/access.log | grep " 5[0-9][0-9] "
+
+# Vérifier Grafana
+# Le taux d'erreur doit revenir à 0</pre>
+        </div>
+        
+        <div class="section">
+            <h2>📞 Contacts</h2>
+            <table>
+                <tr>
+                    <th>Rôle</th>
+                    <th>Contact</th>
+                </tr>
+                <tr>
+                    <td>On-call backend</td>
+                    <td>06 12 34 56 78</td>
+                </tr>
+                <tr>
+                    <td>Tech Lead</td>
+                    <td>06 87 65 43 21</td>
+                </tr>
+            </table>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/http-5xx</p>
+    </div>
+</body>
+</html>

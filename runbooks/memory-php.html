@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Mémoire PHP</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>💾 Runbook: Mémoire PHP</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Utilisation mémoire PHP élevée<br>
+            <strong>Seuil:</strong> > 200 MB<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>L'utilisation mémoire PHP est anormalement élevée, ce qui peut précéder un crash "out of memory".</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Diagnostic</h2>
+            
+            <h3>1. Identifier les gros consommateurs</h3>
+            <pre>// Dans le code, logger la mémoire
+error_log("Peak: " . memory_get_peak_usage(true) / 1048576 . " MB");
+error_log("Current: " . memory_get_usage(true) / 1048576 . " MB");</pre>
+            
+            <h3>2. Analyser par endpoint</h3>
+            <pre># Voir quelles routes consomment le plus
+# Middleware de logging mémoire
+// Avant traitement
+$startMemory = memory_get_usage();
+// Après traitement
+$endMemory = memory_get_usage();
+log("Route: " . $request->path() . " Memory: " . ($endMemory - $startMemory) / 1048576 . " MB");</pre>
+            
+            <h3>3. Vérifier les fuites mémoire</h3>
+            <pre># Si mémoire augmente avec le temps
+# Voir les processus PHP qui vieillissent
+# pm.max_requests = 500 (redémarrage périodique)</pre>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Optimisations</h2>
+            
+            <h3>Libérer la mémoire</h3>
+            <pre>// Unset grandes variables après usage
+unset($largeArray);
+gc_collect_cycles();
+
+// Traitement par lots
+foreach (array_chunk($hugeDataset, 100) as $chunk) {
+    processChunk($chunk);
+}</pre>
+            
+            <h3>Optimiser les requêtes</h3>
+            <pre>// Sélectionner uniquement les colonnes nécessaires
+User::select('id', 'name', 'email')->get();
+
+// Paginer
+$users = User::paginate(50);</pre>
+            
+            <h3>Configuration PHP</h3>
+            <pre># php.ini
+memory_limit = 256M  # Augmenter si nécessaire
+max_execution_time = 30
+max_input_time = 60</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/memory-php</p>
+    </div>
+</body>
+</html>

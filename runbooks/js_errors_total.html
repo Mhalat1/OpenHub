@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Erreurs JavaScript</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🟨 Runbook: Erreurs JavaScript</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Erreurs JavaScript côté client détectées<br>
+            <strong>Impact:</strong> Fonctionnalités frontend cassées
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Des erreurs JavaScript sont rapportées par les navigateurs des utilisateurs. Cela peut casser l'interface utilisateur et les interactions.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Investigation</h2>
+            
+            <h3>1. Capturer les erreurs</h3>
+            <pre>// Dans la console navigateur
+// Ou via Sentry/LogRocket
+
+// Ajouter un logger global
+window.addEventListener('error', (event) => {
+    fetch('/api/log-js-error', {
+        method: 'POST',
+        body: JSON.stringify({
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            stack: event.error?.stack
+        })
+    });
+});</pre>
+            
+            <h3>2. Types d'erreurs courantes</h3>
+            <ul>
+                <li><strong>TypeError</strong> - Variable undefined, fonction inexistante</li>
+                <li><strong>SyntaxError</strong> - Code invalide</li>
+                <li><strong>ReferenceError</strong> - Variable non déclarée</li>
+                <li><strong>NetworkError</strong> - Appels API échoués</li>
+                <li><strong>Promise rejection</strong> - Promesse non catchée</li>
+            </ul>
+            
+            <h3>3. Vérifier par navigateur/version</h3>
+            <pre># Si erreur sur navigateur spécifique
+# Vérifier compatibilité ES6/ES7
+# Vérifier polyfills nécessaires</pre>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Solutions</h2>
+            
+            <h3>Erreurs de typage</h3>
+            <pre>// Vérifier l'existence avant d'utiliser
+if (typeof obj.method === 'function') {
+    obj.method();
+}
+
+// Optional chaining
+const value = obj?.property?.method?.();</pre>
+            
+            <h3>Erreurs réseau</h3>
+            <pre>// Gérer les erreurs fetch
+fetch('/api/data')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error');
+        }
+        return response.json();
+    })
+    .catch(error => {
+        console.error('API error:', error);
+        showFallbackData();
+    });</pre>
+            
+            <h3>Problèmes de chargement</h3>
+            <pre>&lt;!-- S'assurer que les scripts sont chargés --&gt;
+&lt;script src="app.js" defer&gt;&lt;/script&gt;
+&lt;script&gt;
+    window.addEventListener('load', () => {
+        // Code dépendant du DOM
+    });
+&lt;/script&gt;</pre>
+            
+            <h3>Minification/Sourcemaps</h3>
+            <pre># S'assurer que les sourcemaps sont générées
+# Pour pouvoir déboguer en production
+
+# Webpack
+devtool: 'source-map'
+
+# Vite
+build.sourcemap = true</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/js_errors_total</p>
+    </div>
+</body>
+</html>

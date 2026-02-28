@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runbook - Backend Down</title>
+        <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span>💀</span>
+            Runbook: Backend hors ligne (Down)
+        </h1>
+        
+        <div class="alert-badge">CRITIQUE - P1 - URGENT</div>
+        
+        <div class="info-box">
+            <strong>🚨 ALERTE:</strong> PHP est down - Instance backend hors ligne<br>
+            <strong>Impact:</strong> Application totalement inaccessible<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ IMPORTANT:</strong> Cette alerte signifie que l'application ne répond plus du tout.
+            Action immédiate requise !
+        </div>
+        
+        <div class="section">
+            <h2>⚡ 1. Actions immédiates (T0 - 2 minutes)</h2>
+            
+            <div class="step">
+                <h3>🔍 Vérifier si l'instance répond</h3>
+                <pre># Tester l'endpoint health
+curl -I https://openhub-backend.onrender.com/health
+curl -I https://openhub-backend.onrender.com/
+
+# Vérifier le code HTTP (doit être 200)
+# Si 502/503/504 → Application crashée
+# Si 000 → DNS/Network</pre>
+            </div>
+            
+            <div class="step">
+                <h3>📊 Vérifier Render Dashboard</h3>
+                <pre>1. Aller sur https://dashboard.render.com
+2. Naviguer vers "openhub-backend"
+3. Vérifier le statut du service:
+   - 🔴 Down → Redémarrer immédiatement
+   - 🟡 Degraded → Vérifier logs
+   - 🔵 Deploying → Attendre fin déploiement</pre>
+            </div>
+            
+            <div class="step">
+                <h3>📝 Vérifier les logs récents</h3>
+                <pre># Via Render Dashboard
+Logs → Voir les dernières lignes
+Chercher: "Fatal error", "Exception", "Killed", "Out of memory"
+
+# Causes fréquentes dans logs:
+- "Allowed memory size exhausted" → Mémoire insuffisante
+- "Maximum execution time exceeded" → Script trop long
+- "Class not found" → Autoloader cassé
+- "Connection refused" → Base de données inaccessible</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🔄 2. Redémarrage d'urgence</h2>
+            
+            <h3>Via Render Dashboard:</h3>
+            <pre>1. Services → openhub-backend
+2. Cliquer sur les "..." (3 points)
+3. Sélectionner "Restart"
+4. Confirmer le redémarrage
+5. Attendre 30 secondes
+6. Rafraîchir et vérifier le statut</pre>
+            
+            <h3>Via Render CLI (si configuré):</h3>
+            <pre>render restart --service openhub-backend
+render ps --service openhub-backend  # Vérifier statut</pre>
+            
+            <h3>Vérification post-redémarrage:</h3>
+            <pre># Vérifier que l'API répond
+curl https://openhub-backend.onrender.com/health
+curl https://openhub-backend.onrender.com/api/v1/health
+
+# Vérifier les logs pour confirmer démarrage
+# Doit voir: "Server started", "Listening on port"</pre>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 3. Diagnostic des causes</h2>
+            
+            <table>
+                <tr>
+                    <th>Cause possible</th>
+                    <th>Indices</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td><strong>💥 Crash PHP</strong></td>
+                    <td>Logs: "segfault", "core dumped"</td>
+                    <td>Redémarrer + vérifier code récent</td>
+                </tr>
+                <tr>
+                    <td><strong>🧠 Mémoire insuffisante</strong></td>
+                    <td>Logs: "Out of memory", "Killed"</td>
+                    <td>Augmenter memory_limit ou scale up</td>
+                </tr>
+                <tr>
+                    <td><strong>🗄️ Base de données HS</strong></td>
+                    <td>Logs: "Connection refused", "SQLSTATE"</td>
+                    <td>Vérifier statut DB</td>
+                </tr>
+                <tr>
+                    <td><strong>📦 Déploiement cassé</strong></td>
+                    <td>Erreurs juste après déploiement</td>
+                    <td>Rollback à version précédente</td>
+                </tr>
+                <tr>
+                    <td><strong>🌐 Render en panne</strong></td>
+                    <td>Status.render.com indique incident</td>
+                    <td>Attendre, contacter support</td>
+                </tr>
+                <tr>
+                    <td><strong>⚙️ Configuration invalide</strong></td>
+                    <td>Fichier .env manquant</td>
+                    <td>Vérifier variables d'environnement</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ 4. Procédures avancées</h2>
+            
+            <h3>📦 Rollback de déploiement</h3>
+            <pre># Si le problème vient d'un déploiement récent
+1. Render Dashboard → Deployments
+2. Identifier le dernier déploiement stable
+3. Cliquer sur "Rollback" à côté de cette version
+4. Confirmer le rollback
+5. Vérifier que l'application redémarre correctement
+
+# Alternative via Git
+git log --oneline -10
+git checkout [stable-commit-hash]
+git push -f origin main  # Force push si nécessaire</pre>
+            
+            <h3>💾 Vérification base de données</h3>
+            <pre># Tester connexion DB depuis Render
+# Utiliser Render Shell ou une tâche one-off
+
+# Via psql (PostgreSQL)
+psql $DATABASE_URL -c "SELECT 1"
+
+# Via MySQL
+mysql $DATABASE_URL -e "SELECT 1"
+
+# Vérifier que les migrations sont appliquées
+php artisan migrate:status  # Laravel
+php bin/console doctrine:migrations:status  # Symfony</pre>
+            
+            <h3>🔧 Debug PHP avancé</h3>
+            <pre># Activer l'affichage des erreurs temporairement
+# Dans index.php ou le point d'entrée
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+# Vérifier la configuration PHP
+php -m  # Modules chargés
+php -i | grep memory_limit
+
+# Tester le chargement des classes
+php -r "require 'vendor/autoload.php'; echo 'Autoload OK';"</pre>
+        </div>
+        
+        <div class="section">
+            <h2>📞 5. Contacts et escalade</h2>
+            
+            <table>
+                <tr>
+                    <th>Rôle</th>
+                    <th>Contact</th>
+                    <th>Délai</th>
+                </tr>
+                <tr>
+                    <td>On-call backend</td>
+                    <td>📱 06 12 34 56 78<br>💬 @oncall (Slack)</td>
+                    <td>Immédiat</td>
+                </tr>
+                <tr>
+                    <td>Tech Lead</td>
+                    <td>📱 06 87 65 43 21<br>💬 @techlead</td>
+                    <td>Si >15min</td>
+                </tr>
+                <tr>
+                    <td>DevOps</td>
+                    <td>📱 06 98 76 54 32<br>💬 @devops</td>
+                    <td>Si problème infrastructure</td>
+                </tr>
+                <tr>
+                    <td>Support Render</td>
+                    <td>📧 support@render.com<br>🌐 status.render.com</td>
+                    <td>Si suspicion panne Render</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>✅ 6. Post-incident</h2>
+            
+            <ul>
+                <li>Vérifier que l'alerte est revenue à "Normal" dans Grafana</li>
+                <li>Documenter la cause racine dans le post-mortem</li>
+                <li>Vérifier les métriques après redémarrage</li>
+                <li>Communiquer sur Slack #general la résolution</li>
+                <li>Mettre à jour ce runbook avec les apprentissages</li>
+                <li>Si rollback effectué, planifier le correctif</li>
+            </ul>
+            
+            <h3>Template message Slack:</h3>
+            <pre>✅ **INCIDENT RÉSOLU - BACKEND DOWN**
+
+Service: OpenHub Backend
+Durée: [X] minutes
+Cause: [cause identifiée]
+Action: [redémarrage/rollback/autre]
+
+L'application est de nouveau accessible.
+Un post-mortem sera partagé ultérieurement.
+
+Merci de votre patience !</pre>
+        </div>
+        
+        <div class="footer">
+            <p>
+                <strong>URL:</strong> https://openhub/runbook/backend-down<br>
+                <strong>Dernière mise à jour:</strong> 28/02/2026<br>
+                <strong>Maintenu par:</strong> Backend Team<br>
+                <strong>Version:</strong> 1.0
+            </p>
+        </div>
+    </div>
+</body>
+</html>

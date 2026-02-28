@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - CLS Ratio</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📏 Runbook: CLS Ratio (Cumulative Layout Shift)</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> CLS élevé (Core Web Vitals)<br>
+            <strong>Seuil:</strong> > 0.1 (mobile/desktop)<br>
+            <strong>Impact:</strong> Expérience utilisateur dégradée
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Le CLS mesure la stabilité visuelle de la page. Un CLS élevé (>0.1) signifie que les éléments de la page se déplacent après le chargement, ce qui frustre les utilisateurs.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Causes fréquentes</h2>
+            <ul>
+                <li><strong>Images sans dimensions</strong> - Pas de width/height définis</li>
+                <li><strong>Polices web</strong> - Flash de texte invisible (FOIT)</li>
+                <li><strong>Publicités/iframes</strong> - Injections dynamiques</li>
+                <li><strong>Contenu injecté en JS</strong> - Ajout après rendu</li>
+                <li><strong>Animations CSS</strong> - Qui modifient le layout</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Solutions</h2>
+            
+            <h3>Images</h3>
+            <pre>&lt;!-- Toujours spécifier width/height --&gt;
+&lt;img src="image.jpg" width="800" height="600" alt="..."&gt;
+
+&lt;!-- Ou en CSS --&gt;
+img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+}</pre>
+            
+            <h3>Polices</h3>
+            <pre>/* Optimiser le chargement des polices */
+@font-face {
+    font-family: 'CustomFont';
+    src: url('/fonts/custom.woff2') format('woff2');
+    font-display: swap;  /* Évite FOIT */
+}</pre>
+            
+            <h3>Réserver l'espace pour contenu dynamique</h3>
+            <pre>/* Réserver un espace pour les pubs/iframes */
+.ad-container {
+    min-height: 250px;
+    width: 100%;
+}</pre>
+            
+            <h3>Outils de mesure</h3>
+            <pre># Lighthouse dans Chrome DevTools
+# PageSpeed Insights
+# Web Vitals Chrome Extension</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/cls_ratio</p>
+    </div>
+</body>
+</html>

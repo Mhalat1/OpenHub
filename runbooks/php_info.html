@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - PHP Info</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>ℹ️ Runbook: PHP Info</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Information sur la configuration PHP<br>
+            <strong>Type:</strong> Monitoring
+        </div>
+        
+        <div class="section">
+            <h2>📋 Configuration PHP actuelle</h2>
+            
+            <h3>Pour vérifier la config:</h3>
+            <pre># Créer temporairement un fichier info.php
+&lt;?php
+phpinfo();
+?&gt;
+
+# En ligne de commande
+php -i
+php -m  # Modules chargés
+
+# Fichier de config
+php --ini</pre>
+            
+            <h3>Paramètres importants à vérifier:</h3>
+            <table>
+                <tr>
+                    <th>Directive</th>
+                    <th>Valeur recommandée</th>
+                    <th>Vérification</th>
+                </tr>
+                <tr>
+                    <td>memory_limit</td>
+                    <td>256M</td>
+                    <td>php -i | grep memory_limit</td>
+                </tr>
+                <tr>
+                    <td>max_execution_time</td>
+                    <td>30</td>
+                    <td>php -i | grep max_execution_time</td>
+                </tr>
+                <tr>
+                    <td>upload_max_filesize</td>
+                    <td>20M</td>
+                    <td>php -i | grep upload_max</td>
+                </tr>
+                <tr>
+                    <td>post_max_size</td>
+                    <td>20M</td>
+                    <td>php -i | grep post_max</td>
+                </tr>
+                <tr>
+                    <td>opcache.enable</td>
+                    <td>1</td>
+                    <td>php -i | grep opcache</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>📦 Extensions requises</h2>
+            
+            <pre># Vérifier les extensions installées
+php -m
+
+# Extensions communes nécessaires:
+- PDO
+- PDO_MySQL / PDO_PgSQL
+- mbstring
+- json
+- curl
+- openssl
+- fileinfo
+- gd (images)
+- xml
+- zip
+- redis / memcached</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/php_info</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Bounce / Instabilité</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Runbook: Bounce / Instabilité</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Redémarrages répétés détectés<br>
+            <strong>Sévérité:</strong> MAJEUR - P2<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>L'application redémarre de façon répétée (bounce). Cela indique une instabilité critique qui peut être causée par :</p>
+            <ul>
+                <li>Crash immédiat au démarrage</li>
+                <li>Manque de ressources récurrent</li>
+                <li>Base de données inaccessible au démarrage</li>
+                <li>Configuration invalide</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>⚡ Actions immédiates</h2>
+            
+            <div class="step">
+                <h3>1. Examiner les logs de démarrage</h3>
+                <pre># Logs récents (derniers redémarrages)
+tail -100 /var/log/php.log
+tail -100 /var/log/php-fpm.log
+
+# Chercher des erreurs systématiques
+grep -i "error\|fatal\|exception" /var/log/php.log | tail -20</pre>
+            </div>
+            
+            <div class="step">
+                <h3>2. Vérifier les ressources</h3>
+                <pre># Utilisation mémoire avant crash
+# Via Render Dashboard → Metrics
+
+# Limites Render actuelles
+# Starter: 512 MB RAM
+# Professional: 1-2 GB RAM</pre>
+            </div>
+            
+            <div class="step">
+                <h3>3. Tester en isolation</h3>
+                <pre># Désactiver temporairement les workers
+# Vérifier si le problème persiste sans charge
+
+# Tester avec une configuration minimale
+php -S localhost:8080 -t public/  # Serveur de développement</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Causes et solutions</h2>
+            
+            <table>
+                <tr>
+                    <th>Cause</th>
+                    <th>Symptômes</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td><strong>🧠 Out of Memory</strong></td>
+                    <td>"Killed", "Out of memory" dans logs</td>
+                    <td>Augmenter memory_limit ou scale up</td>
+                </tr>
+                <tr>
+                    <td><strong>🗄️ DB timeout au démarrage</strong></td>
+                    <td>"Connection refused" dans logs</td>
+                    <td>Vérifier DB, augmenter timeout</td>
+                </tr>
+                <tr>
+                    <td><strong>📦 Extension PHP manquante</strong></td>
+                    <td>"Class not found", "Function undefined"</td>
+                    <td>Installer extension requise</td>
+                </tr>
+                <tr>
+                    <td><strong>⚙️ .env invalide</strong></td>
+                    <td>Erreurs de configuration</td>
+                    <td>Vérifier variables d'environnement</td>
+                </tr>
+                <tr>
+                    <td><strong>🔁 Loop de redémarrage</strong></td>
+                    <td>Redémarrage toutes les 10-30s</td>
+                    <td>Rollback immédiat</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Solutions</h2>
+            
+            <h3>Augmenter les limites mémoire</h3>
+            <pre># Dans php.ini
+memory_limit = 256M  # Augmenter à 512M ou 1G
+
+# Redémarrer PHP-FPM
+sudo service php8.1-fpm restart</pre>
+            
+            <h3>Augmenter les timeouts</h3>
+            <pre># Dans config/database.php (Laravel)
+'options' => [
+    PDO::ATTR_TIMEOUT => 30,  # Augmenter à 60
+],
+
+# Dans php.ini
+max_execution_time = 30  # Augmenter à 60
+max_input_time = 60</pre>
+            
+            <h3>Rollback préventif</h3>
+            <pre># Si déploiement récent, rollback immédiat
+1. Render Dashboard → Deployments
+2. Rollback à version stable
+3. Analyser différence plus tard</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/bounce</p>
+    </div>
+</body>
+</html>

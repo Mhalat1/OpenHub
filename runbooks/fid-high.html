@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - FID élevé</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>👆 Runbook: FID (First Input Delay) élevé</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> First Input Delay > 100ms<br>
+            <strong>Impact:</strong> Lenteur perçue par l'utilisateur
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Le FID mesure le temps entre la première interaction utilisateur (clic, tap) et la réponse du navigateur. Un FID élevé indique que le thread principal est bloqué.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Causes</h2>
+            <ul>
+                <li><strong>JavaScript long</strong> - Scripts qui bloquent le thread</li>
+                <li><strong>Parsing CSS/HTML</strong> - Trop de travail au chargement</li>
+                <li><strong>Exécution de tâches lourdes</strong> - Au démarrage</li>
+                <li><strong>Trop de plugins</strong> - Analytics, chats, etc.</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Solutions</h2>
+            
+            <h3>Optimiser JavaScript</h3>
+            <pre>// Découper le code en chunks
+import('./heavyModule.js').then(module => {
+    module.init();
+});
+
+// Reporter l'exécution
+window.addEventListener('load', () => {
+    // Code non critique
+});
+
+// Web Workers pour tâches lourdes
+const worker = new Worker('worker.js');</pre>
+            
+            <h3>Réduire le travail du thread principal</h3>
+            <pre>&lt;!-- Charger JS en différé --&gt;
+&lt;script src="app.js" defer&gt;&lt;/script&gt;
+
+&lt;!-- CSS critique en inline --&gt;
+&lt;style&gt;
+    /* CSS critique pour le premier rendu */
+&lt;/style&gt;</pre>
+            
+            <h3>Outils</h3>
+            <pre># Chrome DevTools → Performance
+# Lighthouse
+# Web Vitals extension</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/fid-high</p>
+    </div>
+</body>
+</html>

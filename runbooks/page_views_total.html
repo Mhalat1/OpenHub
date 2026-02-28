@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Pages vues</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>👁️ Runbook: Pages vues</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Anomalie dans le nombre de pages vues<br>
+            <strong>Type:</strong> Monitoring trafic
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Cette alerte se déclenche quand le volume de pages vues s'écarte significativement de la normale (hausse ou baisse anormale).</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Investigation</h2>
+            
+            <h3>Si baisse de trafic:</h3>
+            <ul>
+                <li>Vérifier si l'application répond (pas de 5xx)</li>
+                <li>Vérifier Google Search Console (problèmes SEO?)</li>
+                <li>Vérifier les campagnes marketing en cours</li>
+                <li>Vérifier si c'est un jour férié/weekend</li>
+                <li>Analyser par source de trafic</li>
+            </ul>
+            
+            <h3>Si hausse de trafic:</h3>
+            <ul>
+                <li>Vérifier si capacité serveur tient</li>
+                <li>Identifier la source (campagne, viral, bot)</li>
+                <li>Si bot, mettre en place du rate limiting</li>
+                <li>Communiquer avec marketing si campagne</li>
+            </ul>
+            
+            <h3>Analyser les logs</h3>
+            <pre># Top URLs
+awk '{print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -20
+
+# Top referrers
+awk -F'"' '{print $4}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -10
+
+# Top IPs
+awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -20</pre>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Actions</h2>
+            
+            <h3>Si baisse:</h3>
+            <pre>1. Vérifier santé application
+2. Vérifier SEO/indexation
+3. Contacter marketing
+4. Analyser concurrents</pre>
+            
+            <h3>Si hausse (bonne):</h3>
+            <pre>1. Féliciter l'équipe marketing
+2. Surveiller les ressources
+3. Préparer scaling si nécessaire</pre>
+            
+            <h3>Si hausse (bots):</h3>
+            <pre># Ajouter rate limiting
+# Laravel
+Route::middleware('throttle:60,1')->group(...);
+
+# Bloquer IPs suspectes
+# Nginx
+deny 192.168.1.1;</pre>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/page_views_total</p>
+    </div>
+</body>
+</html>

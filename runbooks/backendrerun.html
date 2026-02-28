@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Redémarrage backend</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Runbook: Redémarrage backend détecté</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Redémarrage détecté sur openhub-backend<br>
+            <strong>Type:</strong> Information - Monitoring
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Cette alerte se déclenche quand l'application backend a redémarré. C'est une alerte informative qui peut indiquer :</p>
+            <ul>
+                <li>Un redémarrage manuel volontaire</li>
+                <li>Un crash suivi d'un redémarrage automatique</li>
+                <li>Un déploiement (normal)</li>
+                <li>Un problème de stabilité</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Investigation</h2>
+            
+            <h3>1. Vérifier la cause du redémarrage</h3>
+            <pre># Logs PHP-FPM
+grep "reload\|restart\|exit" /var/log/php-fpm.log -B5 -A5
+
+# Logs système (si accès)
+sudo journalctl -u php-fpm --since "5 minutes ago"
+
+# Logs Render
+https://dashboard.render.com/web/openhub-backend/logs</pre>
+            
+            <h3>2. Vérifier si c'était un crash</h3>
+            <pre># Chercher des erreurs fatales avant le redémarrage
+grep -i "fatal\|error\|exception\|segfault" /var/log/php.log -B10</pre>
+            
+            <table>
+                <tr>
+                    <th>Indice</th>
+                    <th>Conclusion</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>Logs propres, redémarrage planifié</td>
+                    <td>Redémarrage normal (déploiement)</td>
+                    <td>RAS - Surveiller</td>
+                </tr>
+                <tr>
+                    <td>Erreurs fatales avant redémarrage</td>
+                    <td>Crash application</td>
+                    <td>Analyser l'erreur</td>
+                </tr>
+                <tr>
+                    <td>"Killed" dans logs</td>
+                    <td>Manque de mémoire</td>
+                    <td>Vérifier ressources</td>
+                </tr>
+                <tr>
+                    <td>"Maximum execution time"</td>
+                    <td>Script trop long</td>
+                    <td>Optimiser requête</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Vérifications post-redémarrage</h2>
+            
+            <div class="step">
+                <h3>Santé de l'application</h3>
+                <pre># Vérifier health endpoint
+curl -I https://openhub-backend.onrender.com/health
+curl https://openhub-backend.onrender.com/api/v1/health</pre>
+            </div>
+            
+            <div class="step">
+                <h3>Métriques</h3>
+                <pre># Grafana - Vérifier après redémarrage
+- Taux d'erreurs 5xx
+- Temps de réponse
+- Utilisation mémoire
+- Nombre de requêtes</pre>
+            </div>
+            
+            <div class="step">
+                <h3>Base de données</h3>
+                <pre># Vérifier que les connexions DB sont rétablies
+# Les logs ne doivent pas montrer d'erreurs de connexion</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📝 Documentation</h2>
+            <p>Si le redémarrage était anormal :</p>
+            <ul>
+                <li>Noter l'heure exacte du redémarrage</li>
+                <li>Documenter l'erreur qui a causé le crash</li>
+                <li>Créer un ticket pour corriger le problème</li>
+                <li>Surveiller si le problème se reproduit</li>
+            </ul>
+        </div>
+        
+        <div class="footer" style="text-align: center; margin-top: 30px; color: #666;">
+            <p><strong>URL:</strong> https://openhub/runbook/backendrerun</p>
+        </div>
+    </div>
+</body>
+</html>

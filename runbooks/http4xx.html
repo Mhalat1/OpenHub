@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Runbook - Erreurs HTTP 4xx</title>
+    <link rel="stylesheet" href="runbooks.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 Runbook: Erreurs HTTP 4xx</h1>
+        
+        <div class="alert-info">
+            <strong>Alerte:</strong> Spike d'erreurs HTTP 4xx<br>
+            <strong>Instance:</strong> openhub-backend.onrender.com
+        </div>
+        
+        <div class="section">
+            <h2>📋 Description</h2>
+            <p>Augmentation soudaine des erreurs 4xx (400-499). Ces erreurs sont généralement côté client, mais peuvent indiquer des problèmes d'API ou de configuration.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Analyse des codes</h2>
+            
+            <table>
+                <tr>
+                    <th>Code</th>
+                    <th>Signification</th>
+                    <th>Cause probable</th>
+                </tr>
+                <tr>
+                    <td><strong>400 Bad Request</strong></td>
+                    <td>Requête malformée</td>
+                    <td>Client envoie mauvais format</td>
+                </tr>
+                <tr>
+                    <td><strong>401 Unauthorized</strong></td>
+                    <td>Authentification manquante</td>
+                    <td>Token expiré/manquant</td>
+                </tr>
+                <tr>
+                    <td><strong>403 Forbidden</strong></td>
+                    <td>Accès interdit</td>
+                    <td>Permissions insuffisantes</td>
+                </tr>
+                <tr>
+                    <td><strong>404 Not Found</strong></td>
+                    <td>Ressource inexistante</td>
+                    <td>URL changée ou supprimée</td>
+                </tr>
+                <tr>
+                    <td><strong>405 Method Not Allowed</strong></td>
+                    <td>Méthode HTTP invalide</td>
+                    <td>Client utilise mauvaise méthode</td>
+                </tr>
+                <tr>
+                    <td><strong>409 Conflict</strong></td>
+                    <td>Conflit avec état actuel</td>
+                    <td>Version obsolète, doublon</td>
+                </tr>
+                <tr>
+                    <td><strong>422 Unprocessable Entity</strong></td>
+                    <td>Validation échouée</td>
+                    <td>Données invalides</td>
+                </tr>
+                <tr>
+                    <td><strong>429 Too Many Requests</strong></td>
+                    <td>Rate limit dépassé</td>
+                    <td>Client trop rapide</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>⚡ Actions immédiates</h2>
+            
+            <div class="step">
+                <h3>1. Analyser les logs</h3>
+                <pre># Voir distribution des 4xx
+grep " 4[0-9][0-9] " /var/log/nginx/access.log | cut -d' ' -f9 | sort | uniq -c | sort -rn
+
+# Voir les URLs problématiques
+grep " 404 " /var/log/nginx/access.log | awk '{print $7}' | sort | uniq -c | sort -rn | head -10</pre>
+            </div>
+            
+            <div class="step">
+                <h3>2. Identifier le pattern</h3>
+                <pre># Par IP source
+grep " 401 " /var/log/nginx/access.log | awk '{print $1}' | sort | uniq -c | sort -rn
+
+# Par user-agent (bot ou humain ?)
+grep " 429 " /var/log/nginx/access.log | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn</pre>
+            </div>
+            
+            <div class="step">
+                <h3>3. Vérifier les changements récents</h3>
+                <pre># Déploiements récents
+git log --oneline -10
+
+# Changements d'API
+git diff HEAD~10 -- routes/</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Résolution par code</h2>
+            
+            <h3>Pour 400/422 (Validation)</h3>
+            <pre>// Vérifier la validation des requêtes
+// Laravel
+php artisan route:list
+// Voir les règles de validation dans FormRequests</pre>
+            
+            <h3>Pour 401/403 (Auth)</h3>
+            <pre># Vérifier le service d'authentification
+# Token JWT expiré ? Clé API changée ?
+# Vérifier la configuration CORS</pre>
+            
+            <h3>Pour 404 (Routes)</h3>
+            <pre># Vérifier que les routes existent
+php artisan route:list | grep [endpoint]
+
+# Vérifier les redirections
+# Si des URLs ont été changées, ajouter des redirections</pre>
+            
+            <h3>Pour 405 (Methods)</h3>
+            <pre># Vérifier les méthodes autorisées
+# Dans les routes
+Route::match(['GET', 'POST'], '/endpoint', ...);</pre>
+            
+            <h3>Pour 429 (Rate limit)</h3>
+            <pre># Ajuster les rate limits temporairement
+# Dans Laravel (Kernel.php)
+'throttle:60,1'  # Augmenter à 100,1
+
+# Ou contacter le client concerné</pre>
+        </div>
+        
+        <div class="section">
+            <h2>📝 Post-incident</h2>
+            <ul>
+                <li>Si changement d'API → Mettre à jour la documentation</li>
+                <li>Si bug → Corriger et déployer</li>
+                <li>Si attaque (bruteforce) → Renforcer sécurité</li>
+                <li>Ajouter monitoring sur endpoints sensibles</li>
+            </ul>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/http4xx</p>
+    </div>
+</body>
+</html>

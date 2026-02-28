@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runbook - Alerte Disponibilité OpenHub</title>
+    <link rel="stylesheet" href="runbooks.css">
+
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span>🚨</span>
+                Runbook: Alerte Disponibilité - OpenHub Backend
+            </h1>
+            <p>Ce runbook décrit les actions à prendre lorsque la disponibilité de l'application descend sous 95%</p>
+            <div class="badge-container">
+                <span class="badge critical">🔴 CRITIQUE - P1</span>
+                <span class="badge">📊 Seuil: < 95%</span>
+                <span class="badge">⏱️ Pending: 1 minute</span>
+                <span class="badge">👥 Backend Team</span>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Info note sur les variables Grafana -->
+            <div class="info-note">
+                <strong>ℹ️ Note:</strong> Ce runbook est un guide générique. 
+                Les valeurs exactes de l'alerte sont visibles dans :
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>Le message d'alerte dans Grafana</li>
+                    <li>Le tableau de bord de disponibilité</li>
+                    <li>La notification Slack/email reçue</li>
+                </ul>
+            </div>
+            
+            <!-- Info rapide - avec exemple concret -->
+            <div class="metric-value">
+                <div>📊 Exemple de valeurs d'alerte</div>
+                <div style="font-size: 0.7em; margin-top: 10px; color: #666;">
+                    (Ces valeurs sont des exemples - référez-vous à votre alerte Grafana)
+                </div>
+                <hr style="margin: 15px 0; border: none; border-top: 1px solid #d32f2f;">
+                <div>Instance: openhub-backend.onrender.com</div>
+                <div>Seuil: 95%</div>
+                <div>Pending: 1 minute</div>
+            </div>
+            
+            <!-- Boutons d'action rapide -->
+            <div class="button-group">
+                <a href="https://dashboard.render.com" target="_blank" class="button" style="background: #1976d2;">🚀 Render Dashboard</a>
+                <a href="#" target="_blank" class="button" style="background: #d32f2f;">📊 Grafana</a>
+                <a href="#" target="_blank" class="button" style="background: #2e7d32;">📝 Logs</a>
+                <a href="https://status.render.com" target="_blank" class="button" style="background: #ff9800;">🌐 Render Status</a>
+            </div>
+            
+            <!-- Grille d'information -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>📋 Description de l'alerte</h3>
+                    <table class="info-table">
+                        <tr>
+                            <td>Nom:</td>
+                            <td>app_availability_percent</td>
+                        </tr>
+                        <tr>
+                            <td>Condition:</td>
+                            <td><code>&lt; 95%</code></td>
+                        </tr>
+                        <tr>
+                            <td>Instance:</td>
+                            <td><code>openhub-backend.onrender.com</code></td>
+                        </tr>
+                        <tr>
+                            <td>Pending period:</td>
+                            <td>1 minute</td>
+                        </tr>
+                        <tr>
+                            <td>Keep firing:</td>
+                            <td>0s</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="info-card">
+                    <h3>🎯 Impact métier</h3>
+                    <ul style="margin-left: 20px;">
+                        <li>Utilisateurs impactés</li>
+                        <li>Perte de revenus potentielle</li>
+                        <li>Dégradation de l'expérience</li>
+                        <li>Risque de perte de données</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h3>🔍 Symptômes</h3>
+                    <ul style="margin-left: 20px;">
+                        <li>Erreurs 502/503</li>
+                        <li>Timeouts API</li>
+                        <li>Lenteurs applicatives</li>
+                        <li>Logs d'erreurs</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Warning -->
+            <div class="warning">
+                <strong>⚠️ IMPORTANT:</strong> Cette alerte est critique. Une action immédiate est requise.
+                Suivez les étapes dans l'ordre.
+            </div>
+            
+            <!-- Section: Actions immédiates -->
+            <div class="section">
+                <h2>⚡ 1. Actions immédiates (T0 - 5 minutes)</h2>
+                
+                <div class="step">
+                    <h4>🔍 Étape 1: Vérifier l'état du service</h4>
+                    <pre># Tester l'API directement
+curl -I https://openhub-backend.onrender.com/health
+curl -I https://openhub-backend.onrender.com/api/v1/health
+
+# Vérifier le status HTTP (doit retourner 200)
+http_code=$(curl -s -o /dev/null -w "%{http_code}" https://openhub-backend.onrender.com/health)
+echo "HTTP Status: $http_code"</pre>
+                </div>
+                
+                <div class="step">
+                    <h4>📊 Étape 2: Vérifier les métriques Grafana</h4>
+                    <pre># Accès direct
+https://[votre-grafana]/d/backend-availability
+
+# Métriques à vérifier:
+- Taux de requêtes HTTP 5xx
+- Temps de réponse moyen
+- Utilisation CPU/Memory
+- Connexions base de données</pre>
+                </div>
+                
+                <div class="step">
+                    <h4>📝 Étape 3: Vérifier les logs</h4>
+                    <pre># Via Render Dashboard
+https://dashboard.render.com/web/openhub-backend/logs
+
+# Via CLI (si configuré)
+render logs --service openhub-backend --tail 100 | grep -i "error\|exception\|panic"
+
+# Rechercher les erreurs 5xx
+grep "HTTP/1.1\" 5[0-9][0-9]" /var/log/access.log</pre>
+                </div>
+            </div>
+            
+            <!-- Section: Diagnostic -->
+            <div class="section">
+                <h2>🔎 2. Diagnostic - Causes possibles</h2>
+                
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr style="background:#f5f5f5;">
+                        <th style="padding:10px; text-align:left;">Cause</th>
+                        <th style="padding:10px; text-align:left;">Vérification</th>
+                        <th style="padding:10px; text-align:left;">Solution</th>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">📦 Application crashée</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Process not running</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Redémarrer</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">💾 Base de données</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Connexions échouent</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Vérifier DB</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">🌐 Réseau/DNS</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Ping échoue</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Check réseau</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">⚡ Surcharge</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">CPU/Memory > 90%</td>
+                        <td style="padding:10px; border-bottom:1px solid #ddd;">Scale up</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px;">🚀 Déploiement</td>
+                        <td style="padding:10px;">Version récente</td>
+                        <td style="padding:10px;">Rollback</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Section: Procédures de résolution -->
+            <div class="section">
+                <h2>🛠️ 3. Procédures de résolution</h2>
+                
+                <h3>📦 Cas A: Redémarrage de l'application</h3>
+                <pre># Via Render Dashboard
+1. Aller sur https://dashboard.render.com
+2. Sélectionner "openhub-backend"
+3. Cliquer sur "Manual Restart"
+4. Attendre 30 secondes
+5. Vérifier health endpoint
+
+# Via Render CLI (si configuré)
+render restart --service openhub-backend
+render ps --service openhub-backend  # Vérifier status</pre>
+                
+                <h3>💾 Cas B: Problème base de données</h3>
+                <pre># Vérifier connexion DB
+psql -h [db-host] -U [user] -d [db] -c "SELECT 1"
+
+# Vérifier connections actives
+psql -h [db-host] -U [user] -d [db] -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Killer les requêtes longues
+psql -h [db-host] -U [user] -d [db] -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'active' AND now() - state_change > interval '5 minutes';"</pre>
+                
+                <h3>🔄 Cas C: Rollback de déploiement</h3>
+                <pre># Identifier la version stable
+git log --oneline -10
+# ou via Render Dashboard: Deployments → voir historique
+
+# Effectuer rollback
+# Option 1: Via Render Dashboard
+Deploy → "Rollback" → Sélectionner version précédente
+
+# Option 2: Via Git
+git checkout [previous-stable-commit]
+git push -f origin main
+
+# Option 3: Via Render CLI
+render deploy --version [commit-hash]</pre>
+                
+                <h3>⚡ Cas D: Problème de ressources</h3>
+                <pre># Vérifier utilisation actuelle
+# Dashboard Render → Metrics
+
+# Scale temporaire (si nécessaire)
+# Render Dashboard → Settings → Instance Type
+# Passer de "Starter" à "Professional" temporairement</pre>
+            </div>
+            
+            <!-- Section: Contacts et escalade -->
+            <div class="section">
+                <h2>📞 4. Contacts et escalade</h2>
+                
+                <table class="contact-table">
+                    <tr>
+                        <th>Rôle</th>
+                        <th>Nom</th>
+                        <th>Contact</th>
+                        <th>Disponibilité</th>
+                    </tr>
+                    <tr>
+                        <td>On-call backend</td>
+                        <td>Jean Dupont</td>
+                        <td>📱 06 12 34 56 78<br>💬 @jdupont (Slack)</td>
+                        <td>24/7</td>
+                    </tr>
+                    <tr>
+                        <td>Backup on-call</td>
+                        <td>Marie Martin</td>
+                        <td>📱 06 87 65 43 21<br>💬 @mmartin (Slack)</td>
+                        <td>24/7</td>
+                    </tr>
+                    <tr>
+                        <td>Tech Lead</td>
+                        <td>Pierre Durand</td>
+                        <td>📱 06 98 76 54 32<br>💬 @pdurand (Slack)</td>
+                        <td>9h-19h</td>
+                    </tr>
+                    <tr>
+                        <td>DevOps</td>
+                        <td>Sophie Bernard</td>
+                        <td>📱 06 45 67 89 01<br>💬 @sbernard (Slack)</td>
+                        <td>9h-19h</td>
+                    </tr>
+                    <tr>
+                        <td>Support Render</td>
+                        <td>-</td>
+                        <td>📧 support@render.com<br>🌐 https://status.render.com</td>
+                        <td>24/7</td>
+                    </tr>
+                </table>
+                
+                <h3 style="margin-top: 30px;">⏱️ Timeline d'escalade</h3>
+                <div class="escalade-timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+5min</div>
+                        <div class="timeline-action">Diagnostic initial</div>
+                        <div style="margin-top:10px;"><small>On-call engineer</small></div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+15min</div>
+                        <div class="timeline-action">Alerter équipe Slack</div>
+                        <div style="margin-top:10px;"><small>#backend-team</small></div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+30min</div>
+                        <div class="timeline-action">Escalade Tech Lead</div>
+                        <div style="margin-top:10px;"><small>Pierre Durand</small></div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+60min</div>
+                        <div class="timeline-action">Incident majeur</div>
+                        <div style="margin-top:10px;"><small>+ Direction</small></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section: Messages templates -->
+            <div class="section">
+                <h2>💬 5. Messages templates</h2>
+                
+                <h3>Message Slack alerte:</h3>
+                <pre>🚨 **ALERTE DISPONIBILITÉ CRITIQUE** 🚨
+
+Service: OpenHub Backend
+Instance: openhub-backend.onrender.com
+Valeur: 87% (seuil < 95%)
+Time: [date-heure]
+
+Impact: Application inaccessible ou dégradée
+Actions: Investigation en cours
+Runbook: https://openhub/runbook/availabilitypercent
+
+@backend-team @on-call</pre>
+                
+                <h3>Message Slack résolution:</h3>
+                <pre>✅ **INCIDENT RÉSOLU** ✅
+
+Service: OpenHub Backend
+Durée: 15 minutes
+Cause: Crash PHP (out of memory)
+Action: Redémarrage + augmentation memory_limit
+Valeur actuelle: 100%
+
+Dashboard: [lien]
+Post-mortem à suivre...</pre>
+                
+                <h3>Message email équipe:</h3>
+                <pre>Objet: [URGENT] Incident disponibilité OpenHub Backend
+
+L'application openhub-backend a rencontré des problèmes de disponibilité.
+Valeur constatée: 87% (seuil < 95%)
+
+Actions requises:
+- Vérifier les logs
+- Diagnostiquer la cause
+- Résoudre l'incident
+
+Runbook: https://openhub/runbook/availabilitypercent</pre>
+            </div>
+            
+            <!-- Section: Liens utiles -->
+            <div class="section">
+                <h2>🔗 6. Liens utiles</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
+                        <strong>📊 Grafana</strong><br>
+                        Dashboard disponibilité
+                    </a>
+                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
+                        <strong>📝 Logs (Loki)</strong><br>
+                        Logs application
+                    </a>
+                    <a href="https://dashboard.render.com" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
+                        <strong>🚀 Render Dashboard</strong><br>
+                        https://dashboard.render.com
+                    </a>
+                    <a href="https://status.render.com" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
+                        <strong>📈 Render Status</strong><br>
+                        https://status.render.com
+                    </a>
+                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
+                        <strong>💾 Base de données</strong><br>
+                        Métriques DB
+                    </a>
+                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
+                        <strong>📚 Documentation API</strong><br>
+                        Endpoints health
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Section: Checklist post-incident -->
+            <div class="section">
+                <h2>✅ 7. Post-incident</h2>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4>À faire immédiatement:</h4>
+                        <ul style="margin-left: 20px;">
+                            <li>☐ Vérifier que l'alerte est revenue à "Normal" dans Grafana</li>
+                            <li>☐ Documenter la cause racine</li>
+                            <li>☐ Communiquer la résolution à l'équipe sur Slack</li>
+                            <li>☐ Vérifier les métriques post-incident</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Dans les 24h:</h4>
+                        <ul style="margin-left: 20px;">
+                            <li>☐ Rédiger le post-mortem</li>
+                            <li>☐ Mettre à jour ce runbook si nécessaire</li>
+                            <li>☐ Créer des tickets d'amélioration</li>
+                            <li>☐ Revue avec l'équipe</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+          
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>
+                <strong>Runbook URL:</strong> https://openhub/runbook/availabilitypercent<br>
+                <strong>Dernière mise à jour:</strong> 28/02/2026<br>
+                <strong>Maintenu par:</strong> Backend Team<br>
+                <strong>Version:</strong> 1.0 <br> 
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,25 +1,31 @@
 <?php
-// src/Controller/DefaultController.php
 
 namespace App\Controller;
 
+use App\Service\PapertrailService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 class DefaultController extends AbstractController
 {
+    public function __construct(
+        private PapertrailService $papertrailLogger,
+    ) {}
+
     #[Route('/', name: 'app_home')]
     public function index(): JsonResponse
     {
+        $this->papertrailLogger->info('API root endpoint hit');
+
         return new JsonResponse([
-            'status' => 'OK',
-            'message' => 'OpenHub Backend API is running',
+            'status'    => 'OK',
+            'message'   => 'OpenHub Backend API is running',
             'timestamp' => time(),
             'endpoints' => [
                 'register' => '/api/userCreate',
-                'login' => '/api/login_check',
-                'health' => '/health'
+                'login'    => '/api/login_check',
+                'health'   => '/health'
             ]
         ]);
     }
@@ -27,8 +33,10 @@ class DefaultController extends AbstractController
     #[Route('/health', name: 'app_health')]
     public function health(): JsonResponse
     {
+        $this->papertrailLogger->info('Health check endpoint hit');
+
         return new JsonResponse([
-            'status' => 'healthy',
+            'status'    => 'healthy',
             'timestamp' => time()
         ]);
     }
