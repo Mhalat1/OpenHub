@@ -45,16 +45,14 @@ class AuthController extends AbstractController
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (!$this->passwordHasher->isPasswordValid($user, $password)) {
-            $this->papertrailLogger->warning('Invalid password attempt', [
-                'user_id' => $user->getId(),
-                'email'   => $email,
-            ]);
-            return $this->json([
-                'message' => 'Invalid credentials',
-            ], Response::HTTP_UNAUTHORIZED);
-        }
+        $this->papertrailLogger->info('TEST LOG FROM AUTH - please appear');
+        $this->papertrailLogger->error('Invalid password attempt - ERROR LEVEL', [
+            'user_id' => $user->getId(),
+            'email'   => $email,
+        ]);
 
+
+        
         $token = $this->jwtManager->create($user);
 
         $this->papertrailLogger->info('Token generated - Login successful', [

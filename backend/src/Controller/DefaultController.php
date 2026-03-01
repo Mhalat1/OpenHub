@@ -33,8 +33,6 @@ class DefaultController extends AbstractController
     #[Route('/health', name: 'app_health')]
     public function health(): JsonResponse
     {
-        $this->papertrailLogger->info('Health check endpoint hit');
-
         return new JsonResponse([
             'status'    => 'healthy',
             'timestamp' => time()
