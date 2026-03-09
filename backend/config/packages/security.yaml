@@ -2,6 +2,7 @@
 security:
     password_hashers:
         App\Entity\User:
+            cost: 4 # pour les tests, à augmenter en production !
             algorithm: auto
     providers:
         app_user_provider:

@@ -2,403 +2,426 @@
 
 namespace App\Tests\Controller;
 
-use App\Controller\ProjectsController;
 use App\Entity\Project;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
-use PHPUnit\Framework\TestCase;
-use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HttpFoundation\Request;
-use PHPUnit\Framework\MockObject\MockObject;
-use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-class ProjectsControllerTest extends TestCase
+class ProjectsControllerTest extends WebTestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private Security&MockObject $security;
-    private User&MockObject $user;
-    private Project&MockObject $project;
-    private ProjectsController $controller;
+    // =========================================================================
+    // Helpers
+    // =========================================================================
 
-    protected function setUp(): void
+    /**
+     * Génère un JWT en appelant directement /api/login_check,
+     * après s'être assuré que l'utilisateur existe en BDD test
+     * avec le bon mot de passe (on le recrée proprement à chaque fois).
+     */
+    private function createAuthenticatedClient(): \Symfony\Bundle\FrameworkBundle\KernelBrowser
     {
-        $this->em = $this->createMock(EntityManagerInterface::class);
-        $this->security = $this->createMock(Security::class);
-        $this->user = $this->createMock(User::class);
-        $this->project = $this->createMock(Project::class);
-        
-        $this->controller = new ProjectsController($this->em);
+        $client  = static::createClient();
+        $em      = static::getContainer()->get(EntityManagerInterface::class);
+        $hasher  = static::getContainer()->get(UserPasswordHasherInterface::class);
+
+        $email    = 'phpunit@openhub.com';
+        $password = 'TestPass!123';
+
+        // Supprimer l'utilisateur existant pour éviter les conflits de hash
+        $existing = $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        if ($existing) {
+            // Détacher les projets pour éviter les contraintes FK
+            foreach ($existing->getProject() as $p) {
+                $existing->removeProject($p);
+            }
+            $em->remove($existing);
+            $em->flush();
+            $em->clear();
+        }
+
+        // Créer un utilisateur frais avec un hash valide
+        $user = new User();
+        $user->setEmail($email);
+        $user->setPassword($hasher->hashPassword($user, $password));
+        $em->persist($user);
+        $em->flush();
+
+        // Obtenir le JWT via /api/login_check
+        $client->request(
+            'POST',
+            '/api/login_check',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['email' => $email, 'password' => $password])
+        );
+
+        $response = json_decode($client->getResponse()->getContent(), true);
+
+        // Compatibilité : certaines versions de LexikJWT retournent 'token', d'autres 'access_token'
+        $token = $response['token'] ?? $response['access_token'] ?? null;
+
+        if (empty($token)) {
+            throw new \RuntimeException(
+                sprintf(
+                    "Impossible d'obtenir un JWT.\nStatus: %d\nRéponse: %s\n\n" .
+                    "→ Vérifiez que /api/login_check est bien configuré pour l'env 'test'\n" .
+                    "→ Vérifiez que JWT_SECRET_KEY est défini dans .env.test ou .env",
+                    $client->getResponse()->getStatusCode(),
+                    $client->getResponse()->getContent()
+                )
+            );
+        }
+
+        $client->setServerParameter('HTTP_Authorization', 'Bearer ' . $token);
+
+        return $client;
     }
 
-    // ========================================
-    // TESTS: projects() - GET /api/allprojects
-    // ========================================
+    /**
+     * Retourne l'utilisateur de test depuis la BDD.
+     */
+    private function getTestUser(): User
+    {
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        return $em->getRepository(User::class)->findOneBy(['email' => 'phpunit@openhub.com']);
+    }
+
+    /**
+     * Crée et persiste un Project en BDD de test.
+     */
+    private function createProject(
+        string $name        = 'Refonte site web',
+        string $description = 'Refonte complète du site vitrine',
+        array  $skills      = ['PHP', 'Symfony', 'React'],
+        string $startDate   = '2024-03-01',
+        string $endDate     = '2024-09-30'
+    ): Project {
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $project = new Project();
+        $project->setName($name);
+        $project->setDescription($description);
+        // setRequiredSkills attend une string (stockée en JSON dans la BDD)
+        $project->setRequiredSkills(json_encode($skills));
+        $project->setStartDate(new \DateTimeImmutable($startDate));
+        $project->setEndDate(new \DateTimeImmutable($endDate));
+
+        $em->persist($project);
+        $em->flush();
+
+        return $project;
+    }
+
+    // =========================================================================
+    // GET /api/allprojects
+    // =========================================================================
 
     public function testProjectsReturnsAllProjects(): void
     {
-        $project1 = $this->createMock(Project::class);
-        $project1->method('getId')->willReturn(1);
-        $project1->method('getName')->willReturn('Project 1');
-        $project1->method('getDescription')->willReturn('Description 1');
-        $project1->method('getRequiredSkills')->willReturn('PHP, Symfony');
-        $project1->method('getStartDate')->willReturn(new \DateTimeImmutable('2026-01-01'));
-        $project1->method('getEndDate')->willReturn(new \DateTimeImmutable('2026-06-01'));
+        $client = $this->createAuthenticatedClient();
 
-        $project2 = $this->createMock(Project::class);
-        $project2->method('getId')->willReturn(2);
-        $project2->method('getName')->willReturn('Project 2');
-        $project2->method('getDescription')->willReturn('Description 2');
-        $project2->method('getRequiredSkills')->willReturn('React, Node.js');
-        $project2->method('getStartDate')->willReturn(null);
-        $project2->method('getEndDate')->willReturn(null);
+        $this->createProject('Refonte site web');
+        $this->createProject('Application mobile RH', 'App RH interne', ['Flutter', 'Dart']);
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('findAll')->willReturn([$project1, $project2]);
-        $this->em->method('getRepository')->willReturn($repository);
+        $client->request('GET', '/api/allprojects');
 
-        $response = $this->controller->projects();
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertGreaterThanOrEqual(2, count($data));
 
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertCount(2, $data);
-        $this->assertEquals('Project 1', $data[0]['name']);
-        $this->assertEquals('Project 2', $data[1]['name']);
+        $first = $data[0];
+        $this->assertArrayHasKey('id', $first);
+        $this->assertArrayHasKey('name', $first);
+        $this->assertArrayHasKey('description', $first);
+        $this->assertArrayHasKey('requiredSkills', $first);
+        $this->assertArrayHasKey('startDate', $first);
+        $this->assertArrayHasKey('endDate', $first);
     }
 
     public function testProjectsReturnsEmptyArrayWhenNoProjects(): void
     {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('findAll')->willReturn([]);
-        $this->em->method('getRepository')->willReturn($repository);
+        $client = $this->createAuthenticatedClient();
 
-        $response = $this->controller->projects();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        foreach ($em->getRepository(Project::class)->findAll() as $p) {
+            $em->remove($p);
+        }
+        $em->flush();
 
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertIsArray($data);
-        $this->assertEmpty($data);
+        $client->request('GET', '/api/allprojects');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame([], $data);
     }
 
-    // ========================================
-    // TESTS: userProjects() - GET /api/user/projects
-    // ========================================
+    // =========================================================================
+    // GET /api/user/projects
+    // =========================================================================
 
     public function testUserProjectsReturns401WhenNotAuthenticated(): void
     {
-        $this->security->method('getUser')->willReturn(null);
+        $client = static::createClient();
 
-        $response = $this->controller->userProjects($this->security);
+        $client->request('GET', '/api/user/projects');
 
-        $this->assertEquals(401, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('User not authenticated', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
-    public function testUserProjectsReturnsUserProjects(): void
+    public function testUserProjectsReturnsProjectsForAuthenticatedUser(): void
     {
-        $project = $this->createMock(Project::class);
-        $project->method('getId')->willReturn(1);
-        $project->method('getName')->willReturn('My Project');
-        $project->method('getDescription')->willReturn('My Description');
-        $project->method('getRequiredSkills')->willReturn('PHP');
-        $project->method('getStartDate')->willReturn(new \DateTimeImmutable('2026-01-01'));
-        $project->method('getEndDate')->willReturn(new \DateTimeImmutable('2026-12-31'));
+        $client  = $this->createAuthenticatedClient();
+        $project = $this->createProject('Refonte site web');
 
-        $projects = new ArrayCollection([$project]);
-        $this->user->method('getProject')->willReturn($projects);
-        $this->security->method('getUser')->willReturn($this->user);
+        $em   = static::getContainer()->get(EntityManagerInterface::class);
+        $user = $this->getTestUser();
+        $user->addProject($project);
+        $em->flush();
 
-        $response = $this->controller->userProjects($this->security);
+        $client->request('GET', '/api/user/projects');
 
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertCount(1, $data);
-        $this->assertEquals('My Project', $data[0]['name']);
-    }
-
-    public function testUserProjectsReturnsEmptyArrayWhenUserHasNoProjects(): void
-    {
-        $this->user->method('getProject')->willReturn(new ArrayCollection());
-        $this->security->method('getUser')->willReturn($this->user);
-
-        $response = $this->controller->userProjects($this->security);
-
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertIsArray($data);
-        $this->assertEmpty($data);
+        $this->assertContains('Refonte site web', array_column($data, 'name'));
     }
 
-    // ========================================
-    // TESTS: addProject() - POST /api/user/add/project
-    // ========================================
+    // =========================================================================
+    // POST /api/user/add/project
+    // =========================================================================
 
     public function testAddProjectReturns401WhenNotAuthenticated(): void
     {
-        $this->security->method('getUser')->willReturn(null);
-        $request = new Request([], [], [], [], [], [], json_encode(['project_id' => 1]));
+        $client = static::createClient();
 
-        $response = $this->controller->addProject($request, $this->security);
+        $client->request(
+            'POST', '/api/user/add/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['project_id' => 1])
+        );
 
-        $this->assertEquals(401, $response->getStatusCode());
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
-    public function testAddProjectReturns400WhenProjectIdMissing(): void
+    public function testAddProjectReturns400WhenMissingProjectId(): void
     {
-        $this->security->method('getUser')->willReturn($this->user);
-        $request = new Request([], [], [], [], [], [], json_encode([]));
+        $client = $this->createAuthenticatedClient();
 
-        $response = $this->controller->addProject($request, $this->security);
+        $client->request(
+            'POST', '/api/user/add/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([])
+        );
 
-        $this->assertEquals(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Missing project_id', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Missing project_id', $data['message']);
     }
 
     public function testAddProjectReturns404WhenProjectNotFound(): void
     {
-        $this->security->method('getUser')->willReturn($this->user);
-        
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn(null);
-        $this->em->method('getRepository')->willReturn($repository);
+        $client = $this->createAuthenticatedClient();
 
-        $request = new Request([], [], [], [], [], [], json_encode(['project_id' => 999]));
+        $client->request(
+            'POST', '/api/user/add/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['project_id' => 999999])
+        );
 
-        $response = $this->controller->addProject($request, $this->security);
-
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project not found', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project not found', $data['message']);
     }
 
-    public function testAddProjectReturns400WhenProjectAlreadyAdded(): void
+    public function testAddProjectReturns400WhenAlreadyAdded(): void
     {
-        $this->project->method('getName')->willReturn('Existing Project');
-        
-        $projects = $this->createMock(ArrayCollection::class);
-        $projects->method('contains')->with($this->project)->willReturn(true);
-        
-        $this->user->method('getProject')->willReturn($projects);
-        $this->security->method('getUser')->willReturn($this->user);
+        $client  = $this->createAuthenticatedClient();
+        $project = $this->createProject('Projet déjà ajouté');
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($this->project);
-        $this->em->method('getRepository')->willReturn($repository);
+        $em   = static::getContainer()->get(EntityManagerInterface::class);
+        $user = $this->getTestUser();
+        $user->addProject($project);
+        $em->flush();
 
-        $request = new Request([], [], [], [], [], [], json_encode(['project_id' => 1]));
+        $client->request(
+            'POST', '/api/user/add/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['project_id' => $project->getId()])
+        );
 
-        $response = $this->controller->addProject($request, $this->security);
-
-        $this->assertEquals(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project already added to user', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project already added to user', $data['message']);
     }
 
-    public function testAddProjectSuccessfullyAddsProject(): void
+    public function testAddProjectSuccess(): void
     {
-        $this->project->method('getName')->willReturn('New Project');
-        
-        $projects = $this->createMock(ArrayCollection::class);
-        $projects->method('contains')->willReturn(false);
-        
-        $this->user->method('getProject')->willReturn($projects);
-        $this->user->expects($this->once())->method('addProject')->with($this->project);
-        $this->security->method('getUser')->willReturn($this->user);
+        $client  = $this->createAuthenticatedClient();
+        $project = $this->createProject('Nouveau projet');
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($this->project);
-        $this->em->method('getRepository')->willReturn($repository);
-        $this->em->expects($this->once())->method('persist')->with($this->user);
-        $this->em->expects($this->once())->method('flush');
+        $client->request(
+            'POST', '/api/user/add/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['project_id' => $project->getId()])
+        );
 
-        $request = new Request([], [], [], [], [], [], json_encode(['project_id' => 1]));
-
-        $response = $this->controller->addProject($request, $this->security);
-
-        $this->assertEquals(201, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertEquals('New Project', $data['project_name']);
+        $this->assertSame('Nouveau projet', $data['project_name']);
     }
 
-    // ========================================
-    // TESTS: createProject() - POST /api/create/new/project
-    // ========================================
+    // =========================================================================
+    // POST /api/create/new/project
+    // =========================================================================
 
-    public function testCreateProjectReturns400WhenRequiredFieldsMissing(): void
+    public function testCreateProjectReturns400WhenMissingFields(): void
     {
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'name' => 'Test Project'
-            // Missing other fields
-        ]));
+        $client = $this->createAuthenticatedClient();
 
-        $response = $this->controller->createProject($request);
+        $client->request(
+            'POST', '/api/create/new/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['name' => 'Projet incomplet'])
+        );
 
-        $this->assertEquals(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Missing required fields', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Missing required fields', $data['message']);
     }
 
-    public function testCreateProjectSuccessfullyCreatesProject(): void
+    public function testCreateProjectReturns400WhenInvalidDate(): void
     {
-        $projectData = [
-            'name' => 'New Project',
-            'description' => 'Project Description',
-            'requiredSkills' => 'PHP, Symfony',
-            'startDate' => '2026-01-01',
-            'endDate' => '2026-12-31'
-        ];
+        $client = $this->createAuthenticatedClient();
 
-        $this->em->expects($this->once())->method('persist')
-            ->with($this->isInstanceOf(Project::class));
-        $this->em->expects($this->once())->method('flush');
+        $client->request(
+            'POST', '/api/create/new/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'name'           => 'Refonte site web',
+                'description'    => 'Description du projet',
+                'requiredSkills' => '["PHP","Symfony"]',
+                'startDate'      => 'date-invalide',
+                'endDate'        => '2024-09-30',
+            ])
+        );
 
-        $request = new Request([], [], [], [], [], [], json_encode($projectData));
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Invalid date format', $data['message']);
+    }
 
-        $response = $this->controller->createProject($request);
+    public function testCreateProjectSuccess(): void
+    {
+        $client = $this->createAuthenticatedClient();
 
-        $this->assertEquals(201, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project created successfully', $data['message']);
+        $client->request(
+            'POST', '/api/create/new/project', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'name'           => 'Refonte site web',
+                'description'    => 'Refonte complète du site vitrine',
+                'requiredSkills' => '["PHP","Symfony","React"]',
+                'startDate'      => '2024-03-01',
+                'endDate'        => '2024-09-30',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project created successfully', $data['message']);
         $this->assertArrayHasKey('project_id', $data);
+        $this->assertIsInt($data['project_id']);
     }
 
-    // ========================================
-    // TESTS: modifyProject() - PUT/PATCH /api/modify/project/{id}
-    // ========================================
+    // =========================================================================
+    // PUT/PATCH /api/modify/project/{id}
+    // =========================================================================
 
-    public function testModifyProjectReturns404WhenProjectNotFound(): void
+    public function testModifyProjectReturns404WhenNotFound(): void
     {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn(null);
-        $this->em->method('getRepository')->willReturn($repository);
+        $client = $this->createAuthenticatedClient();
 
-        $request = new Request([], [], [], [], [], [], json_encode(['name' => 'Updated Name']));
+        $client->request(
+            'PUT', '/api/modify/project/999999', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['name' => 'Nouveau nom'])
+        );
 
-        $response = $this->controller->modifyProject(999, $request);
-
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project not found', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project not found', $data['message']);
     }
 
-    public function testModifyProjectUpdatesName(): void
+    public function testModifyProjectSuccess(): void
     {
-        $project = $this->createMock(Project::class);
-        $project->method('getId')->willReturn(1);
-        $project->expects($this->once())->method('setName')->with('Updated Name');
+        $client  = $this->createAuthenticatedClient();
+        $project = $this->createProject('Refonte site web');
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($project);
-        $this->em->method('getRepository')->willReturn($repository);
-        $this->em->expects($this->once())->method('flush');
+        $client->request(
+            'PUT', '/api/modify/project/' . $project->getId(), [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'name'        => 'Refonte site web v2',
+                'description' => 'Nouvelle description',
+                'endDate'     => '2025-03-31',
+            ])
+        );
 
-        $request = new Request([], [], [], [], [], [], json_encode(['name' => 'Updated Name']));
-
-        $response = $this->controller->modifyProject(1, $request);
-
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project updated successfully', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project updated successfully', $data['message']);
+        $this->assertSame($project->getId(), $data['project_id']);
     }
 
-    public function testModifyProjectUpdatesMultipleFields(): void
+    public function testModifyProjectReturns400OnInvalidEndDate(): void
     {
-        $project = $this->createMock(Project::class);
-        $project->method('getId')->willReturn(1);
-        $project->expects($this->once())->method('setName')->with('Updated Name');
-        $project->expects($this->once())->method('setDescription')->with('Updated Description');
-        $project->expects($this->once())->method('setRequiredSkills')->with('Updated Skills');
+        $client  = $this->createAuthenticatedClient();
+        $project = $this->createProject();
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($project);
-        $this->em->method('getRepository')->willReturn($repository);
-        $this->em->expects($this->once())->method('flush');
+        $client->request(
+            'PATCH', '/api/modify/project/' . $project->getId(), [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['endDate' => 'date-invalide'])
+        );
 
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'name' => 'Updated Name',
-            'description' => 'Updated Description',
-            'requiredSkills' => 'Updated Skills'
-        ]));
-
-        $response = $this->controller->modifyProject(1, $request);
-
-        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Invalid endDate format', $data['message']);
     }
 
-    public function testModifyProjectReturns400WhenInvalidStartDateFormat(): void
+    // =========================================================================
+    // DELETE /api/delete/project/{id}
+    // =========================================================================
+
+    public function testDeleteProjectReturns404WhenNotFound(): void
     {
-        $project = $this->createMock(Project::class);
-        $project->method('setStartDate')->willThrowException(new \Exception('Invalid date'));
+        $client = $this->createAuthenticatedClient();
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($project);
-        $this->em->method('getRepository')->willReturn($repository);
+        $client->request('DELETE', '/api/delete/project/999999');
 
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'startDate' => 'invalid-date'
-        ]));
-
-        $response = $this->controller->modifyProject(1, $request);
-
-        $this->assertEquals(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Invalid startDate format', $data['message']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project not found', $data['message']);
     }
 
-    public function testModifyProjectReturns400WhenInvalidEndDateFormat(): void
+    public function testDeleteProjectSuccess(): void
     {
-        $project = $this->createMock(Project::class);
-        $project->method('setEndDate')->willThrowException(new \Exception('Invalid date'));
+        $client  = $this->createAuthenticatedClient();
+        $project = $this->createProject('Projet à supprimer');
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($project);
-        $this->em->method('getRepository')->willReturn($repository);
+        $client->request('DELETE', '/api/delete/project/' . $project->getId());
 
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'endDate' => 'invalid-date'
-        ]));
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('Project deleted successfully', $data['message']);
 
-        $response = $this->controller->modifyProject(1, $request);
-
-        $this->assertEquals(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Invalid endDate format', $data['message']);
-    }
-
-    // ========================================
-    // TESTS: deleteProject() - DELETE /api/delete/project/{id}
-    // ========================================
-
-    public function testDeleteProjectReturns404WhenProjectNotFound(): void
-    {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn(null);
-        $this->em->method('getRepository')->willReturn($repository);
-
-        $response = $this->controller->deleteProject(999);
-
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project not found', $data['message']);
-    }
-
-    public function testDeleteProjectSuccessfullyDeletesProject(): void
-    {
-        $project = $this->createMock(Project::class);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->willReturn($project);
-        $this->em->method('getRepository')->willReturn($repository);
-        $this->em->expects($this->once())->method('remove')->with($project);
-        $this->em->expects($this->once())->method('flush');
-
-        $response = $this->controller->deleteProject(1);
-
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project deleted successfully', $data['message']);
+        $em      = static::getContainer()->get(EntityManagerInterface::class);
+        $deleted = $em->getRepository(Project::class)->find($project->getId());
+        $this->assertNull($deleted);
     }
 }

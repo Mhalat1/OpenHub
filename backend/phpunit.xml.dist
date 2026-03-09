@@ -1,16 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?><?xml version="1.0" encoding="UTF-8"?>
+
+<!-- https://phpunit.readthedocs.io/en/latest/configuration.html -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="tests/bootstrap.php"
          colors="true"
-         failOnRisky="true"
-         failOnWarning="true">
+         failOnDeprecation="true"
+         failOnNotice="true"
+         failOnWarning="true"
+         bootstrap="tests/bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+>
     <php>
-        <ini name="display_errors" value="1"/>
-        <ini name="error_reporting" value="-1"/>
-        <server name="APP_ENV" value="test" force="true"/>
-        <server name="SHELL_VERBOSITY" value="-1"/>
-        <server name="KERNEL_CLASS" value="App\Kernel"/>
+        <ini name="max_execution_time" value="240"/>
+        <ini name="memory_limit" value="1024M"/>
+
+        <ini name="display_errors" value="1" />
+        <ini name="error_reporting" value="-1" />
+        <server name="APP_ENV" value="test" force="true" />
+        <server name="SHELL_VERBOSITY" value="-1" />
+        <env name="KERNEL_CLASS" value="App\Kernel"/>
+        
+        <!-- Database -->
+        <env name="DATABASE_URL" value="mysql://root:@127.0.0.1:3310/openhub_local?serverVersion=8.0.32&amp;charset=utf8mb4"/>
+        
+        <!-- Stripe Keys (add these) -->
+        <env name="STRIPE_PRIVATE_KEY" value="sk_test_mockkeyfortesting"/>
+        <env name="STRIPE_PUBLIC_KEY" value="pk_test_mockkeyfortesting"/>
+        <env name="STRIPE_SECRET_KEY" value="sk_test_mockkeyfortesting"/>
+        
+        <!-- Papertrail (add these) -->
+        <env name="PAPERTRAIL_TOKEN" value="https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs"/>
+        <env name="PAPERTRAIL_URL" value="hVEc15AdNgNV65kzNCpehWxuI49gLMWcTonnuGEDAuKTTc6m-lMLLRKjxK5Mx6A8z5bhsRw"/>
+        
+        <!-- JWT (add this) -->
+        <env name="JWT_PASSPHRASE" value="Thinkpad@2022"/>
     </php>
 
     <testsuites>
@@ -19,9 +42,22 @@
         </testsuite>
     </testsuites>
 
-    <source>
+    <source ignoreSuppressionOfDeprecations="true"
+            ignoreIndirectDeprecations="true"
+            restrictNotices="true"
+            restrictWarnings="true"
+    >
         <include>
-            <directory suffix=".php">src</directory>
+            <directory>src</directory>
         </include>
+
+        <deprecationTrigger>
+            <method>Doctrine\Deprecations\Deprecation::trigger</method>
+            <method>Doctrine\Deprecations\Deprecation::delegateTriggerToBackend</method>
+            <function>trigger_deprecation</function>
+        </deprecationTrigger>
     </source>
+
+    <extensions>
+    </extensions>
 </phpunit>

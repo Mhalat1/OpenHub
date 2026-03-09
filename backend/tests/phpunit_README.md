@@ -19,4 +19,5 @@ exemple test pour lister toutes les routes de l'application :
 commande pour générer un rapport de couverture de code en HTML :
 Mesure quelles parties de votre code sont exécutées par vos tests.
 
-$ php bin/phpunit --coverage-html coverage/
+
+php vendor/bin/phpunit --coverage-html coverage/

@@ -94,10 +94,12 @@ class BackendMetricsController
         $registry->getOrRegisterGauge('app', 'response_time_p95_seconds', 'P95 response time')
             ->set($p95);
 
-        // CPU réel
-        $load = sys_getloadavg();
+        // CPU réel — compatible Windows et Linux
+        $load = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
         $registry->getOrRegisterGauge('app', 'cpu_load_1m', 'CPU load 1m')
             ->set(round($load[0], 2));
+            
+
 
         // Mémoire réelle
         $registry->getOrRegisterGauge('app', 'memory_usage_mb', 'Memory usage MB')
