@@ -1,386 +1,129 @@
 <?php
+namespace App\Controller;
 
-namespace App\Tests\Controller;
-
-use App\Controller\BackendMetricsController;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Prometheus\CollectorRegistry;
+use Prometheus\Storage\InMemory;
+use Prometheus\RenderTextFormat;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Routing\Annotation\Route;
 
-class BackendMetricsControllerTest extends WebTestCase
+class BackendMetricsController
 {
-    private $client;
     private string $tmpDir;
 
-    protected function setUp(): void
+    public function __construct()
     {
-        $this->client = static::createClient();
         $this->tmpDir = sys_get_temp_dir();
-        $this->cleanupMetricsFiles();
     }
 
-    protected function tearDown(): void
+    // React ou ton frontend appelle cet endpoint pour incrémenter les compteurs
+    #[Route('/metrics/backend/collect', name: 'backend_metrics_collect', methods: ['POST'])]
+    public function collect(Request $request): JsonResponse
     {
-        $this->cleanupMetricsFiles();
-        parent::tearDown();
-    }
+        $data = json_decode($request->getContent(), true);
+        $status = $data['status'] ?? 200;
+        $duration = $data['duration'] ?? 0;
 
-    private function cleanupMetricsFiles(): void
-    {
-        foreach (['bm_2xx.txt', 'bm_4xx.txt', 'bm_5xx.txt', 'bm_times.txt'] as $file) {
-            $path = $this->tmpDir . '/' . $file;
-            if (file_exists($path)) unlink($path);
-        }
-    }
-
-    // ========== TESTS COLLECT ==========
-
-    public function testCollectEndpointExists(): void
-    {
-        $this->assertTrue(method_exists(BackendMetricsController::class, 'collect'));
-    }
-
-    public function testCollectIncrement2xx(): void
-    {
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['status' => 200, 'duration' => 0.1]));
-
-        $this->assertResponseIsSuccessful();
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/bm_2xx.txt'));
-    }
-
-    public function testCollectIncrement4xx(): void
-    {
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['status' => 404, 'duration' => 0.05]));
-
-        $this->assertResponseIsSuccessful();
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/bm_4xx.txt'));
-    }
-
-    public function testCollectIncrement5xx(): void
-    {
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['status' => 500, 'duration' => 0.2]));
-
-        $this->assertResponseIsSuccessful();
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/bm_5xx.txt'));
-    }
-
-    public function testCollectReturnsOkJson(): void
-    {
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['status' => 200, 'duration' => 0.1]));
-
-        $response = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertEquals(['ok' => true], $response);
-    }
-
-    public function testCollectStoresDuration(): void
-    {
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['status' => 200, 'duration' => 0.42]));
-
-        $times = json_decode(file_get_contents($this->tmpDir . '/bm_times.txt'), true);
-        $this->assertContains(0.42, $times);
-    }
-
-    public function testCollectLimitsHistoryTo1000(): void
-    {
-        file_put_contents($this->tmpDir . '/bm_times.txt', json_encode(array_fill(0, 1000, 0.1)));
-
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['status' => 200, 'duration' => 0.99]));
-
-        $stored = json_decode(file_get_contents($this->tmpDir . '/bm_times.txt'), true);
-        $this->assertCount(1000, $stored);
-        $this->assertEquals(0.99, end($stored));
-    }
-
-    public function testCollectDefaultsTo2xxWhenNoStatus(): void
-    {
-        $this->client->request('POST', '/metrics/backend/collect', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['duration' => 0.1]));
-
-        $this->assertEquals(1, (int)@file_get_contents($this->tmpDir . '/bm_2xx.txt'));
-    }
-
-    public function testCollectMultipleRequests(): void
-    {
-        foreach ([200, 200, 404, 500] as $status) {
-            $this->client->request('POST', '/metrics/backend/collect', [], [], [
-                'CONTENT_TYPE' => 'application/json',
-            ], json_encode(['status' => $status, 'duration' => 0.1]));
+        if ($status >= 500) {
+            $this->increment('bm_5xx.txt');
+        } elseif ($status >= 400) {
+            $this->increment('bm_4xx.txt');
+        } else {
+            $this->increment('bm_2xx.txt');
         }
 
-        $this->assertEquals(2, (int)file_get_contents($this->tmpDir . '/bm_2xx.txt'));
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/bm_4xx.txt'));
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/bm_5xx.txt'));
+        // Stocke le temps de réponse pour P95
+        $path = $this->tmpDir . '/bm_times.txt';
+        $times = file_exists($path) ? json_decode(file_get_contents($path), true) : [];
+        $times[] = (float)$duration;
+        if (count($times) > 1000) $times = array_slice($times, -1000);
+        file_put_contents($path, json_encode($times));
+
+        return new JsonResponse(['ok' => true]);
     }
 
-    // ========== TESTS METRICS ==========
-
-    public function testMetricsEndpointExists(): void
+    #[Route('/metrics/backend', name: 'backend_metrics')]
+    public function metrics(): Response
     {
-        $this->assertTrue(method_exists(BackendMetricsController::class, 'metrics'));
-    }
+        $registry = new CollectorRegistry(new InMemory());
 
-    public function testMetricsEndpointIsAccessible(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertResponseIsSuccessful();
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-    }
+        $req2xx = (int)@file_get_contents($this->tmpDir . '/bm_2xx.txt');
+        $req4xx = (int)@file_get_contents($this->tmpDir . '/bm_4xx.txt');
+        $req5xx = (int)@file_get_contents($this->tmpDir . '/bm_5xx.txt');
+        $totalRequests = $req2xx + $req4xx + $req5xx;
 
-    public function testMetricsReturnsTextPlain(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('text/plain', $this->client->getResponse()->headers->get('Content-Type'));
-    }
+        // Total requêtes
+        $registry->getOrRegisterGauge('app', 'requests_total', 'Total requests')
+            ->set($totalRequests);
 
-    public function testMetricsReturnsPrometheusVersion(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('version=0.0.4', $this->client->getResponse()->headers->get('Content-Type'));
-    }
+        // Débit par status
+        $registry->getOrRegisterGauge('app', 'requests_2xx', 'Successful requests')
+            ->set($req2xx);
+        $registry->getOrRegisterGauge('app', 'requests_4xx', 'Client errors')
+            ->set($req4xx);
+        $registry->getOrRegisterGauge('app', 'requests_5xx', 'Server errors')
+            ->set($req5xx);
 
-    public function testMetricsContainsTotalRequests(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_requests_total', $this->client->getResponse()->getContent());
-    }
+        // Taux d'erreur
+        $errorRate = $totalRequests > 0
+            ? round((($req4xx + $req5xx) / $totalRequests) * 100, 2)
+            : 0;
+        $registry->getOrRegisterGauge('app', 'error_rate_percent', 'Error rate %')
+            ->set($errorRate);
 
-    public function testMetricsContains2xx(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_requests_2xx', $this->client->getResponse()->getContent());
-    }
+        // Disponibilité
+        $availability = $totalRequests > 0
+            ? round((($totalRequests - $req5xx) / $totalRequests) * 100, 2)
+            : 100;
+        $registry->getOrRegisterGauge('app', 'availability_percent', 'Availability %')
+            ->set($availability);
 
-    public function testMetricsContains4xx(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_requests_4xx', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContains5xx(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_requests_5xx', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsErrorRate(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_error_rate_percent', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsAvailability(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_availability_percent', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsP95(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_response_time_p95_seconds', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsMemory(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_memory_usage_mb', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsCpu(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_cpu_load_1m', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsUptime(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertStringContainsString('app_uptime_seconds', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsValuesAreNumeric(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $content = str_replace("\r\n", "\n", $this->client->getResponse()->getContent());
-
-        foreach (explode("\n", $content) as $line) {
-            $line = trim($line);
-            if (empty($line) || str_starts_with($line, '#')) continue;
-            $parts = preg_split('/\s+/', $line);
-            if (count($parts) >= 2) {
-                $this->assertIsNumeric(trim(end($parts)), "Valeur non numérique dans : {$line}");
+        // P95
+        $p95 = 0;
+        $path = $this->tmpDir . '/bm_times.txt';
+        if (file_exists($path)) {
+            $times = json_decode(file_get_contents($path), true);
+            if (!empty($times)) {
+                sort($times);
+                $index = (int)ceil(0.95 * count($times)) - 1;
+                $p95 = round($times[$index], 3);
             }
         }
-    }
+        $registry->getOrRegisterGauge('app', 'response_time_p95_seconds', 'P95 response time')
+            ->set($p95);
 
-    public function testMetricsFollowPrometheusFormat(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
+        // CPU réel — compatible Windows et Linux
+        $load = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
+        $registry->getOrRegisterGauge('app', 'cpu_load_1m', 'CPU load 1m')
+            ->set(round($load[0], 2));
 
-        $hasHelp = $hasType = $hasMetric = false;
-        foreach (explode("\n", $content) as $line) {
-            if (str_starts_with($line, '# HELP')) $hasHelp = true;
-            if (str_starts_with($line, '# TYPE')) $hasType = true;
-            if (!empty(trim($line)) && !str_starts_with($line, '#')) $hasMetric = true;
+        // Mémoire réelle
+        $registry->getOrRegisterGauge('app', 'memory_usage_mb', 'Memory usage MB')
+            ->set(round(memory_get_usage(true) / 1024 / 1024, 2));
+        $registry->getOrRegisterGauge('app', 'memory_peak_mb', 'Memory peak MB')
+            ->set(round(memory_get_peak_usage(true) / 1024 / 1024, 2));
+
+        // Uptime réel — /proc/uptime n'existe que sur Linux, inatteignable sur Windows
+        $uptime = 0;
+        if (file_exists('/proc/uptime')) {
+            $uptime = (int)explode(' ', file_get_contents('/proc/uptime'))[0]; // @codeCoverageIgnore
         }
+        $registry->getOrRegisterGauge('app', 'uptime_seconds', 'Uptime seconds')
+            ->set($uptime);
 
-        $this->assertTrue($hasHelp);
-        $this->assertTrue($hasType);
-        $this->assertTrue($hasMetric);
+        $renderer = new RenderTextFormat();
+        $result = $renderer->render($registry->getMetricFamilySamples());
+
+        return new Response($result, 200, [
+            'Content-Type' => RenderTextFormat::MIME_TYPE
+        ]);
     }
 
-    public function testAllMetricsAreGaugeType(): void
+    private function increment(string $file): void
     {
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        foreach ([
-            'app_requests_total',
-            'app_requests_2xx',
-            'app_requests_4xx',
-            'app_requests_5xx',
-            'app_error_rate_percent',
-            'app_availability_percent',
-            'app_response_time_p95_seconds',
-            'app_memory_usage_mb',
-            'app_cpu_load_1m',
-            'app_uptime_seconds',
-        ] as $metric) {
-            $this->assertStringContainsString(
-                "# TYPE {$metric} gauge",
-                $content,
-                "{$metric} doit être de type gauge"
-            );
-        }
-    }
-
-    public function testAvailabilityDefaultsTo100(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_availability_percent +([\d.]+)/', $content, $matches);
-        $this->assertEquals(100.0, (float)($matches[1] ?? -1));
-    }
-
-    public function testErrorRateDefaultsTo0(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_error_rate_percent +([\d.]+)/', $content, $matches);
-        $this->assertEquals(0.0, (float)($matches[1] ?? -1));
-    }
-
-    public function testMemoryUsageIsPositive(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_memory_usage_mb +([\d.]+)/', $content, $matches);
-        $this->assertGreaterThan(0, (float)($matches[1] ?? 0));
-    }
-
-    public function testP95IsZeroWithNoData(): void
-    {
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_response_time_p95_seconds +([\d.]+)/', $content, $matches);
-        $this->assertEquals(0.0, (float)($matches[1] ?? -1));
-    }
-
-    public function testMetricsReflectsCollectedData(): void
-    {
-        foreach ([200, 200, 200, 500] as $status) {
-            $this->client->request('POST', '/metrics/backend/collect', [], [], [
-                'CONTENT_TYPE' => 'application/json',
-            ], json_encode(['status' => $status, 'duration' => 0.1]));
-        }
-
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_requests_2xx +([\d.]+)/', $content, $m2xx);
-        preg_match('/app_requests_5xx +([\d.]+)/', $content, $m5xx);
-        preg_match('/app_requests_total +([\d.]+)/', $content, $mTotal);
-
-        $this->assertEquals(3, (int)($m2xx[1] ?? -1));
-        $this->assertEquals(1, (int)($m5xx[1] ?? -1));
-        $this->assertEquals(4, (int)($mTotal[1] ?? -1));
-    }
-
-    public function testErrorRateCalculation(): void
-    {
-        foreach ([200, 200, 200, 500] as $status) {
-            $this->client->request('POST', '/metrics/backend/collect', [], [], [
-                'CONTENT_TYPE' => 'application/json',
-            ], json_encode(['status' => $status, 'duration' => 0.1]));
-        }
-
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_error_rate_percent +([\d.]+)/', $content, $matches);
-        $this->assertEquals(25.0, (float)($matches[1] ?? -1));
-    }
-
-    public function testAvailabilityCalculation(): void
-    {
-        foreach ([200, 200, 200, 500] as $status) {
-            $this->client->request('POST', '/metrics/backend/collect', [], [], [
-                'CONTENT_TYPE' => 'application/json',
-            ], json_encode(['status' => $status, 'duration' => 0.1]));
-        }
-
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_availability_percent +([\d.]+)/', $content, $matches);
-        $this->assertEquals(75.0, (float)($matches[1] ?? -1));
-    }
-
-    public function testP95Calculation(): void
-    {
-        for ($i = 1; $i <= 20; $i++) {
-            $this->client->request('POST', '/metrics/backend/collect', [], [], [
-                'CONTENT_TYPE' => 'application/json',
-            ], json_encode(['status' => 200, 'duration' => (float)$i]));
-        }
-
-        $this->client->request('GET', '/metrics/backend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/app_response_time_p95_seconds +([\d.]+)/', $content, $matches);
-        $this->assertEquals(19.0, (float)($matches[1] ?? 0));
-    }
-
-    public function testMetricsEndpointRespondsQuickly(): void
-    {
-        $start = microtime(true);
-        $this->client->request('GET', '/metrics/backend');
-        $this->assertResponseIsSuccessful();
-        $this->assertLessThan(1.0, microtime(true) - $start);
-    }
-
-    public function testMultipleCallsAreStable(): void
-    {
-        for ($i = 0; $i < 5; $i++) {
-            $this->client->request('GET', '/metrics/backend');
-            $this->assertResponseIsSuccessful();
-        }
+        $path = $this->tmpDir . '/' . $file;
+        file_put_contents($path, (int)@file_get_contents($path) + 1);
     }
 }

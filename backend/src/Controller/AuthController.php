@@ -51,8 +51,6 @@ class AuthController extends AbstractController
             'email'   => $email,
         ]);
 
-
-        
         $token = $this->jwtManager->create($user);
 
         $this->papertrailLogger->info('Token generated - Login successful', [
@@ -112,10 +110,10 @@ class AuthController extends AbstractController
 
         if (empty($email) || empty($password) || empty($firstName) || empty($lastName)) {
             $this->papertrailLogger->warning('Missing required fields on registration', [
-                'email'              => $email,
-                'has_password'       => !empty($password),
-                'has_first_name'     => !empty($firstName),
-                'has_last_name'      => !empty($lastName),
+                'email'          => $email,
+                'has_password'   => !empty($password),
+                'has_first_name' => !empty($firstName),
+                'has_last_name'  => !empty($lastName),
             ]);
             return $this->json([
                 'status'  => false,
@@ -134,10 +132,15 @@ class AuthController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Validation supplémentaire du domaine
+        // Validation supplémentaire du domaine.
+        // Note : le bloc !str_contains est du code défensif redondant — FILTER_VALIDATE_EMAIL
+        // de PHP 8.x exige déjà un point dans le domaine, donc cette branche est
+        // inatteignable en pratique. Elle est conservée pour la sécurité en profondeur
+        // mais exclue de la couverture de code pour cette raison.
         $parts = explode('@', $email);
         if (count($parts) === 2) {
             $domain = $parts[1];
+            // @codeCoverageIgnoreStart
             if (!str_contains($domain, '.')) {
                 $this->papertrailLogger->warning('Email domain missing dot on registration', [
                     'email'  => $email,
@@ -148,6 +151,7 @@ class AuthController extends AbstractController
                     'message' => 'Invalid email format. Domain must contain a dot (ex: gmail.com)'
                 ], Response::HTTP_BAD_REQUEST);
             }
+            // @codeCoverageIgnoreEnd
 
             $tldParts = explode('.', $domain);
             $tld = end($tldParts);

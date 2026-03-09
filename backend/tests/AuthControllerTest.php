@@ -2,9 +2,15 @@
 
 namespace App\Tests\Controller;
 
+use App\Controller\AuthController;
 use App\Entity\User;
+use App\Service\PapertrailService;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Psr\Container\ContainerInterface as PsrContainerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -14,6 +20,10 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  */
 class AuthControllerTest extends WebTestCase
 {
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
     private function createRealUser(
         string $email     = 'auth-test@openhub.com',
         string $password  = 'TestPass!123',
@@ -53,8 +63,55 @@ class AuthControllerTest extends WebTestCase
         }
     }
 
+    /**
+     * Instancie AuthController avec toutes ses vraies dépendances DI, puis
+     * injecte un service locator minimal dans setContainer().
+     *
+     * Pourquoi ce pattern :
+     * AbstractController::json() appelle $this->container->has('serializer').
+     * Ce $container n'est PAS le container Symfony principal — c'est un service
+     * locator privé injecté par le ControllerResolver lors d'un vrai dispatch HTTP.
+     * Quand on instancie le contrôleur hors d'un cycle requête (pour la couverture
+     * de login() que le firewall intercepte avant d'y arriver), ce locator reste
+     * non initialisé → "must not be accessed before initialization".
+     *
+     * Solution : on fournit un PsrContainerInterface minimal qui déclare n'avoir
+     * aucun service optionnel (has() = false). json() retombe alors sur le
+     * constructeur natif new JsonResponse($data) sans passer par le serializer.
+     * Toutes les dépendances métier (EM, JWT, hasher, logger) restent 100% réelles.
+     */
+    private function buildController(): AuthController
+    {
+        $em     = static::getContainer()->get(EntityManagerInterface::class);
+        $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        $jwt    = static::getContainer()->get(JWTTokenManagerInterface::class);
+        $logger = static::getContainer()->get(PapertrailService::class);
+
+        $controller = new AuthController($em, $hasher, $jwt, $logger);
+
+        $controller->setContainer(new class implements PsrContainerInterface {
+            public function get(string $id): mixed { return null; }
+            public function has(string $id): bool  { return false; }
+        });
+
+        return $controller;
+    }
+
+    private function makeJsonRequest(array $data): Request
+    {
+        return Request::create(
+            '/api/login_check',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode($data)
+        );
+    }
+
     // =========================================================================
-    // POST /api/login_check
+    // POST /api/login_check — via firewall (comportement HTTP réel)
     // =========================================================================
 
     public function testLoginSuccessReturnsRealJwt(): void
@@ -207,6 +264,98 @@ class AuthControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
         $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertStringContainsString('JSON', $data['detail']);
+    }
+
+    // =========================================================================
+    // POST /api/login_check — appel direct au contrôleur pour couverture de méthode
+    //
+    // Le firewall Symfony intercepte /api/login_check avant d'atteindre
+    // AuthController::login(), ce qui laisse la méthode à 0 % de couverture
+    // dans les rapports. Ces tests instancient le contrôleur directement
+    // depuis le container DI pour instrumenter chaque branche.
+    // =========================================================================
+
+    /**
+     * Couvre le chemin heureux complet de login() :
+     * recherche utilisateur → génération token → réponse 200 avec user.
+     */
+    public function testLoginDirectly_UserFound_Returns200WithToken(): void
+    {
+        static::createClient();
+        ['user' => $user] = $this->createRealUser();
+        $controller = $this->buildController();
+
+        $response = $controller->login($this->makeJsonRequest([
+            'email'    => 'auth-test@openhub.com',
+            'password' => 'TestPass!123',
+        ]));
+
+        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('token', $data, 'login() doit retourner un token JWT');
+        $this->assertArrayHasKey('user', $data, 'login() doit retourner les données utilisateur');
+        $this->assertSame('auth-test@openhub.com', $data['user']['email']);
+        $this->assertSame($user->getFirstName(), $data['user']['firstName']);
+        $this->assertSame($user->getLastName(), $data['user']['lastName']);
+        $this->assertIsInt($data['user']['id']);
+
+        // Vérifier que c'est bien un JWT (3 parties)
+        $parts = explode('.', $data['token']);
+        $this->assertCount(3, $parts, 'Le token retourné par login() doit être un JWT valide');
+
+        $this->deleteUserByEmail('auth-test@openhub.com');
+    }
+
+    /**
+     * Couvre la branche "utilisateur introuvable" de login() → 401.
+     */
+    public function testLoginDirectly_UserNotFound_Returns401(): void
+    {
+        static::createClient();
+        $controller = $this->buildController();
+
+        $response = $controller->login($this->makeJsonRequest([
+            'email'    => 'inexistant-direct@openhub.com',
+            'password' => 'NimporteQuoi!',
+        ]));
+
+        $this->assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertStringContainsString('Invalid credentials', $data['message']);
+    }
+
+    /**
+     * Couvre login() avec email vide (utilisateur non trouvé → 401).
+     */
+    public function testLoginDirectly_EmptyEmail_Returns401(): void
+    {
+        static::createClient();
+        $controller = $this->buildController();
+
+        $response = $controller->login($this->makeJsonRequest(['email' => '', 'password' => 'anything']));
+
+        $this->assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+    }
+
+    /**
+     * Couvre login() avec body vide — toutes les clés sont absentes (null coalescing → '').
+     */
+    public function testLoginDirectly_EmptyBody_Returns401(): void
+    {
+        static::createClient();
+        $controller = $this->buildController();
+
+        $request = Request::create(
+            '/api/login_check', 'POST', [], [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            '{}'
+        );
+
+        $response = $controller->login($request);
+
+        $this->assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
     // =========================================================================
@@ -423,11 +572,15 @@ class AuthControllerTest extends WebTestCase
     {
         $client = static::createClient();
 
+        // 'alice@localhost' passe FILTER_VALIDATE_EMAIL (domaine local valide RFC)
+        // mais échoue sur str_contains($domain, '.') → couvre cette branche spécifique.
+        // 'alice@domaine' (sans point) est rejeté directement par FILTER_VALIDATE_EMAIL
+        // en PHP 8.3 et n'atteint jamais ce bloc.
         $client->request(
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@domaine',
+                'email'     => 'alice@localhost',
                 'password'  => 'TestPass!123',
                 'firstName' => 'Alice',
                 'lastName'  => 'Durand',
@@ -437,6 +590,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
         $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertFalse($data['status']);
+        $this->assertStringContainsString('dot', strtolower($data['message']));
     }
 
     public function testRegisterReturns400WhenFirstNameIsTooShort(): void
@@ -636,5 +790,263 @@ class AuthControllerTest extends WebTestCase
         $this->assertContains('ROLE_USER', $user->getRoles());
 
         $this->deleteUserByEmail($email);
+    }
+
+    // =========================================================================
+    // POST /api/register — branches manquantes pour couverture complète
+    // =========================================================================
+
+    /**
+     * lastName trop court (< 2 caractères) → 400.
+     */
+    public function testRegisterReturns400WhenLastNameIsTooShort(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => 'alice@openhub.com',
+                'password'  => 'TestPass!123',
+                'firstName' => 'Alice',
+                'lastName'  => 'D',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertFalse($data['status']);
+        $this->assertStringContainsString('last name', strtolower($data['message']));
+    }
+
+    /**
+     * firstName trop long (> 100 caractères) → 400.
+     */
+    public function testRegisterReturns400WhenFirstNameIsTooLong(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => 'alice@openhub.com',
+                'password'  => 'TestPass!123',
+                'firstName' => str_repeat('A', 101),
+                'lastName'  => 'Durand',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertFalse($data['status']);
+        $this->assertStringContainsString('first name', strtolower($data['message']));
+    }
+
+    /**
+     * lastName trop long (> 100 caractères) → 400.
+     */
+    public function testRegisterReturns400WhenLastNameIsTooLong(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => 'alice@openhub.com',
+                'password'  => 'TestPass!123',
+                'firstName' => 'Alice',
+                'lastName'  => str_repeat('B', 101),
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertFalse($data['status']);
+        $this->assertStringContainsString('last name', strtolower($data['message']));
+    }
+
+    /**
+     * TLD à 1 caractère → 400 (couvre la branche strlen($tld) < 2).
+     */
+    public function testRegisterReturns400WhenEmailTldIsTooShort(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => 'alice@domaine.x',
+                'password'  => 'TestPass!123',
+                'firstName' => 'Alice',
+                'lastName'  => 'Durand',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertFalse($data['status']);
+        $this->assertStringContainsString('email', strtolower($data['message']));
+    }
+
+    /**
+     * Noms avec caractères valides : tiret, apostrophe, accents → 201.
+     * Couvre la branche regex réussie avec des cas non-ASCII.
+     */
+    public function testRegisterAcceptsNamesWithHyphenApostropheAndAccents(): void
+    {
+        $client = static::createClient();
+        $email  = 'special-name-' . uniqid() . '@openhub.com';
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => $email,
+                'password'  => 'TestPass!123',
+                'firstName' => 'Marie-Ève',
+                'lastName'  => "O'Brien-Léa",
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($data['status']);
+        $this->assertSame('Marie-Ève', $data['user']['firstName']);
+
+        $this->deleteUserByEmail($email);
+    }
+
+    /**
+     * Noms exactement à la limite basse valide (2 caractères) → 201.
+     */
+    public function testRegisterAcceptsNamesAtMinimumLength(): void
+    {
+        $client = static::createClient();
+        $email  = 'min-name-' . uniqid() . '@openhub.com';
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => $email,
+                'password'  => 'TestPass!123',
+                'firstName' => 'Li',
+                'lastName'  => 'Wu',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($data['status']);
+
+        $this->deleteUserByEmail($email);
+    }
+
+    /**
+     * Inscription sans dates de disponibilité → 201, champs null en réponse.
+     * Couvre le chemin où les blocs if($availabilityStart/$availabilityEnd) ne s'exécutent pas.
+     */
+    public function testRegisterWithoutAvailabilityDatesSucceeds(): void
+    {
+        $client = static::createClient();
+        $email  = 'no-avail-' . uniqid() . '@openhub.com';
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'     => $email,
+                'password'  => 'TestPass!123',
+                'firstName' => 'Alice',
+                'lastName'  => 'Durand',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($data['status']);
+        $this->assertNull($data['user']['availabilityStart']);
+        $this->assertNull($data['user']['availabilityEnd']);
+
+        $this->deleteUserByEmail($email);
+    }
+
+    /**
+     * Inscription avec seulement availabilityStart valide → 201.
+     * Couvre le chemin où seul le premier bloc if s'exécute.
+     */
+    public function testRegisterWithOnlyAvailabilityStartSucceeds(): void
+    {
+        $client = static::createClient();
+        $email  = 'only-start-' . uniqid() . '@openhub.com';
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'             => $email,
+                'password'          => 'TestPass!123',
+                'firstName'         => 'Alice',
+                'lastName'          => 'Durand',
+                'availabilityStart' => '2025-06-01',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($data['status']);
+        $this->assertSame('2025-06-01', $data['user']['availabilityStart']);
+        $this->assertNull($data['user']['availabilityEnd']);
+
+        $this->deleteUserByEmail($email);
+    }
+
+    /**
+     * Inscription avec seulement availabilityEnd valide → 201.
+     * Couvre le chemin où seul le second bloc if s'exécute.
+     */
+    public function testRegisterWithOnlyAvailabilityEndSucceeds(): void
+    {
+        $client = static::createClient();
+        $email  = 'only-end-' . uniqid() . '@openhub.com';
+
+        $client->request(
+            'POST', '/api/register', [], [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email'           => $email,
+                'password'        => 'TestPass!123',
+                'firstName'       => 'Alice',
+                'lastName'        => 'Durand',
+                'availabilityEnd' => '2025-12-31',
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($data['status']);
+        $this->assertNull($data['user']['availabilityStart']);
+        $this->assertSame('2025-12-31', $data['user']['availabilityEnd']);
+
+        $this->deleteUserByEmail($email);
+    }
+
+    // =========================================================================
+    // Couverture du constructeur de AuthController
+    // =========================================================================
+
+    /**
+     * Vérifie que le container DI peut résoudre AuthController avec toutes
+     * ses dépendances (couverture de la ligne __construct).
+     */
+    public function testAuthControllerIsInstantiableFromContainer(): void
+    {
+        static::createClient();
+
+        $this->assertInstanceOf(AuthController::class, $this->buildController());
     }
 }
