@@ -2,282 +2,94 @@
 
 namespace App\Tests\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\Response;
+use App\Controller\LoginController;
+use App\Service\AuthenticationService;
+use App\Service\PapertrailService;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
-class LoginControllerTest extends WebTestCase
+class LoginControllerTest extends TestCase
 {
-    public function testLoginReturnsJsonResponse(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json'
-        ]);
+    // NOTE: On mock AuthenticationService (la classe concrète) et non l'interface
+    // car interface et classe sont dans le même fichier — l'autoloader Composer
+    // ne peut résoudre que la classe concrète dans ce cas.
 
-        $this->assertResponseIsSuccessful();
-        $this->assertResponseHeaderSame('content-type', 'application/json');
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($responseData);
-        $this->assertArrayHasKey('last_username', $responseData);
-        $this->assertArrayHasKey('error', $responseData);
+    /** @var AuthenticationService&MockObject */
+    private MockObject $authService;
+
+    /** @var PapertrailService&MockObject */
+    private MockObject $papertrailLogger;
+
+    protected function setUp(): void
+    {
+        $this->authService      = $this->createMock(AuthenticationService::class);
+        $this->papertrailLogger = $this->createMock(PapertrailService::class);
     }
 
-    public function testLoginReturnsLastUsernameAndNoError(): void
+    // NOTE: On surcharge json() car AbstractController::json() dépend du container
+    // Symfony absent en test unitaire pur.
+    private function makeController(): LoginController
     {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json'
-        ], json_encode([
-            'username' => 'testuser',
-            'password' => 'testpass'
-        ]));
-
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('last_username', $responseData);
-        $this->assertArrayHasKey('error', $responseData);
+        return new class($this->authService, $this->papertrailLogger) extends LoginController {
+            public function json(mixed $data, int $status = 200, array $headers = [], array $context = []): JsonResponse
+            {
+                return new JsonResponse($data, $status, $headers);
+            }
+        };
     }
 
-    public function testLoginReturnsErrorWhenAuthenticationFails(): void
+    // ✅ Couvre login() branche sans erreur (lignes 30–32)
+    public function testLoginSuccessLogsInfoAndReturnsUsername(): void
     {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json'
-        ], json_encode([
-            'username' => 'invaliduser',
-            'password' => 'wrongpass'
-        ]));
+        $this->authService->method('getLastError')->willReturn(null);
+        $this->authService->method('getLastUsername')->willReturn('test@test.com');
 
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('error', $responseData);
+        $response = $this->makeController()->login();
+        $data     = json_decode($response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull($data['error']);
+        $this->assertSame('test@test.com', $data['last_username']);
     }
 
-    public function testLoginHandlesErrorWithoutUsername(): void
+    // ✅ Couvre login() branche avec erreur (lignes 25–28)
+    public function testLoginWithErrorLogsWarningAndReturnsMessageKey(): void
     {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json'
-        ], json_encode([
-            'password' => 'testpass'
-        ]));
+        $this->authService->method('getLastError')->willReturn(new AuthenticationException('Bad credentials'));
+        $this->authService->method('getLastUsername')->willReturn('test@test.com');
 
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('last_username', $responseData);
-        $this->assertArrayHasKey('error', $responseData);
+        $response = $this->makeController()->login();
+        $data     = json_decode($response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNotNull($data['error']);
+        $this->assertSame('test@test.com', $data['last_username']);
     }
 
-    public function testLoginHandlesCustomExceptionMessages(): void
+    // ✅ Couvre loginCheck() entièrement (lignes 44–51)
+    // NOTE: En production cette route est interceptée par le firewall JWT et
+    // n'atteint jamais le controller. Seul un appel direct en test unitaire
+    // permet de couvrir ces lignes.
+    public function testLoginCheckReturns500WithExpectedBody(): void
     {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login');
+        $response = $this->makeController()->loginCheck();
+        $data     = json_decode($response->getContent(), true);
 
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('error', $responseData);
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('This endpoint should be intercepted by JWT firewall', $data['error']);
+        $this->assertSame('Use POST with username and password to get JWT token', $data['message']);
     }
 
-    public function testLoginCheckReturnsExpectedMessage(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login_check');
-
-        // The JWT firewall intercepts this endpoint, so we expect 401 Unauthorized
-        // instead of the controller's 500 response
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        
-        // The response from JWT firewall has a different structure
-        $this->assertArrayHasKey('message', $responseData);
-        $this->assertEquals('Invalid credentials', $responseData['message']);
-    }
-
-    public function testLoginCheckAlwaysReturnsSameResponse(): void
-    {
-        $client = static::createClient();
-        
-        // First request
-        $client->request('POST', '/api/login_check');
-        $firstResponse = json_decode($client->getResponse()->getContent(), true);
-        
-        // Second request
-        $client->request('POST', '/api/login_check');
-        $secondResponse = json_decode($client->getResponse()->getContent(), true);
-        
-        $this->assertEquals($firstResponse, $secondResponse);
-    }
-
+    // ✅ Couvre logout() (lignes 56–61)
+    // NOTE: Intercepté par le firewall en production — appel direct requis pour la couverture.
     public function testLogoutReturnsExpectedMessage(): void
     {
-        $client = static::createClient();
-        
-        $client->request('GET', '/logout');
+        $response = $this->makeController()->logout();
+        $data     = json_decode($response->getContent(), true);
 
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertEquals('Logout endpoint - should be intercepted by firewall', $responseData['message']);
-    }
-
-    public function testLogoutAlwaysReturnsSameMessage(): void
-    {
-        $client = static::createClient();
-        
-        // First request
-        $client->request('GET', '/logout');
-        $firstResponse = json_decode($client->getResponse()->getContent(), true);
-        
-        // Second request
-        $client->request('GET', '/logout');
-        $secondResponse = json_decode($client->getResponse()->getContent(), true);
-        
-        $this->assertEquals($firstResponse, $secondResponse);
-    }
-
-    public function testLoginResponseStructure(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login');
-
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        
-        $this->assertIsArray($responseData);
-        $this->assertCount(2, $responseData);
-        $this->assertArrayHasKey('last_username', $responseData);
-        $this->assertArrayHasKey('error', $responseData);
-    }
-
-    public function testLoginCheckResponseStructure(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login_check');
-
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        
-        $this->assertIsArray($responseData);
-        // The JWT firewall returns a single field, not 2
-        $this->assertCount(1, $responseData);
-        $this->assertArrayHasKey('message', $responseData);
-    }
-
-    public function testLogoutResponseStructure(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('GET', '/logout');
-
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        
-        $this->assertIsArray($responseData);
-        $this->assertCount(1, $responseData);
-        $this->assertArrayHasKey('message', $responseData);
-    }
-
-    public function testLoginWithCustomAuthenticationException(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json'
-        ], json_encode([
-            'username' => 'custom_error_user',
-            'password' => 'test'
-        ]));
-
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('error', $responseData);
-    }
-
-    public function testLoginWithEmptyUsername(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json'
-        ], json_encode([
-            'username' => '',
-            'password' => 'testpass'
-        ]));
-
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('last_username', $responseData);
-        $this->assertArrayHasKey('error', $responseData);
-    }
-
-    public function testLoginExecutesWithinTimeLimit(): void
-    {
-        $start = microtime(true);
-        
-        $client = static::createClient();
-        $client->request('POST', '/api/login');
-        
-        $end = microtime(true);
-        $executionTime = ($end - $start) * 1000;
-        
-        $this->assertLessThan(500, $executionTime, 'Login endpoint took too long to respond');
-    }
-
-    // Add the missing test method
-    public function testLoginWithMalformedJson(): void
-    {
-        $client = static::createClient();
-        
-        $client->request('POST', '/api/login', [], [], [
-            'CONTENT_TYPE' => 'application/json'
-        ], '{"username": "testuser", "password": }'); // Malformed JSON
-
-        $this->assertResponseIsSuccessful();
-        
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('last_username', $responseData);
-        $this->assertArrayHasKey('error', $responseData);
-    }
-
-    public function testAllBranchesAreCovered(): void
-    {
-        $methods = [
-            'testLoginReturnsJsonResponse',
-            'testLoginReturnsLastUsernameAndNoError',
-            'testLoginReturnsErrorWhenAuthenticationFails',
-            'testLoginHandlesErrorWithoutUsername',
-            'testLoginHandlesCustomExceptionMessages',
-            'testLoginCheckReturnsExpectedMessage',
-            'testLoginCheckAlwaysReturnsSameResponse',
-            'testLogoutReturnsExpectedMessage',
-            'testLogoutAlwaysReturnsSameMessage',
-            'testLoginResponseStructure',
-            'testLoginCheckResponseStructure',
-            'testLogoutResponseStructure',
-            'testLoginWithCustomAuthenticationException',
-            'testLoginWithEmptyUsername',
-            'testLoginExecutesWithinTimeLimit',
-            'testLoginWithMalformedJson', // Added the missing test
-        ];
-        
-        $this->assertCount(16, $methods, 'All 16 test methods should be implemented');
-        
-        foreach ($methods as $method) {
-            $this->assertTrue(method_exists($this, $method), "Method $method should exist");
-        }
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('Logout endpoint - should be intercepted by firewall', $data['message']);
     }
 }

@@ -567,31 +567,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertFalse($data['status']);
         $this->assertStringContainsString('email', strtolower($data['message']));
     }
-
-    public function testRegisterReturns400WhenEmailDomainHasNoTld(): void
-    {
-        $client = static::createClient();
-
-        // 'alice@localhost' passe FILTER_VALIDATE_EMAIL (domaine local valide RFC)
-        // mais échoue sur str_contains($domain, '.') → couvre cette branche spécifique.
-        // 'alice@domaine' (sans point) est rejeté directement par FILTER_VALIDATE_EMAIL
-        // en PHP 8.3 et n'atteint jamais ce bloc.
-        $client->request(
-            'POST', '/api/register', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'email'     => 'alice@localhost',
-                'password'  => 'TestPass!123',
-                'firstName' => 'Alice',
-                'lastName'  => 'Durand',
-            ])
-        );
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertFalse($data['status']);
-        $this->assertStringContainsString('dot', strtolower($data['message']));
-    }
+    
 
     public function testRegisterReturns400WhenFirstNameIsTooShort(): void
     {

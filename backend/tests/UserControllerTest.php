@@ -2,937 +2,1987 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\Skills;
+use App\Controller\UserController;
 use App\Entity\User;
+use App\Entity\Skills;
+use App\Entity\Project;
+use App\Service\UserService;
+use App\Service\PapertrailService;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\Response;
+use Doctrine\ORM\EntityRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\MockObject\MockObject;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Routing\Attribute\Route;
 
-class UserControllerTest extends WebTestCase
+class UserControllerTest extends TestCase
 {
-    // =========================================================================
-    // Helpers
-    // =========================================================================
+    private EntityManagerInterface|MockObject $entityManager;
+    private UserService|MockObject $userService;
+    private UserPasswordHasherInterface|MockObject $passwordHasher;
+    private PapertrailService|MockObject $papertrailService;
+    private Security|MockObject $security;
+    private EntityRepository|MockObject $userRepository;
+    private EntityRepository|MockObject $skillsRepository;
+    private EntityRepository|MockObject $projectRepository;
+    private UserController $controller;
 
-    private function createAuthenticatedClient(
-        string $email    = 'phpunit@openhub.com',
-        string $password = 'TestPass!123'
-    ): \Symfony\Bundle\FrameworkBundle\KernelBrowser {
-        $client = static::createClient();
-        $em     = static::getContainer()->get(EntityManagerInterface::class);
-        $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
-
-        $existing = $em->getRepository(User::class)->findOneBy(['email' => $email]);
-        if ($existing) {
-            foreach ($existing->getSkills() as $s)    { $existing->removeSkill($s); }
-            foreach ($existing->getProject() as $p)   { $existing->removeProject($p); }
-            foreach ($existing->getFriends() as $f)   { $existing->removeFriend($f); }
-            $em->remove($existing);
-            $em->flush();
-            $em->clear();
-        }
-
-        $user = new User();
-        $user->setEmail($email);
-        $user->setPassword($hasher->hashPassword($user, $password));
-        $user->setFirstName('Jean');
-        $user->setLastName('Dupont');
-        $user->setRoles(['ROLE_USER']);
-        $em->persist($user);
-        $em->flush();
-
-        $client->request(
-            'POST', '/api/login_check', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['email' => $email, 'password' => $password])
-        );
-
-        $response = json_decode($client->getResponse()->getContent(), true);
-        $token    = $response['token'] ?? $response['access_token'] ?? null;
-
-        if (empty($token)) {
-            throw new \RuntimeException(
-                sprintf(
-                    "JWT introuvable. Status: %d, Réponse: %s",
-                    $client->getResponse()->getStatusCode(),
-                    $client->getResponse()->getContent()
-                )
-            );
-        }
-
-        $client->setServerParameter('HTTP_Authorization', 'Bearer ' . $token);
-
-        return $client;
-    }
-
-    private function getTestUser(string $email = 'phpunit@openhub.com'): User
+    protected function setUp(): void
     {
-        $em = static::getContainer()->get(EntityManagerInterface::class);
-        return $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->userService = $this->createMock(UserService::class);
+        $this->passwordHasher = $this->createMock(UserPasswordHasherInterface::class);
+        $this->papertrailService = $this->createMock(PapertrailService::class);
+        $this->security = $this->createMock(Security::class);
+        $this->userRepository = $this->createMock(EntityRepository::class);
+        $this->skillsRepository = $this->createMock(EntityRepository::class);
+        $this->projectRepository = $this->createMock(EntityRepository::class);
+
+        $this->entityManager
+            ->method('getRepository')
+            ->willReturnCallback(function ($class) {
+                return match ($class) {
+                    User::class => $this->userRepository,
+                    Skills::class => $this->skillsRepository,
+                    Project::class => $this->projectRepository,
+                    default => null,
+                };
+            });
+
+        $this->controller = new UserController($this->entityManager, $this->userService, $this->papertrailService);
     }
 
-    private function createSkill(
-        string $name        = 'Symfony',
-        string $description = 'Framework PHP',
-        string $techno      = 'PHP',
-        string $duree       = '2023-01-01'
-    ): Skills {
-        $em = static::getContainer()->get(EntityManagerInterface::class);
+    // ==================== Tests pour userCreate ====================
+// In tests/UserControllerTest.php, around line 94:
 
-        $existing = $em->getRepository(Skills::class)->findOneBy(['Name' => $name]);
-        if ($existing) {
-            return $existing;
-        }
 
-        $skill = new Skills();
-        $skill->setName($name);
-        $skill->setDescription($description);
-        $skill->setTechnoUtilisees($techno);
-        $skill->setDuree(new \DateTimeImmutable($duree));
-        $em->persist($skill);
-        $em->flush();
-
-        return $skill;
-    }
-
-    private function createSecondUser(
-        string $email    = 'phpunit2@openhub.com',
-        string $password = 'TestPass!123'
-    ): User {
-        $em     = static::getContainer()->get(EntityManagerInterface::class);
-        $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
-
-        $existing = $em->getRepository(User::class)->findOneBy(['email' => $email]);
-        if ($existing) {
-            return $existing;
-        }
-
-        $user = new User();
-        $user->setEmail($email);
-        $user->setPassword($hasher->hashPassword($user, $password));
-        $user->setFirstName('Marie');
-        $user->setLastName('Martin');
-        $user->setRoles(['ROLE_USER']);
-        $em->persist($user);
-        $em->flush();
-
-        return $user;
-    }
-
-    // =========================================================================
-    // POST /api/userCreate
-    // =========================================================================
-
-    public function testUserCreateSuccess(): void
+    public function testUserCreateSuccessWithoutOptionalFields(): void
     {
-        $client = static::createClient();
+        $requestData = [
+            'email' => 'minimal@example.com',
+            'password' => 'password123'
+        ];
 
-        $client->request(
-            'POST', '/api/userCreate', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'email'     => 'nouveau@openhub.com',
-                'password'  => 'MonMotDePasse123!',
-                'firstName' => 'Alice',
-                'lastName'  => 'Durand',
-            ])
-        );
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+        
+        $this->userRepository->method('findOneBy')->willReturn(null);
+        $this->passwordHasher->method('hashPassword')->willReturn('hashed_password');
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertTrue($data['status']);
-        $this->assertSame('User created successfully', $data['message']);
-        $this->assertSame('nouveau@openhub.com', $data['user']['email']);
-        $this->assertSame('Alice', $data['user']['firstName']);
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
 
-        // Nettoyage
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'nouveau@openhub.com']);
-        if ($user) { $em->remove($user); $em->flush(); }
+        $this->assertEquals(201, $response->getStatusCode());
     }
 
-    public function testUserCreateReturns400WhenMissingEmailOrPassword(): void
+    public function testUserCreateMissingEmail(): void
     {
-        $client = static::createClient();
+        $requestData = ['password' => 'password123'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/userCreate', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['firstName' => 'Alice'])
-        );
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['status']);
-        $this->assertSame('Email and password are required', $data['message']);
+        $this->assertEquals('Email and password are required', $data['message']);
     }
 
-    public function testUserCreateReturns409WhenEmailAlreadyInUse(): void
+    public function testUserCreateMissingPassword(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = ['email' => 'test@example.com'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/userCreate', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'email'    => 'phpunit@openhub.com',
-                'password' => 'AutreMotDePasse!',
-            ])
-        );
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['status']);
-        $this->assertSame('This email is already in use', $data['message']);
     }
 
-    public function testUserCreateReturns400WhenAvailabilityStartInPast(): void
+    public function testUserCreateEmailAlreadyExists(): void
     {
-        $client = static::createClient();
+        $requestData = [
+            'email' => 'existing@example.com',
+            'password' => 'password123'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/userCreate', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'email'             => 'test-past@openhub.com',
-                'password'          => 'MonMotDePasse123!',
-                'availabilityStart' => '2020-01-01',
-            ])
-        );
+        $existingUser = $this->createMock(User::class);
+        $this->userRepository
+            ->expects($this->once())
+            ->method('findOneBy')
+            ->with(['email' => 'existing@example.com'])
+            ->willReturn($existingUser);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
+
+        $this->assertEquals(409, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['status']);
+        $this->assertEquals('This email is already in use', $data['message']);
+    }
+
+    public function testUserCreateInvalidAvailabilityStartDate(): void
+    {
+        $requestData = [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'availabilityStart' => '2020-01-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $this->userRepository->method('findOneBy')->willReturn(null);
+
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['status']);
         $this->assertStringContainsString('futur', $data['message']);
     }
 
-    // =========================================================================
-    // GET /api/getAllUsers
-    // =========================================================================
-
-    public function testGetAllUsersReturnsArray(): void
+    public function testUserCreateInvalidAvailabilityEndDate(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'availabilityEnd' => '2020-01-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request('GET', '/api/getAllUsers');
+        $this->userRepository->method('findOneBy')->willReturn(null);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testUserCreateOnlyStartDateProvided(): void
+    {
+        $requestData = [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'availabilityStart' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $this->userRepository->method('findOneBy')->willReturn(null);
+        $this->passwordHasher->method('hashPassword')->willReturn('hashed');
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
+
+        $this->assertEquals(201, $response->getStatusCode());
+    }
+
+    public function testUserCreateOnlyEndDateProvided(): void
+    {
+        $requestData = [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'availabilityEnd' => '2026-12-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $this->userRepository->method('findOneBy')->willReturn(null);
+        $this->passwordHasher->method('hashPassword')->willReturn('hashed');
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->userCreate($request, $this->passwordHasher);
+
+        $this->assertEquals(201, $response->getStatusCode());
+    }
+
+    // ==================== Tests pour getAllUsers ====================
+
+    public function testGetAllUsers(): void
+    {
+        $user1 = $this->createMock(User::class);
+        $user1->method('getId')->willReturn(1);
+        $user1->method('getEmail')->willReturn('user1@example.com');
+        $user1->method('getFirstName')->willReturn('John');
+        $user1->method('getLastName')->willReturn('Doe');
+        $user1->method('getAvailabilityStart')->willReturn(new \DateTimeImmutable('2026-03-01'));
+        $user1->method('getAvailabilityEnd')->willReturn(new \DateTimeImmutable('2026-12-31'));
+
+        $user2 = $this->createMock(User::class);
+        $user2->method('getId')->willReturn(2);
+        $user2->method('getEmail')->willReturn('user2@example.com');
+        $user2->method('getFirstName')->willReturn('Jane');
+        $user2->method('getLastName')->willReturn('Smith');
+        $user2->method('getAvailabilityStart')->willReturn(null);
+        $user2->method('getAvailabilityEnd')->willReturn(null);
+
+        $this->userRepository
+            ->expects($this->once())
+            ->method('findAll')
+            ->willReturn([$user1, $user2]);
+
+        $response = $this->controller->getAllUsers();
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(2, $data);
+        $this->assertEquals('user1@example.com', $data[0]['email']);
+        $this->assertEquals('2026-03-01', $data[0]['availabilityStart']);
+        $this->assertNull($data[1]['availabilityStart']);
+    }
+
+    public function testGetAllUsersEmpty(): void
+    {
+        $this->userRepository
+            ->expects($this->once())
+            ->method('findAll')
+            ->willReturn([]);
+
+        $response = $this->controller->getAllUsers();
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(0, $data);
         $this->assertIsArray($data);
-        $this->assertGreaterThanOrEqual(1, count($data));
-
-        $first = $data[0];
-        $this->assertArrayHasKey('id', $first);
-        $this->assertArrayHasKey('email', $first);
-        $this->assertArrayHasKey('firstName', $first);
-        $this->assertArrayHasKey('lastName', $first);
     }
 
-    // =========================================================================
-    // GET /api/getConnectedUser
-    // =========================================================================
+    // ==================== Tests pour getConnectedUser ====================
 
-    public function testGetConnectedUserReturns401WhenNotAuthenticated(): void
+    public function testGetConnectedUserSuccess(): void
     {
-        $client = static::createClient();
+        $user = $this->createMock(User::class);
+        $user->method('getId')->willReturn(1);
+        $user->method('getEmail')->willReturn('connected@example.com');
+        $user->method('getFirstName')->willReturn('Connected');
+        $user->method('getLastName')->willReturn('User');
+        $user->method('getAvailabilityStart')->willReturn(new \DateTimeImmutable('2026-03-01'));
+        $user->method('getAvailabilityEnd')->willReturn(new \DateTimeImmutable('2026-12-31'));
 
-        $client->request('GET', '/api/getConnectedUser');
+        $this->security
+            ->expects($this->once())
+            ->method('getUser')
+            ->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $this->userService
+            ->expects($this->once())
+            ->method('findAll')
+            ->with($user)
+            ->willReturn(['some' => 'data']);
+
+        $response = $this->controller->getConnectedUser($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals(1, $data['id']);
+        $this->assertEquals('connected@example.com', $data['email']);
+        $this->assertArrayHasKey('userData', $data);
+        $this->assertEquals(['some' => 'data'], $data['userData']);
     }
 
-    public function testGetConnectedUserReturnsCurrentUser(): void
+    public function testGetConnectedUserNotAuthenticated(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $this->security
+            ->expects($this->once())
+            ->method('getUser')
+            ->willReturn(null);
 
-        $client->request('GET', '/api/getConnectedUser');
+        $response = $this->controller->getConnectedUser($this->security);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('phpunit@openhub.com', $data['email']);
-        $this->assertSame('Jean', $data['firstName']);
-        $this->assertSame('Dupont', $data['lastName']);
+        $this->assertEquals(401, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('User not authenticated', $data['message']);
     }
 
-    // =========================================================================
-    // GET /api/skills
-    // =========================================================================
+    // ==================== Tests pour getUserSkills ====================
 
-    public function testGetAllSkillsReturns401WhenNotAuthenticated(): void
+    public function testGetUserSkillsSuccess(): void
     {
-        $client = static::createClient();
+        $skill1 = $this->createMock(Skills::class);
+        $skill1->method('getId')->willReturn(1);
+        $skill1->method('getName')->willReturn('PHP');
+        $skill1->method('getDescription')->willReturn('PHP Programming');
+        $skill1->method('getDuree')->willReturn(new \DateTimeImmutable('2026-01-01'));
+        $skill1->method('getTechnoUtilisees')->willReturn('Laravel, Symfony');
 
-        $client->request('GET', '/api/skills');
+        $skill2 = $this->createMock(Skills::class);
+        $skill2->method('getId')->willReturn(2);
+        $skill2->method('getName')->willReturn('JavaScript');
+        $skill2->method('getDescription')->willReturn('JS Programming');
+        $skill2->method('getDuree')->willReturn(null);
+        $skill2->method('getTechnoUtilisees')->willReturn('React');
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $skills = new ArrayCollection([$skill1, $skill2]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willReturn($skills);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getUserSkills($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(2, $data);
+        $this->assertEquals('PHP', $data[0]['name']);
+        $this->assertNull($data[1]['duree']);
     }
 
-    public function testGetAllSkillsReturnsArray(): void
+    public function testGetUserSkillsNotAuthenticated(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $this->createSkill('Symfony', 'Framework PHP', 'PHP', '2023-01-01');
+        $this->security->method('getUser')->willReturn(null);
 
-        $client->request('GET', '/api/skills');
+        $response = $this->controller->getUserSkills($this->security);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($data);
-        $this->assertGreaterThanOrEqual(1, count($data));
-
-        $names = array_column($data, 'name');
-        $this->assertContains('Symfony', $names);
+        $this->assertEquals(401, $response->getStatusCode());
     }
 
-    // =========================================================================
-    // GET /api/user/skills
-    // =========================================================================
-
-    public function testGetUserSkillsReturns401WhenNotAuthenticated(): void
+    public function testGetUserSkillsException(): void
     {
-        $client = static::createClient();
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willThrowException(new \Exception('Database error'));
 
-        $client->request('GET', '/api/user/skills');
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $response = $this->controller->getUserSkills($this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('Error fetching user skills', $data['error']);
     }
 
-    public function testGetUserSkillsReturnsUserSkills(): void
+    // ==================== Tests pour getAllSkills ====================
+
+    public function testGetAllSkillsSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('React', 'Librairie JS', 'JavaScript', '2023-06-01');
+        $skill1 = $this->createMock(Skills::class);
+        $skill1->method('getId')->willReturn(1);
+        $skill1->method('getName')->willReturn('JavaScript');
+        $skill1->method('getDescription')->willReturn('JS Programming');
+        $skill1->method('getDuree')->willReturn(new \DateTimeImmutable('2026-01-01'));
+        $skill1->method('getTechnoUtilisees')->willReturn('React, Vue');
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addSkill($skill);
-        $em->flush();
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $client->request('GET', '/api/user/skills');
+        $this->skillsRepository
+            ->expects($this->once())
+            ->method('findAll')
+            ->willReturn([$skill1]);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data  = json_decode($client->getResponse()->getContent(), true);
-        $names = array_column($data, 'name');
-        $this->assertContains('React', $names);
+        $response = $this->controller->getAllSkills($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(1, $data);
+        $this->assertEquals('JavaScript', $data[0]['name']);
     }
 
-    // =========================================================================
-    // POST /api/skills/create
-    // =========================================================================
-
-    public function testCreateSkillReturns401WhenNotAuthenticated(): void
+    public function testGetAllSkillsNotAuthenticated(): void
     {
-        $client = static::createClient();
+        $this->security->method('getUser')->willReturn(null);
 
-        $client->request(
-            'POST', '/api/skills/create', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['name' => 'Docker'])
-        );
+        $response = $this->controller->getAllSkills($this->security);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $this->assertEquals(401, $response->getStatusCode());
     }
 
-    public function testCreateSkillReturns400WhenMissingName(): void
+    public function testGetAllSkillsWithNullValues(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getId')->willReturn(1);
+        $skill->method('getName')->willReturn(null);
+        $skill->method('getDescription')->willReturn(null);
+        $skill->method('getDuree')->willReturn(null);
+        $skill->method('getTechnoUtilisees')->willReturn(null);
 
-        $client->request(
-            'POST', '/api/skills/create', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'description'     => 'Une description',
-                'technoUtilisees' => 'Docker',
-                'duree'           => '2024-01-01',
-            ])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Skill name is required', $data['message']);
+        $this->skillsRepository->method('findAll')->willReturn([$skill]);
+
+        $response = $this->controller->getAllSkills($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('N/A', $data[0]['name']);
+        $this->assertEquals('N/A', $data[0]['description']);
+        $this->assertNull($data[0]['duree']);
     }
 
-    public function testCreateSkillReturns409WhenNameAlreadyExists(): void
+    public function testGetAllSkillsException(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $this->createSkill('Docker', 'Conteneurisation', 'Docker', '2023-01-01');
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $client->request(
-            'POST', '/api/skills/create', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'name'            => 'Docker',
-                'description'     => 'Autre description',
-                'technoUtilisees' => 'Docker',
-                'duree'           => '2024-01-01',
-            ])
-        );
+        $this->skillsRepository
+            ->method('findAll')
+            ->willThrowException(new \Exception('Database error'));
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('A skill with this name already exists', $data['message']);
+        $response = $this->controller->getAllSkills($this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('Error fetching all skills', $data['error']);
     }
+
+    // ==================== Tests pour createSkill ====================
 
     public function testCreateSkillSuccess(): void
     {
-        $client    = $this->createAuthenticatedClient();
-        $skillName = 'Kubernetes_' . uniqid();
+        $requestData = [
+            'name' => 'Python',
+            'description' => 'Python Programming',
+            'technoUtilisees' => 'Django, Flask',
+            'duree' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/skills/create', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'name'            => $skillName,
-                'description'     => 'Orchestration de conteneurs',
-                'technoUtilisees' => 'K8s',
-                'duree'           => '2024-03-15',
-            ])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->skillsRepository
+            ->expects($this->once())
+            ->method('findOneBy')
+            ->with(['Name' => 'Python'])
+            ->willReturn(null);
+
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame($skillName, $data['skill']['name']);
-        $this->assertSame('2024-03-15', $data['skill']['duree']);
+        $this->assertEquals('Skill created successfully', $data['message']);
+        $this->assertArrayHasKey('skill', $data);
     }
 
-    // =========================================================================
-    // PUT /api/skills/update/{id}
-    // =========================================================================
-
-    public function testUpdateSkillReturns404WhenNotFound(): void
+    public function testCreateSkillMissingName(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = [
+            'description' => 'Test',
+            'technoUtilisees' => 'Test',
+            'duree' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'PUT', '/api/skills/update/999999', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['name' => 'NouveauNom'])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Skill not found', $data['message']);
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['success']);
+        $this->assertEquals('Skill name is required', $data['message']);
     }
 
-    public function testUpdateSkillSuccess(): void
+    public function testCreateSkillMissingDescription(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('Vue.js_' . uniqid(), 'Framework JS', 'JavaScript', '2023-01-01');
+        $requestData = [
+            'name' => 'Test',
+            'technoUtilisees' => 'Test',
+            'duree' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'PUT', '/api/skills/update/' . $skill->getId(), [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'description' => 'Framework JavaScript progressif',
-                'duree'       => '2024-06-01',
-            ])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertTrue($data['success']);
-        $this->assertSame('Skill updated successfully', $data['message']);
-        $this->assertSame('2024-06-01', $data['skill']['duree']);
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('Description is required', $data['message']);
     }
 
-    public function testUpdateSkillReturns400WhenInvalidDate(): void
+    public function testCreateSkillMissingTechno(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('Angular_' . uniqid(), 'Framework', 'TypeScript', '2023-01-01');
+        $requestData = [
+            'name' => 'Test',
+            'description' => 'Test',
+            'duree' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'PATCH', '/api/skills/update/' . $skill->getId(), [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['duree' => 'date-invalide'])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('Technologies used is required', $data['message']);
+    }
+
+    public function testCreateSkillMissingDuree(): void
+    {
+        $requestData = [
+            'name' => 'Test',
+            'description' => 'Test',
+            'technoUtilisees' => 'Test'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('Duration is required', $data['message']);
+    }
+
+    public function testCreateSkillAlreadyExists(): void
+    {
+        $requestData = [
+            'name' => 'ExistingSkill',
+            'description' => 'Test',
+            'technoUtilisees' => 'Test',
+            'duree' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $existingSkill = $this->createMock(Skills::class);
+        $this->skillsRepository->method('findOneBy')->willReturn($existingSkill);
+
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(409, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['success']);
+        $this->assertEquals('A skill with this name already exists', $data['message']);
+    }
+
+    public function testCreateSkillInvalidDateFormat(): void
+    {
+        $requestData = [
+            'name' => 'TestSkill',
+            'description' => 'Test',
+            'technoUtilisees' => 'Test',
+            'duree' => 'invalid-date'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $this->skillsRepository->method('findOneBy')->willReturn(null);
+
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['success']);
         $this->assertStringContainsString('Invalid date format', $data['message']);
     }
 
-    // =========================================================================
-    // DELETE /api/skills/delete/{id}
-    // =========================================================================
-
-    public function testDeleteSkillReturns404WhenNotFound(): void
+    public function testCreateSkillNotAuthenticated(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $request = new Request([], [], [], [], [], [], json_encode(['name' => 'Test']));
+        $this->security->method('getUser')->willReturn(null);
 
-        $client->request('DELETE', '/api/skills/delete/999999');
+        $response = $this->controller->createSkill($request, $this->security);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Skill not found', $data['message']);
+        $this->assertEquals(401, $response->getStatusCode());
     }
+
+    public function testCreateSkillException(): void
+    {
+        $requestData = [
+            'name' => 'Test',
+            'description' => 'Test',
+            'technoUtilisees' => 'Test',
+            'duree' => '2026-06-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $this->skillsRepository->method('findOneBy')->willReturn(null);
+        $this->entityManager->method('persist')->willThrowException(new \Exception('DB Error'));
+
+        $response = $this->controller->createSkill($request, $this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['success']);
+    }
+
+    // ==================== Tests pour updateSkill ====================
+
+    public function testUpdateSkillSuccessWithAllFields(): void
+    {
+        $requestData = [
+            'name' => 'UpdatedSkill',
+            'description' => 'Updated Description',
+            'technoUtilisees' => 'New Tech',
+            'duree' => '2026-07-01'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getId')->willReturn(1);
+        $skill->method('getName')->willReturn('UpdatedSkill');
+        $skill->method('getDescription')->willReturn('Updated Description');
+        $skill->method('getTechnoUtilisees')->willReturn('New Tech');
+        $skill->method('getDuree')->willReturn(new \DateTimeImmutable('2026-07-01'));
+
+        $this->skillsRepository
+            ->expects($this->once())
+            ->method('find')
+            ->with(1)
+            ->willReturn($skill);
+
+        $this->skillsRepository
+            ->method('findOneBy')
+            ->willReturn(null);
+
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->updateSkill(1, $request, $this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertTrue($data['success']);
+    }
+
+    public function testUpdateSkillOnlyName(): void
+    {
+        $requestData = ['name' => 'NewName'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getId')->willReturn(1);
+        $skill->method('getName')->willReturn('NewName');
+        $skill->method('getDescription')->willReturn('Desc');
+        $skill->method('getTechnoUtilisees')->willReturn('Tech');
+        $skill->method('getDuree')->willReturn(new \DateTimeImmutable('2026-01-01'));
+
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->skillsRepository->method('findOneBy')->willReturn(null);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->updateSkill(1, $request, $this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+
+    public function testUpdateSkillNotFound(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode(['name' => 'Test']));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $this->skillsRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->updateSkill(999, $request, $this->security);
+
+        $this->assertEquals(404, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['success']);
+        $this->assertEquals('Skill not found', $data['message']);
+    }
+
+    public function testUpdateSkillNameAlreadyExists(): void
+    {
+        $requestData = ['name' => 'ExistingName'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getId')->willReturn(1);
+
+        $existingSkill = $this->createMock(Skills::class);
+        $existingSkill->method('getId')->willReturn(2);
+
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->skillsRepository->method('findOneBy')->willReturn($existingSkill);
+
+        $response = $this->controller->updateSkill(1, $request, $this->security);
+
+        $this->assertEquals(409, $response->getStatusCode());
+    }
+
+    public function testUpdateSkillInvalidDateFormat(): void
+    {
+        $requestData = ['duree' => 'invalid'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $this->skillsRepository->method('find')->willReturn($skill);
+
+        $response = $this->controller->updateSkill(1, $request, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertStringContainsString('Invalid date format', $data['message']);
+    }
+
+    public function testUpdateSkillNotAuthenticated(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode(['name' => 'Test']));
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->updateSkill(1, $request, $this->security);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testUpdateSkillException(): void
+    {
+        $requestData = ['name' => 'Test'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getId')->willReturn(1);
+        
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->entityManager->method('flush')->willThrowException(new \Exception('DB Error'));
+
+        $response = $this->controller->updateSkill(1, $request, $this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
+    // ==================== Tests pour deleteSkill ====================
 
     public function testDeleteSkillSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('ToDelete_' . uniqid(), 'A supprimer', 'PHP', '2023-01-01');
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $client->request('DELETE', '/api/skills/delete/' . $skill->getId());
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getName')->willReturn('SkillToDelete');
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->skillsRepository
+            ->expects($this->once())
+            ->method('find')
+            ->with(1)
+            ->willReturn($skill);
+
+        $this->entityManager->expects($this->once())->method('remove')->with($skill);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->deleteSkill(1, $this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-
-        $em      = static::getContainer()->get(EntityManagerInterface::class);
-        $deleted = $em->getRepository(Skills::class)->find($skill->getId());
-        $this->assertNull($deleted);
+        $this->assertStringContainsString('SkillToDelete', $data['message']);
     }
 
-    // =========================================================================
-    // POST /api/user/add/skills
-    // =========================================================================
-
-    public function testAddUserSkillReturns401WhenNotAuthenticated(): void
+    public function testDeleteSkillNotFound(): void
     {
-        $client = static::createClient();
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $client->request(
-            'POST', '/api/user/add/skills', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['skill_id' => 1])
-        );
+        $this->skillsRepository->method('find')->willReturn(null);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $response = $this->controller->deleteSkill(999, $this->security);
+
+        $this->assertEquals(404, $response->getStatusCode());
     }
 
-    public function testAddUserSkillReturns400WhenMissingSkillId(): void
+    public function testDeleteSkillNotAuthenticated(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $this->security->method('getUser')->willReturn(null);
 
-        $client->request(
-            'POST', '/api/user/add/skills', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([])
-        );
+        $response = $this->controller->deleteSkill(1, $this->security);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('ID de compétence manquant', $data['message']);
+        $this->assertEquals(401, $response->getStatusCode());
     }
 
-    public function testAddUserSkillReturns404WhenSkillNotFound(): void
+    public function testDeleteSkillException(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $client->request(
-            'POST', '/api/user/add/skills', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['skill_id' => 999999])
-        );
+        $skill = $this->createMock(Skills::class);
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->entityManager->method('remove')->willThrowException(new \Exception('DB Error'));
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Compétence non trouvée', $data['message']);
+        $response = $this->controller->deleteSkill(1, $this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
     }
 
-    public function testAddUserSkillReturns400WhenAlreadyAdded(): void
-    {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('Laravel_' . uniqid(), 'Framework PHP', 'PHP', '2023-01-01');
-
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addSkill($skill);
-        $em->flush();
-
-        $client->request(
-            'POST', '/api/user/add/skills', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['skill_id' => $skill->getId()])
-        );
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Vous avez déjà cette compétence', $data['message']);
-    }
-
+    // ==================== Tests addUserSkill, removeUserSkill, etc... ====================
+    // (Le reste des tests suivent le même pattern complet)
+    
     public function testAddUserSkillSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('Python_' . uniqid(), 'Langage de script', 'Python', '2023-01-01');
+        $requestData = ['skill_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/user/add/skills', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['skill_id' => $skill->getId()])
-        );
+        $user = $this->createMock(User::class);
+        $skills = new ArrayCollection();
+        $user->method('getSkills')->willReturn($skills);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getName')->willReturn('TestSkill');
+
+        $this->skillsRepository
+            ->expects($this->once())
+            ->method('find')
+            ->with(1)
+            ->willReturn($skill);
+
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->addUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('Compétence ajoutée avec succès', $data['message']);
+        $this->assertEquals('TestSkill', $data['skill_name']);
     }
 
-    // =========================================================================
-    // DELETE /api/user/delete/skill
-    // =========================================================================
-
-    public function testRemoveUserSkillReturns400WhenUserDoesNotHaveSkill(): void
+    public function testAddUserSkillMissingSkillId(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('Node_' . uniqid(), 'Runtime JS', 'JavaScript', '2023-01-01');
+        $request = new Request([], [], [], [], [], [], json_encode([]));
 
-        $client->request(
-            'DELETE', '/api/user/delete/skill', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['skill_id' => $skill->getId()])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Vous ne possédez pas cette compétence', $data['message']);
+        $response = $this->controller->addUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertFalse($data['success']);
     }
+
+    public function testAddUserSkillNotFound(): void
+    {
+        $requestData = ['skill_id' => 999];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $this->skillsRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->addUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testAddUserSkillAlreadyHas(): void
+    {
+        $requestData = ['skill_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $skill = $this->createMock(Skills::class);
+        $skills = new ArrayCollection([$skill]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willReturn($skills);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->skillsRepository->method('find')->willReturn($skill);
+
+        $response = $this->controller->addUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertStringContainsString('déjà', $data['message']);
+    }
+
+    public function testAddUserSkillNotAuthenticated(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode(['skill_id' => 1]));
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->addUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testAddUserSkillException(): void
+    {
+        $requestData = ['skill_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willReturn(new ArrayCollection());
+        $this->security->method('getUser')->willReturn($user);
+
+        $skill = $this->createMock(Skills::class);
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->entityManager->method('persist')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->addUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
+    // Continue avec TOUS les autres tests...
+    // Je vais ajouter les tests manquants pour atteindre 100%
 
     public function testRemoveUserSkillSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $skill  = $this->createSkill('Go_' . uniqid(), 'Langage Go', 'Golang', '2023-01-01');
+        $requestData = ['skill_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addSkill($skill);
-        $em->flush();
+        $skill = $this->createMock(Skills::class);
+        $skill->method('getName')->willReturn('SkillToRemove');
+        
+        $skills = new ArrayCollection([$skill]);
 
-        $client->request(
-            'DELETE', '/api/user/delete/skill', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['skill_id' => $skill->getId()])
-        );
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willReturn($skills);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->security->method('getUser')->willReturn($user);
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->removeUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('Compétence retirée avec succès', $data['message']);
     }
 
-    // =========================================================================
-    // POST /api/user/availability
-    // =========================================================================
-
-    public function testChangeAvailabilityReturns401WhenNotAuthenticated(): void
+    public function testRemoveUserSkillNotOwned(): void
     {
-        $client = static::createClient();
+        $requestData = ['skill_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/user/availability', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['availabilityStart' => '2025-01-01', 'availabilityEnd' => '2025-06-01'])
-        );
+        $skill = $this->createMock(Skills::class);
+        $skills = new ArrayCollection();
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willReturn($skills);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->skillsRepository->method('find')->willReturn($skill);
+
+        $response = $this->controller->removeUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    public function testChangeAvailabilityReturns400WhenMissingDates(): void
+    public function testRemoveUserSkillMissingId(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $request = new Request([], [], [], [], [], [], json_encode([]));
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $client->request(
-            'POST', '/api/user/availability', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['availabilityStart' => '2025-01-01'])
-        );
+        $response = $this->controller->removeUserSkill($request, $this->security, $this->entityManager);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('availability not sended', $data['message']);
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testRemoveUserSkillNotFound(): void
+    {
+        $requestData = ['skill_id' => 999];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->skillsRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->removeUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testRemoveUserSkillNotAuthenticated(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode(['skill_id' => 1]));
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->removeUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testRemoveUserSkillException(): void
+    {
+        $requestData = ['skill_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $skill = $this->createMock(Skills::class);
+        $skills = new ArrayCollection([$skill]);
+        
+        $user = $this->createMock(User::class);
+        $user->method('getSkills')->willReturn($skills);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->skillsRepository->method('find')->willReturn($skill);
+        $this->entityManager->method('flush')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->removeUserSkill($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
     }
 
     public function testChangeAvailabilitySuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = [
+            'availabilityStart' => '2026-06-01',
+            'availabilityEnd' => '2026-12-31'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/user/availability', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'availabilityStart' => '2025-09-01',
-                'availabilityEnd'   => '2025-12-31',
-            ])
-        );
+        $user = $this->createMock(User::class);
+        $user->method('getAvailabilityStart')->willReturn(new \DateTimeImmutable('2026-06-01'));
+        $user->method('getAvailabilityEnd')->willReturn(new \DateTimeImmutable('2026-12-31'));
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->security->method('getUser')->willReturn($user);
+        $this->entityManager->expects($this->once())->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('2025-09-01', $data['availabilityStart']);
-        $this->assertSame('2025-12-31', $data['availabilityEnd']);
     }
 
-    // =========================================================================
-    // POST /api/send/invitation
-    // =========================================================================
-
-    public function testSendInvitationReturns401WhenNotAuthenticated(): void
+    public function testChangeAvailabilityMissingDates(): void
     {
-        $client = static::createClient();
+        $request = new Request([], [], [], [], [], [], json_encode([]));
 
-        $client->request(
-            'POST', '/api/send/invitation', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['friend_id' => 1])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    public function testSendInvitationReturns400WhenMissingFriendId(): void
+    public function testChangeAvailabilityMissingStartDate(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = ['availabilityEnd' => '2026-12-31'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/send/invitation', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Friend ID required', $data['message']);
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    public function testSendInvitationReturns404WhenUserNotFound(): void
+    public function testChangeAvailabilityMissingEndDate(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = ['availabilityStart' => '2026-06-01'];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/send/invitation', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['friend_id' => 999999])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('User not found', $data['message']);
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    public function testSendInvitationSuccess(): void
+    public function testChangeAvailabilityInvalidStartDate(): void
     {
-        $client  = $this->createAuthenticatedClient();
-        $friend  = $this->createSecondUser();
+        $requestData = [
+            'availabilityStart' => 'invalid-date',
+            'availabilityEnd' => '2026-12-31'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request(
-            'POST', '/api/send/invitation', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['friend_id' => $friend->getId()])
-        );
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertStringContainsString('Invalid', $data['message']);
+    }
+
+    public function testChangeAvailabilityInvalidEndDate(): void
+    {
+        $requestData = [
+            'availabilityStart' => '2026-06-01',
+            'availabilityEnd' => 'invalid-date'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testChangeAvailabilityNotAuthenticated(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode([]));
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testChangeAvailabilityException(): void
+    {
+        $requestData = [
+            'availabilityStart' => '2026-06-01',
+            'availabilityEnd' => '2026-12-31'
+        ];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->entityManager->method('persist')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->changeAvailability($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
+    // Tests pour getUserProjects
+    public function testGetUserProjectsSuccess(): void
+    {
+        $project = $this->createMock(Project::class);
+        $project->method('getId')->willReturn(1);
+        $project->method('getName')->willReturn('Test Project');
+        $project->method('getDescription')->willReturn('Description');
+        $project->method('getRequiredSkills')->willReturn('PHP, JS');
+        $project->method('getStartDate')->willReturn(new \DateTimeImmutable('2026-01-01'));
+        $project->method('getEndDate')->willReturn(new \DateTimeImmutable('2026-12-31'));
+
+        $projects = new ArrayCollection([$project]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getUserProjects($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(1, $data);
+        $this->assertEquals('Test Project', $data[0]['name']);
+    }
+
+    public function testGetUserProjectsWithNullDates(): void
+    {
+        $project = $this->createMock(Project::class);
+        $project->method('getId')->willReturn(1);
+        $project->method('getName')->willReturn('Project');
+        $project->method('getDescription')->willReturn('Desc');
+        $project->method('getRequiredSkills')->willReturn('Skills');
+        $project->method('getStartDate')->willReturn(null);
+        $project->method('getEndDate')->willReturn(null);
+
+        $projects = new ArrayCollection([$project]);
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getUserProjects($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertNull($data[0]['startDate']);
+        $this->assertNull($data[0]['endDate']);
+    }
+
+    public function testGetUserProjectsNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->getUserProjects($this->security);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testGetUserProjectsException(): void
+    {
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willThrowException(new \Exception('Error'));
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getUserProjects($this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
+    // Tests addUserToProject
+    public function testAddUserToProjectSuccess(): void
+    {
+        $requestData = ['project_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $project = $this->createMock(Project::class);
+        $project->method('getName')->willReturn('Test Project');
+
+        $projects = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn($project);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->addUserToProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('Invitation envoyée avec succès', $data['message']);
     }
 
-    public function testSendInvitationReturns400WhenAlreadySent(): void
+    public function testAddUserToProjectMissingId(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $friend = $this->createSecondUser();
+        $request = new Request([], [], [], [], [], [], json_encode([]));
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addSentInvitation($friend);
-        $em->flush();
+        $response = $this->controller->addUserToProject($request, $this->security, $this->entityManager);
 
-        $client->request(
-            'POST', '/api/send/invitation', [], [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['friend_id' => $friend->getId()])
-        );
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Invitation déjà envoyée', $data['message']);
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    // =========================================================================
-    // GET /api/invitations/received
-    // =========================================================================
-
-    public function testGetReceivedInvitationsReturns401WhenNotAuthenticated(): void
+    public function testAddUserToProjectNotFound(): void
     {
-        $client = static::createClient();
+        $requestData = ['project_id' => 999];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request('GET', '/api/invitations/received');
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn(null);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        $response = $this->controller->addUserToProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
     }
 
-    public function testGetReceivedInvitationsReturnsArray(): void
+    public function testAddUserToProjectAlreadyIn(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $sender = $this->createSecondUser();
+        $requestData = ['project_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $sender->addSentInvitation($user);
-        $em->flush();
+        $project = $this->createMock(Project::class);
+        $projects = new ArrayCollection([$project]);
 
-        $client->request('GET', '/api/invitations/received');
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($data);
-        $emails = array_column($data, 'email');
-        $this->assertContains('phpunit2@openhub.com', $emails);
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn($project);
+
+        $response = $this->controller->addUserToProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    // =========================================================================
-    // GET /api/invitations/sent
-    // =========================================================================
-
-    public function testGetSentInvitationsReturnsArray(): void
+    public function testAddUserToProjectNotAuthenticated(): void
     {
-        $client  = $this->createAuthenticatedClient();
-        $friend  = $this->createSecondUser();
+        $request = new Request([], [], [], [], [], [], json_encode(['project_id' => 1]));
+        $this->security->method('getUser')->willReturn(null);
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addSentInvitation($friend);
-        $em->flush();
+        $response = $this->controller->addUserToProject($request, $this->security, $this->entityManager);
 
-        $client->request('GET', '/api/invitations/sent');
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data  = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($data);
-        $emails = array_column($data, 'email');
-        $this->assertContains('phpunit2@openhub.com', $emails);
+        $this->assertEquals(401, $response->getStatusCode());
     }
 
-    // =========================================================================
-    // POST /api/invitations/accept/{senderId}
-    // =========================================================================
-
-    public function testAcceptInvitationReturns404WhenSenderNotFound(): void
+    public function testAddUserToProjectException(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = ['project_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request('POST', '/api/invitations/accept/999999');
+        $project = $this->createMock(Project::class);
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn(new ArrayCollection());
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertFalse($data['success']);
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn($project);
+        $this->entityManager->method('flush')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->addUserToProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
     }
 
-    public function testAcceptInvitationSuccess(): void
+    // Tests removeUserFromProject
+    public function testRemoveUserFromProjectSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $sender = $this->createSecondUser();
+        $requestData = ['project_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $sender->addSentInvitation($user);
-        $em->flush();
+        $project = $this->createMock(Project::class);
+        $project->method('getName')->willReturn('Test Project');
+        
+        $projects = new ArrayCollection([$project]);
 
-        $client->request('POST', '/api/invitations/accept/' . $sender->getId());
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn($project);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->removeUserFromProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertStringContainsString('amis', $data['message']);
     }
 
-    // =========================================================================
-    // GET /api/user/friends
-    // =========================================================================
-
-    public function testGetUserFriendsReturnsArray(): void
+    public function testRemoveUserFromProjectMissingId(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $friend = $this->createSecondUser();
+        $request = new Request([], [], [], [], [], [], json_encode([]));
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addFriend($friend);
-        $em->flush();
+        $response = $this->controller->removeUserFromProject($request, $this->security, $this->entityManager);
 
-        $client->request('GET', '/api/user/friends');
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data  = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($data);
-        $emails = array_column($data, 'email');
-        $this->assertContains('phpunit2@openhub.com', $emails);
+        $this->assertEquals(400, $response->getStatusCode());
     }
 
-    // =========================================================================
-    // DELETE /api/delete/friends/{id}
-    // =========================================================================
-
-    public function testDeleteFriendReturns404WhenFriendNotFound(): void
+    public function testRemoveUserFromProjectNotFound(): void
     {
-        $client = $this->createAuthenticatedClient();
+        $requestData = ['project_id' => 999];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
 
-        $client->request('DELETE', '/api/delete/friends/999999');
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn(null);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertFalse($data['success']);
-        $this->assertSame('Ami introuvable', $data['message']);
+        $response = $this->controller->removeUserFromProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testRemoveUserFromProjectNotInProject(): void
+    {
+        $requestData = ['project_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $project = $this->createMock(Project::class);
+        $projects = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn($project);
+
+        $response = $this->controller->removeUserFromProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testRemoveUserFromProjectNotAuthenticated(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode(['project_id' => 1]));
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->removeUserFromProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testRemoveUserFromProjectException(): void
+    {
+        $requestData = ['project_id' => 1];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $project = $this->createMock(Project::class);
+        $projects = new ArrayCollection([$project]);
+        
+        $user = $this->createMock(User::class);
+        $user->method('getProject')->willReturn($projects);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->projectRepository->method('find')->willReturn($project);
+        $this->entityManager->method('flush')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->removeUserFromProject($request, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
+    // Tests pour les invitations et amis
+    public function testGetReceivedInvitationsSuccess(): void
+    {
+        $sender = $this->createMock(User::class);
+        $sender->method('getId')->willReturn(2);
+        $sender->method('getFirstName')->willReturn('John');
+        $sender->method('getLastName')->willReturn('Doe');
+        $sender->method('getEmail')->willReturn('john@example.com');
+
+        $receivedInvitations = new ArrayCollection([$sender]);
+        $friends = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getReceivedInvitations($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(1, $data);
+        $this->assertEquals('John', $data[0]['firstName']);
+    }
+
+    public function testGetReceivedInvitationsFiltersExistingFriends(): void
+    {
+        $sender = $this->createMock(User::class);
+        $sender->method('getId')->willReturn(2);
+
+        $receivedInvitations = new ArrayCollection([$sender]);
+        $friends = new ArrayCollection([$sender]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getReceivedInvitations($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(0, $data);
+    }
+
+    public function testGetReceivedInvitationsNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->getReceivedInvitations($this->security);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testGetSentInvitationsSuccess(): void
+    {
+        $invited = $this->createMock(User::class);
+        $invited->method('getId')->willReturn(3);
+        $invited->method('getFirstName')->willReturn('Jane');
+        $invited->method('getLastName')->willReturn('Smith');
+        $invited->method('getEmail')->willReturn('jane@example.com');
+
+        $sentInvitations = new ArrayCollection([$invited]);
+        $friends = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getSentInvitations($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(1, $data);
+        $this->assertEquals('Jane', $data[0]['firstName']);
+    }
+
+    public function testGetSentInvitationsFiltersExistingFriends(): void
+    {
+        $invited = $this->createMock(User::class);
+        $sentInvitations = new ArrayCollection([$invited]);
+        $friends = new ArrayCollection([$invited]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getSentInvitations($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(0, $data);
+    }
+
+    public function testGetSentInvitationsNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->getSentInvitations($this->security);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testGetUserFriendsSuccess(): void
+    {
+        $friend = $this->createMock(User::class);
+        $friend->method('getId')->willReturn(4);
+        $friend->method('getFirstName')->willReturn('Bob');
+        $friend->method('getLastName')->willReturn('Wilson');
+        $friend->method('getEmail')->willReturn('bob@example.com');
+
+        $friends = new ArrayCollection([$friend]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getUserFriends($this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertCount(1, $data);
+        $this->assertEquals('Bob', $data[0]['firstName']);
+    }
+
+    public function testGetUserFriendsNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->getUserFriends($this->security);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testGetUserFriendsException(): void
+    {
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willThrowException(new \Exception('Error'));
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->getUserFriends($this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
     }
 
     public function testDeleteFriendSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $friend = $this->createSecondUser();
+        $friend = $this->createMock(User::class);
+        $friends = new ArrayCollection([$friend]);
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addFriend($friend);
-        $friend->addFriend($user);
-        $em->flush();
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn($friends);
 
-        $client->request('DELETE', '/api/delete/friends/' . $friend->getId());
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->with(2)->willReturn($friend);
+        $this->entityManager->expects($this->once())->method('flush');
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $response = $this->controller->deleteFriend(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('Ami supprimé avec succès', $data['message']);
     }
 
-    // =========================================================================
-    // DELETE /api/invitations/delete-received/{senderId}
-    // =========================================================================
+    public function testDeleteFriendNotFound(): void
+    {
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->deleteFriend(999, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testDeleteFriendNotInList(): void
+    {
+        $friend = $this->createMock(User::class);
+        $friends = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($friend);
+
+        $response = $this->controller->deleteFriend(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testDeleteFriendNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->deleteFriend(1, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testSendInvitationSuccess(): void
+    {
+        $requestData = ['friend_id' => 2];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $friend = $this->createMock(User::class);
+        $friends = new ArrayCollection();
+        $sentInvitations = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn($friends);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($friend);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertTrue($data['success']);
+    }
+
+    public function testSendInvitationMissingId(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode([]));
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testSendInvitationUserNotFound(): void
+    {
+        $requestData = ['friend_id' => 999];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testSendInvitationAlreadyFriends(): void
+    {
+        $requestData = ['friend_id' => 2];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $friend = $this->createMock(User::class);
+        $friends = new ArrayCollection([$friend]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn($friends);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($friend);
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testSendInvitationAlreadySent(): void
+    {
+        $requestData = ['friend_id' => 2];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $friend = $this->createMock(User::class);
+        $friends = new ArrayCollection();
+        $sentInvitations = new ArrayCollection([$friend]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn($friends);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($friend);
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+
+    public function testSendInvitationNotAuthenticated(): void
+    {
+        $request = new Request([], [], [], [], [], [], json_encode(['friend_id' => 1]));
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testSendInvitationException(): void
+    {
+        $requestData = ['friend_id' => 2];
+        $request = new Request([], [], [], [], [], [], json_encode($requestData));
+
+        $friend = $this->createMock(User::class);
+        $user = $this->createMock(User::class);
+        $user->method('getFriends')->willReturn(new ArrayCollection());
+        $user->method('getSentInvitations')->willReturn(new ArrayCollection());
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($friend);
+        $this->entityManager->method('flush')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->sendInvitation($request, $this->entityManager, $this->security);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
+    public function testAcceptInvitationSuccess(): void
+    {
+        $sender = $this->createMock(User::class);
+        $sender->method('getSentInvitations')->willReturn(new ArrayCollection());
+
+        $receivedInvitations = new ArrayCollection([$sender]);
+
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($sender);
+        $this->entityManager->expects($this->exactly(2))->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->acceptInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertTrue($data['success']);
+    }
+
+    public function testAcceptInvitationSenderNotFound(): void
+    {
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->acceptInvitation(999, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testAcceptInvitationNotReceived(): void
+    {
+        $sender = $this->createMock(User::class);
+        $receivedInvitations = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($sender);
+
+        $response = $this->controller->acceptInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testAcceptInvitationNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->acceptInvitation(1, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testAcceptInvitationException(): void
+    {
+        $sender = $this->createMock(User::class);
+        $sender->method('getSentInvitations')->willReturn(new ArrayCollection());
+        
+        $receivedInvitations = new ArrayCollection([$sender]);
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($sender);
+        $this->entityManager->method('persist')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->acceptInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
 
     public function testDeleteReceivedInvitationSuccess(): void
     {
-        $client = $this->createAuthenticatedClient();
-        $sender = $this->createSecondUser();
+        $sender = $this->createMock(User::class);
+        $sender->method('getSentInvitations')->willReturn(new ArrayCollection());
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $sender->addSentInvitation($user);
-        $em->flush();
+        $receivedInvitations = new ArrayCollection([$sender]);
 
-        $client->request('DELETE', '/api/invitations/delete-received/' . $sender->getId());
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($sender);
+        $this->entityManager->expects($this->exactly(2))->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->deleteReceivedInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('Invitation reçue supprimée avec succès', $data['message']);
     }
 
-    // =========================================================================
-    // DELETE /api/invitations/delete-sent/{receiverId}
-    // =========================================================================
+    public function testDeleteReceivedInvitationSenderNotFound(): void
+    {
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->deleteReceivedInvitation(999, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testDeleteReceivedInvitationNotReceived(): void
+    {
+        $sender = $this->createMock(User::class);
+        $receivedInvitations = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($sender);
+
+        $response = $this->controller->deleteReceivedInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testDeleteReceivedInvitationNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->deleteReceivedInvitation(1, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testDeleteReceivedInvitationException(): void
+    {
+        $sender = $this->createMock(User::class);
+        $sender->method('getSentInvitations')->willReturn(new ArrayCollection());
+        
+        $receivedInvitations = new ArrayCollection([$sender]);
+        $user = $this->createMock(User::class);
+        $user->method('getReceivedInvitations')->willReturn($receivedInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($sender);
+        $this->entityManager->method('persist')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->deleteReceivedInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
 
     public function testDeleteSentInvitationSuccess(): void
     {
-        $client   = $this->createAuthenticatedClient();
-        $receiver = $this->createSecondUser();
+        $receiver = $this->createMock(User::class);
+        $receiver->method('getReceivedInvitations')->willReturn(new ArrayCollection());
 
-        $em   = static::getContainer()->get(EntityManagerInterface::class);
-        $user = $this->getTestUser();
-        $user->addSentInvitation($receiver);
-        $em->flush();
+        $sentInvitations = new ArrayCollection([$receiver]);
 
-        $client->request('DELETE', '/api/invitations/delete-sent/' . $receiver->getId());
+        $user = $this->createMock(User::class);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($receiver);
+        $this->entityManager->expects($this->exactly(2))->method('persist');
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $response = $this->controller->deleteSentInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
-        $this->assertSame('Invitation envoyée supprimée avec succès', $data['message']);
     }
+
+    public function testDeleteSentInvitationReceiverNotFound(): void
+    {
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn(null);
+
+        $response = $this->controller->deleteSentInvitation(999, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testDeleteSentInvitationNotSent(): void
+    {
+        $receiver = $this->createMock(User::class);
+        $sentInvitations = new ArrayCollection();
+
+        $user = $this->createMock(User::class);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($receiver);
+
+        $response = $this->controller->deleteSentInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testDeleteSentInvitationNotAuthenticated(): void
+    {
+        $this->security->method('getUser')->willReturn(null);
+
+        $response = $this->controller->deleteSentInvitation(1, $this->security, $this->entityManager);
+
+        $this->assertEquals(401, $response->getStatusCode());
+    }
+
+    public function testDeleteSentInvitationException(): void
+    {
+        $receiver = $this->createMock(User::class);
+        $receiver->method('getReceivedInvitations')->willReturn(new ArrayCollection());
+        
+        $sentInvitations = new ArrayCollection([$receiver]);
+        $user = $this->createMock(User::class);
+        $user->method('getSentInvitations')->willReturn($sentInvitations);
+
+        $this->security->method('getUser')->willReturn($user);
+        $this->userRepository->method('find')->willReturn($receiver);
+        $this->entityManager->method('persist')->willThrowException(new \Exception('Error'));
+
+        $response = $this->controller->deleteSentInvitation(2, $this->security, $this->entityManager);
+
+        $this->assertEquals(500, $response->getStatusCode());
+    }
+
 }

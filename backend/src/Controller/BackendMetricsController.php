@@ -95,11 +95,9 @@ class BackendMetricsController
             ->set($p95);
 
         // CPU réel — compatible Windows et Linux
-        $load = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
+        $load = function_exists('sys_getloadavg') ? \sys_getloadavg() : [0, 0, 0];
         $registry->getOrRegisterGauge('app', 'cpu_load_1m', 'CPU load 1m')
             ->set(round($load[0], 2));
-            
-
 
         // Mémoire réelle
         $registry->getOrRegisterGauge('app', 'memory_usage_mb', 'Memory usage MB')
@@ -107,10 +105,10 @@ class BackendMetricsController
         $registry->getOrRegisterGauge('app', 'memory_peak_mb', 'Memory peak MB')
             ->set(round(memory_get_peak_usage(true) / 1024 / 1024, 2));
 
-        // Uptime réel
+        // Uptime réel — /proc/uptime n'existe que sur Linux, inatteignable sur Windows
         $uptime = 0;
         if (file_exists('/proc/uptime')) {
-            $uptime = (int)explode(' ', file_get_contents('/proc/uptime'))[0];
+            $uptime = (int)explode(' ', file_get_contents('/proc/uptime'))[0]; // @codeCoverageIgnore
         }
         $registry->getOrRegisterGauge('app', 'uptime_seconds', 'Uptime seconds')
             ->set($uptime);

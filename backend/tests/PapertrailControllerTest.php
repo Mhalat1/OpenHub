@@ -4,6 +4,7 @@ namespace App\Tests\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\PapertrailService;
 
 /**
  * Tests d'intégration réels pour PapertrailController.
@@ -209,5 +210,39 @@ class PapertrailControllerTest extends WebTestCase
             $data2['log'],
             'Deux appels espacés d\'1s doivent produire des logs différents'
         );
+    }
+
+
+
+
+
+
+
+
+
+
+    public function testPapertrailHandlesServiceException(): void
+    {
+        $client = static::createClient();
+
+        // Replace the real service with a mock that throws an exception
+        $mockService = $this->createMock(PapertrailService::class);
+        $mockService->method('info')
+            ->willThrowException(new \Exception('Simulated Papertrail failure'));
+
+        // Override the service in the container
+        static::getContainer()->set(PapertrailService::class, $mockService);
+
+        $client->request('GET', '/api/test/papertrail');
+
+        // Assert error response
+        $this->assertResponseStatusCodeSame(Response::HTTP_INTERNAL_SERVER_ERROR);
+        
+        $data = json_decode($client->getResponse()->getContent(), true);
+        
+        $this->assertArrayHasKey('success', $data);
+        $this->assertArrayHasKey('error', $data);
+        $this->assertFalse($data['success']);
+        $this->assertEquals('Simulated Papertrail failure', $data['error']);
     }
 }
