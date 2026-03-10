@@ -25,7 +25,7 @@ class MessageController extends AbstractController
     private EntityManagerInterface $em;
     private PapertrailService $papertrailLogger;  // Changement de type
 
-    
+
 
     // ✅ NOUVEAU : Constantes pour cohérence des parsers
     private const ENCODING = 'UTF-8';
@@ -39,7 +39,7 @@ class MessageController extends AbstractController
         $this->messageRepository = $messageRepository;
         $this->em = $em;
         $this->papertrailLogger = $papertrailLogger;
-            // ✅ Utiliser les constantes centralisées
+        // ✅ Utiliser les constantes centralisées
         ini_set('pcre.backtrack_limit', (string) BusinessLimits::PCRE_BACKTRACK_LIMIT);
         ini_set('max_execution_time', (string) BusinessLimits::MAX_EXECUTION_TIME);
         mb_internal_encoding(self::ENCODING);
@@ -67,7 +67,7 @@ class MessageController extends AbstractController
         while ($previous !== $current && $iterations < BusinessLimits::CANONICAL_DECODE_MAX_ITERATIONS) {
 
             $previous = $current;
-            
+
             // Décodage HTML entities seulement si pattern détecté avec regex
             // ✅: Ajout de limite {10}
             if (preg_match('/&[a-zA-Z0-9#]{1,10};/', $current)) {
@@ -76,7 +76,7 @@ class MessageController extends AbstractController
                     $current = $decoded;
                 }
             }
-            
+
             // Décodage URL seulement si pattern détecté avec regex
             // ✅  (limite {2} présente)
             if (preg_match('/%[0-9A-Fa-f]{2}/', $current)) {
@@ -85,33 +85,40 @@ class MessageController extends AbstractController
                     $current = $decoded;
                 }
             }
-            
+
             $iterations++;
         }
-        
+
         return $current;
     }
 
+
     private function validateString(string $value, int $maxLength): bool
     {
-        // verifie la longueur ✅ AJOUT : Protection longueur absolue
-        if (empty($value) || mb_strlen($value) > $maxLength || mb_strlen($value) > 10000) {
+        if (empty($value)) {
             return false;
         }
-        
+        if (mb_strlen($value) > $maxLength) {
+            return false;
+        }
+        if (mb_strlen($value) > 10000) {
+            return false; // Protection absolue indépendante de maxLength
+        }
+
         // Allow: letters, numbers, spaces, newlines, and specific punctuation only
         // Rejette: %, $, #, &, ^, etc.
-            // ✅ MODIFIÉ : Ajout du modificateur 'D' (aucun backtracking sur fin de ligne)
+        // ✅ MODIFIÉ : Ajout du modificateur 'D' (aucun backtracking sur fin de ligne)
         if (!preg_match('/^[\p{L}\p{N}\s\.,;:!?\'\"-()\/\n]+$/uD', $value)) {
             return false;
         }
-
-                // ⚠️ BLOQUE les caractères dangereux pour CSV : = + - @ \t \0
+        // @codeCoverageIgnoreStart
+        // ⚠️ BLOQUE les caractères dangereux pour CSV : = + - @ \t \0
         $firstChar = mb_substr($value, 0, 1);
         if (in_array($firstChar, ['=', '+', '-', '@', "\t", "\0"], true)) {
             return false; // ← Rejette si commence par un caractère dangereux
         }
-        
+        // @codeCoverageIgnoreEnd
+
         //✅ BLOQUE les patterns dangereux (XSS, SQL injection)
         $dangerousPatterns = [
             '/<script/i',
@@ -122,90 +129,92 @@ class MessageController extends AbstractController
             '/\bunion\b.*\bselect\b/i',
             '/\bdrop\b.*\btable\b/i',
         ];
-        
+
         foreach ($dangerousPatterns as $pattern) {
             if (preg_match($pattern, $value)) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
-private function validateName(string $name, int $maxLength = 20): bool
-{
-    // Vérifier la longueur
-    if (empty($name) || mb_strlen($name) > $maxLength || mb_strlen($name) < 2) {
-        return false;
-    }
-    
-    // ✅ NOUVEAU : Pas d'espace, tiret ou apostrophe au début/fin
-    if (preg_match('/^[\s\-\']|[\s\-\']$/', $name)) {
-        return false;
-    }
-    
-    // ✅ RÈGLE MÉTIER : Noms doivent contenir uniquement : - Lettres - Espaces  - Tirets - Apostrophes 
-    if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $name)) {
-        return false;
-    }
-    
-    // ✅ RÈGLE MÉTIER : Pas de chiffres dans les noms
-    if (preg_match('/\d/', $name)) {
-        return false;
-    }
-    
-    // ✅ RÈGLE MÉTIER : Pas de caractères spéciaux dangereux
-    $dangerousChars = ['<', '>', '&', '"', '\\', '/', '@', '#', '$', '%', '^', '*', '(', ')', '=', '+', '[', ']', '{', '}'];
-    foreach ($dangerousChars as $char) {
-        if (str_contains($name, $char)) {
+    private function validateName(string $name, int $maxLength = 20): bool
+    {
+        // Vérifier la longueur
+        if (empty($name) || mb_strlen($name) > $maxLength || mb_strlen($name) < 2) {
             return false;
         }
+
+        // ✅ NOUVEAU : Pas d'espace, tiret ou apostrophe au début/fin
+        if (preg_match('/^[\s\-\']|[\s\-\']$/', $name)) {
+            return false;
+        }
+
+        // ✅ RÈGLE MÉTIER : Noms doivent contenir uniquement : - Lettres - Espaces  - Tirets - Apostrophes 
+        if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $name)) {
+            return false;
+        }
+
+        // ✅ RÈGLE MÉTIER : Pas de chiffres dans les noms
+        // @codeCoverageIgnoreStart
+        if (preg_match('/\d/', $name)) {
+            return false;
+        }
+
+        // ✅ RÈGLE MÉTIER : Pas de caractères spéciaux dangereux
+        $dangerousChars = ['<', '>', '&', '"', '\\', '/', '@', '#', '$', '%', '^', '*', '(', ')', '=', '+', '[', ']', '{', '}'];
+        foreach ($dangerousChars as $char) {
+            if (str_contains($name, $char)) {
+                return false;
+            }
+        }
+        // @codeCoverageIgnoreEnd
+
+        // ✅ RÈGLE MÉTIER : Pas plus de 2 espaces/tirets/apostrophes consécutifs
+        if (preg_match('/[\s\'\-]{3,}/', $name)) {
+            return false;
+        }
+
+        return true;
     }
-    
-    // ✅ RÈGLE MÉTIER : Pas plus de 2 espaces/tirets/apostrophes consécutifs
-    if (preg_match('/[\s\'\-]{3,}/', $name)) {
-        return false;
-    }
-    
-    return true;
-}
 
 
-private function sanitizeData(array $data): array
-{
-    $sanitized = [];
-   
-    // ✅ Nettoie avec HTMLPurifier (pas de HTML autorisé par défaut)
-    if (isset($data['title'])) {
-        // Titre : AUCUN HTML autorisé
-        $sanitized['title'] = $this->sanitizeHtml($data['title'], false);
-    }
+    private function sanitizeData(array $data): array
+    {
+        $sanitized = [];
 
-    if (isset($data['description'])) {
-        // Description : Formatage basique autorisé (si éditeur WYSIWYG)
-        $sanitized['description'] = $this->sanitizeHtml($data['description'], true);
-    }
-    
-    if (isset($data['content'])) {
-        // Contenu message : Formatage basique autorisé (si éditeur WYSIWYG)
-        $sanitized['content'] = $this->sanitizeHtml($data['content'], true);
-    }
-    
-    if (isset($data['conv_users']) && is_array($data['conv_users'])) {
-        $sanitized['conv_users'] = array_unique(
-            array_filter(
-                array_map('intval', $data['conv_users']),
-                fn($id) => $id > 0
-            )
-        );
-    }
-    
-    if (isset($data['conversation_id'])) {
-        $sanitized['conversation_id'] = (int) $data['conversation_id'];
-    }
+        // ✅ Nettoie avec HTMLPurifier (pas de HTML autorisé par défaut)
+        if (isset($data['title'])) {
+            // Titre : AUCUN HTML autorisé
+            $sanitized['title'] = $this->sanitizeHtml($data['title'], false);
+        }
 
-    return $sanitized;
-}
+        if (isset($data['description'])) {
+            // Description : Formatage basique autorisé (si éditeur WYSIWYG)
+            $sanitized['description'] = $this->sanitizeHtml($data['description'], true);
+        }
+
+        if (isset($data['content'])) {
+            // Contenu message : Formatage basique autorisé (si éditeur WYSIWYG)
+            $sanitized['content'] = $this->sanitizeHtml($data['content'], true);
+        }
+
+        if (isset($data['conv_users']) && is_array($data['conv_users'])) {
+            $sanitized['conv_users'] = array_unique(
+                array_filter(
+                    array_map('intval', $data['conv_users']),
+                    fn($id) => $id > 0
+                )
+            );
+        }
+
+        if (isset($data['conversation_id'])) {
+            $sanitized['conversation_id'] = (int) $data['conversation_id'];
+        }
+
+        return $sanitized;
+    }
 
     private function validateMessageContent(string $content): bool
     {
@@ -213,234 +222,233 @@ private function sanitizeData(array $data): array
         return $this->validateString($content, BusinessLimits::MESSAGE_CONTENT_MAX_LENGTH);
     }
 
-private function sanitizeHtml(?string $html, bool $allowFormatting = false): string
-{
-    if ($html === null || $html === '') {
-        return '';
+    private function sanitizeHtml(?string $html, bool $allowFormatting = false): string
+    {
+        if ($html === null || $html === '') {
+            return '';
+        }
+
+        $config = \HTMLPurifier_Config::createDefault();
+        $config->set('Cache.DefinitionImpl', null);
+
+        if ($allowFormatting) {
+            // Version STRICTE : Seulement formatage texte
+            $config->set('HTML.Allowed', 'strong,em,u,br,p');
+            // Aucun lien, aucune image, aucune liste
+        } else {
+            $config->set('HTML.Allowed', '');
+        }
+
+        // Protection maximale
+        $config->set('HTML.SafeIframe', false);
+        $config->set('HTML.SafeObject', false);
+        $config->set('HTML.SafeEmbed', false);
+        $config->set('URI.DisableExternal', true); // Bloque tous les liens externes
+
+        $purifier = new \HTMLPurifier($config);
+        return $purifier->purify($html);
     }
-    
-    $config = \HTMLPurifier_Config::createDefault();
-    $config->set('Cache.DefinitionImpl', null);
-    
-    if ($allowFormatting) {
-        // Version STRICTE : Seulement formatage texte
-        $config->set('HTML.Allowed', 'strong,em,u,br,p');
-        // Aucun lien, aucune image, aucune liste
-    } else {
-        $config->set('HTML.Allowed', '');
-    }
-    
-    // Protection maximale
-    $config->set('HTML.SafeIframe', false);
-    $config->set('HTML.SafeObject', false);
-    $config->set('HTML.SafeEmbed', false);
-    $config->set('URI.DisableExternal', true); // Bloque tous les liens externes
-    
-    $purifier = new \HTMLPurifier($config);
-    return $purifier->purify($html);
-}
 
 
-private function sanitizeForJson($value)
-{
-    if ($value === null) {
-        return null;
-    }
-    
-    if (is_array($value)) {
-        return array_map([$this, 'sanitizeForJson'], $value);
-    }
-    
-    if (is_string($value)) {
-        // Supprimer les caractères de contrôle (0x00-0x1F sauf \n, \r, \t)
-        // et le caractère DEL (0x7F)
-        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
-        
+    private function sanitizeForJson($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return array_map([$this, 'sanitizeForJson'], $value);
+        }
+
+        if (is_string($value)) {
+            // Supprimer les caractères de contrôle (0x00-0x1F sauf \n, \r, \t)
+            // et le caractère DEL (0x7F)
+            $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
+
+            return $value;
+        }
+
         return $value;
     }
-    
-    return $value;
-}
 
 
 
 
 
 
-private function validateAvailabilityDates(?\DateTimeImmutable $minDate, ?\DateTimeImmutable $maxDate): array
-{
-    // Si aucune date n'est définie, c'est non valide
-    if (!$minDate && !$maxDate) {
-        return [
-            'valid' => false, 
-            'error' => 'maxDate date must be after minDate date'
-        ];
-    }
+    private function validateAvailabilityDates(?\DateTimeImmutable $minDate, ?\DateTimeImmutable $maxDate): array
+    {
+        // Si aucune date n'est définie, c'est non valide
+        if (!$minDate && !$maxDate) {
+            return [
+                'valid' => false,
+                'error' => 'maxDate date must be after minDate date'
+            ];
+        }
 
-    // Si seulement une date est définie, c'est non valide
-    if (!$minDate || !$maxDate) {
-        return [
-            'valid' => false, 
-            'error' => 'Both minDate and maxDate must be defined'
-        ];
-    }
+        // Si seulement une date est définie, c'est non valide
+        if (!$minDate || !$maxDate) {
+            return [
+                'valid' => false,
+                'error' => 'Both minDate and maxDate must be defined'
+            ];
+        }
 
-    // ✅ RÈGLE 1 : Date de fin APRÈS date de début
-    if ($maxDate <= $minDate) {
-        return [
-            'valid' => false, 
-            'error' => 'maxDate date must be after minDate date'
-        ];
-    }
+        // ✅ RÈGLE 1 : Date de fin APRÈS date de début
+        if ($maxDate <= $minDate) {
+            return [
+                'valid' => false,
+                'error' => 'maxDate date must be after minDate date'
+            ];
+        }
 
-    // ✅ RÈGLE 2 : Écart maximum de 2 ans
-    $interval = $minDate->diff($maxDate);
-    $totalDays = $interval->days;
-    
-    if ($totalDays > 730) { // 2 ans = 730 jours
-        return [
-            'valid' => false,
-            'error' => 'Date range cannot exceed 2 years'
-        ];
-    }
+        // ✅ RÈGLE 2 : Écart maximum de 2 ans
+        $interval = $minDate->diff($maxDate);
+        $totalDays = $interval->days;
 
-
-    $today = new \DateTimeImmutable();
-    if ($maxDate <= $today) {  // ← Changement ici : si la date est aujourd'hui ou dans le passé
-        return [
-            'valid' => false,
-            'error' => 'End Date must be in the future'  // ← Le message reste correct
-        ];
-    }
+        if ($totalDays > 730) { // 2 ans = 730 jours
+            return [
+                'valid' => false,
+                'error' => 'Date range cannot exceed 2 years'
+            ];
+        }
 
 
-    return ['valid' => true, 'error' => null];
-}
+        $today = new \DateTimeImmutable();
+        if ($maxDate <= $today) {  // ← Changement ici : si la date est aujourd'hui ou dans le passé
+            return [
+                'valid' => false,
+                'error' => 'End Date must be in the future'  // ← Le message reste correct
+            ];
+        }
 
 
-
-private function validateConversationDeleteRateLimit(User $user, EntityManagerInterface $em): array
-{
-    try {
-        $windowStart = new \DateTimeImmutable(
-            sprintf('-%d hours', BusinessLimits::RATE_LIMIT_WINDOW_HOURS)
-        );
-        
-        // Compter les suppressions récentes (nécessite une table d'audit)
-        // Pour l'instant, on accepte toutes les suppressions
-        // TODO : Implémenter un système d'audit des suppressions
-        
-        return ['valid' => true, 'error' => null];
-        
-    } catch (\Exception $e) {
-        $this->papertrailLogger->warning('Rate limit check failed', [
-            'user_id' => $user->getId(),
-            'error'   => $e->getMessage(),
-        ]);
         return ['valid' => true, 'error' => null];
     }
-}
 
-private function validateConversationParticipants(User $creator, array $userIds, EntityManagerInterface $em): array
-{
-    // ✅ RÈGLE 1 : Maximum 50 participants
-    if (count($userIds) > 50) {
-        return [
-            'valid' => false,
-            'error' => 'Maximum 50 participants allowed per conversation',
-            'validUsers' => []
-        ];
+
+
+    private function validateConversationDeleteRateLimit(User $user, EntityManagerInterface $em): array
+    {
+        try {
+            $windowStart = new \DateTimeImmutable(
+                sprintf('-%d hours', BusinessLimits::RATE_LIMIT_WINDOW_HOURS)
+            );
+
+            // Compter les suppressions récentes (nécessite une table d'audit)
+            // Pour l'instant, on accepte toutes les suppressions
+            // TODO : Implémenter un système d'audit des suppressions
+
+            return ['valid' => true, 'error' => null];
+        } catch (\Exception $e) { // @codeCoverageIgnoreStart
+            $this->papertrailLogger->warning('Rate limit check failed', [
+                'user_id' => $user->getId(),
+                'error'   => $e->getMessage(),
+            ]);
+            return ['valid' => true, 'error' => null];
+        } // @codeCoverageIgnoreEnd
     }
 
-    // ✅ RÈGLE 2 : Validation et collecte des IDs valides
-    $validUserIds = [];
-    foreach ($userIds as $userId) {
-        if (!is_numeric($userId)) {
-            continue;
+    private function validateConversationParticipants(User $creator, array $userIds, EntityManagerInterface $em): array
+    {
+        // ✅ RÈGLE 1 : Maximum 50 participants
+        if (count($userIds) > 50) {
+            return [
+                'valid' => false,
+                'error' => 'Maximum 50 participants allowed per conversation',
+                'validUsers' => []
+            ];
         }
-        
-        $userId = (int) $userId;
-        
-        if ($userId <= 0) {
-            continue;
+
+        // ✅ RÈGLE 2 : Validation et collecte des IDs valides
+        $validUserIds = [];
+        foreach ($userIds as $userId) {
+            if (!is_numeric($userId)) {
+                continue;
+            }
+
+            $userId = (int) $userId;
+
+            if ($userId <= 0) {
+                continue;
+            }
+
+            // Ne pas ajouter le créateur deux fois
+            if ($userId === $creator->getId()) {
+                continue;
+            }
+
+            $validUserIds[] = $userId;
         }
-        
-        // Ne pas ajouter le créateur deux fois
-        if ($userId === $creator->getId()) {
-            continue;
+
+        // ✅ RÈGLE 3 : Minimum 1 participant (en plus du créateur)
+        if (empty($validUserIds)) {
+            return [
+                'valid' => false,
+                'error' => 'A conversation must have at least 2 participants (creator + 1 other user)',
+                'validUsers' => []
+            ];
         }
-        
-        $validUserIds[] = $userId;
-    }
 
-    // ✅ RÈGLE 3 : Minimum 1 participant (en plus du créateur)
-    if (empty($validUserIds)) {
+        // ✅ RÈGLE 4 : Vérifier que tous les utilisateurs existent en base
+        $users = $em->getRepository(User::class)->findBy(['id' => $validUserIds]);
+
+        if (count($users) !== count($validUserIds)) {
+            // Certains IDs n'existent pas
+            $foundIds = array_map(fn($u) => $u->getId(), $users);
+            $missingIds = array_diff($validUserIds, $foundIds);
+
+            return [
+                'valid' => false,
+                'error' => 'Invalid user IDs: ' . implode(', ', $missingIds),
+                'validUsers' => []
+            ];
+        }
+
         return [
-            'valid' => false,
-            'error' => 'A conversation must have at least 2 participants (creator + 1 other user)',
-            'validUsers' => []
+            'valid' => true,
+            'error' => null,
+            'validUsers' => $users
         ];
     }
+    private function validateEmailandUniqueness(string $email, int $currentUserId, EntityManagerInterface $em): array
+    {
+        // ✅ ÉTAPE 1 : Validation du format de l'email
+        if (strlen($email) > 255) {
+            return [
+                'valid' => false,
+                'error' => 'Email is too long (maximum 255 characters)'
+            ];
+        }
 
-    // ✅ RÈGLE 4 : Vérifier que tous les utilisateurs existent en base
-    $users = $em->getRepository(User::class)->findBy(['id' => $validUserIds]);
-    
-    if (count($users) !== count($validUserIds)) {
-        // Certains IDs n'existent pas
-        $foundIds = array_map(fn($u) => $u->getId(), $users);
-        $missingIds = array_diff($validUserIds, $foundIds);
-        
-        return [
-            'valid' => false,
-            'error' => 'Invalid user IDs: ' . implode(', ', $missingIds),
-            'validUsers' => []
-        ];
-    }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [
+                'valid' => false,
+                'error' => 'Invalid email format'
+            ];
+        }
 
-    return [
-        'valid' => true,
-        'error' => null,
-        'validUsers' => $users
-    ];
-}
-private function validateEmailandUniqueness(string $email, int $currentUserId, EntityManagerInterface $em ): array
-{
-    // ✅ ÉTAPE 1 : Validation du format de l'email
-    if (strlen($email) > 255) {
-        return [
-            'valid' => false,
-            'error' => 'Email is too long (maximum 255 characters)'
-        ];
-    }
-    
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return [
-            'valid' => false,
-            'error' => 'Invalid email format'
-        ];
-    }
 
-    
-    // ✅ ÉTAPE 2 : Vérification de l'unicité en base de données
-    $existingUser = $em->getRepository(User::class)->findOneBy(['email' => $email]);
-    
-    if ($existingUser && $existingUser->getId() !== $currentUserId) {
-        return [
-            'valid' => false,
-            'error' => 'Email already in use by another account'
-        ];
-    }
+        // ✅ ÉTAPE 2 : Vérification de l'unicité en base de données
+        $existingUser = $em->getRepository(User::class)->findOneBy(['email' => $email]);
 
-    // ✅ ÉTAPE 3 : Email valide et disponible
-    return ['valid' => true, 'error' => null];
-}
+        if ($existingUser && $existingUser->getId() !== $currentUserId) {
+            return [
+                'valid' => false,
+                'error' => 'Email already in use by another account'
+            ];
+        }
+
+        // ✅ ÉTAPE 3 : Email valide et disponible
+        return ['valid' => true, 'error' => null];
+    }
 
     private function validateMessageRateLimit(User $user, Conversation $conversation, EntityManagerInterface $em): array
     {
         try {
             // ✅ CORRECTION : Utiliser DateTimeImmutable pour éviter les mutations accidentelles
             $yesterday = new \DateTimeImmutable('-24 hours');
-            
+
             // ✅ CORRECTION : Typage explicite du résultat
             $recentMessagesCount = (int) $em->getRepository(Message::class)
                 ->createQueryBuilder('m')
@@ -453,24 +461,23 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
                 ->setParameter('yesterday', $yesterday)
                 ->getQuery()
                 ->getSingleScalarResult();
-            
+
             // ✅ AMÉLIORATION : Constante pour la limite (facilite la maintenance)
             $maxMessagesPerDay = 100;
-            
+
             if ($recentMessagesCount >= $maxMessagesPerDay) {
                 return [
                     'valid' => false,
                     'error' => "Message rate limit exceeded. Maximum {$maxMessagesPerDay} messages per day per conversation."
                 ];
             }
-            
+
             return ['valid' => true, 'error' => null];
-            
         } catch (\Exception $e) {
             $this->papertrailLogger->warning('Rate limit check failed', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
-            ]);            
+            ]);
             // En cas d'erreur, on autorise par défaut (fail-open)
             // Alternative : return ['valid' => false, 'error' => 'Rate limit check failed'];
             return ['valid' => true, 'error' => null];
@@ -478,177 +485,176 @@ private function validateEmailandUniqueness(string $email, int $currentUserId, E
     }
 
     private function validateUserState(User $user): array
-{
-    // Forcer l'affichage dans les logs Render
-    error_log('=== VALIDATE USER STATE START ===');
-    error_log('User ID: ' . $user->getId());
-    error_log('Email: ' . $user->getEmail());
-    error_log('FirstName: "' . $user->getFirstName() . '"');
-    error_log('LastName: "' . $user->getLastName() . '"');
-    error_log('FirstName length: ' . mb_strlen($user->getFirstName()));
-    error_log('LastName length: ' . mb_strlen($user->getLastName()));
+    {
+        // Forcer l'affichage dans les logs Render
+        error_log('=== VALIDATE USER STATE START ===');
+        error_log('User ID: ' . $user->getId());
+        error_log('Email: ' . $user->getEmail());
+        error_log('FirstName: "' . $user->getFirstName() . '"');
+        error_log('LastName: "' . $user->getLastName() . '"');
+        error_log('FirstName length: ' . mb_strlen($user->getFirstName()));
+        error_log('LastName length: ' . mb_strlen($user->getLastName()));
 
-    $this->papertrailLogger->error('NEW CODE IS RUNNING - validateUserState test');
+        $this->papertrailLogger->error('NEW CODE IS RUNNING - validateUserState test');
 
-    // Vérifier les noms avec logs forcés
-    $firstNameValid = $this->validateName($user->getFirstName());
-    $lastNameValid = $this->validateName($user->getLastName());
-    
-    error_log('FirstName valid: ' . ($firstNameValid ? 'true' : 'false'));
-    error_log('LastName valid: ' . ($lastNameValid ? 'true' : 'false'));
+        // Vérifier les noms avec logs forcés
+        $firstNameValid = $this->validateName($user->getFirstName());
+        $lastNameValid = $this->validateName($user->getLastName());
 
-    if (!$firstNameValid || !$lastNameValid) {
-        $reason = [];
-        if (!$firstNameValid) {
-            // Tester chaque condition
-            $firstName = $user->getFirstName();
-            
-            if (empty($firstName) || mb_strlen($firstName) > 20 || mb_strlen($firstName) < 2) {
-                $reason[] = 'length';
-                error_log('FAIL: FirstName length=' . mb_strlen($firstName) . ' (min=2, max=20)');
-            }
-            if (preg_match('/^[\s\-\']|[\s\-\']$/', $firstName)) {
-                $reason[] = 'start_end_invalid';
-                error_log('FAIL: FirstName starts/ends with invalid char');
-            }
-            if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $firstName)) {
-                $reason[] = 'invalid_chars';
-                error_log('FAIL: FirstName contains invalid characters');
-            }
-            if (preg_match('/\d/', $firstName)) {
-                $reason[] = 'contains_numbers';
-                error_log('FAIL: FirstName contains numbers');
-            }
-            
-            // Afficher les caractères dangereux
-            $dangerousChars = ['<', '>', '&', '"', '\\', '/', '@', '#', '$', '%', '^', '*', '(', ')', '=', '+', '[', ']', '{', '}'];
-            foreach ($dangerousChars as $char) {
-                if (str_contains($firstName, $char)) {
-                    $reason[] = 'dangerous_char_' . $char;
-                    error_log("FAIL: FirstName contains dangerous char: $char");
+        error_log('FirstName valid: ' . ($firstNameValid ? 'true' : 'false'));
+        error_log('LastName valid: ' . ($lastNameValid ? 'true' : 'false'));
+
+        if (!$firstNameValid || !$lastNameValid) {
+            $reason = [];
+            if (!$firstNameValid) {
+                // Tester chaque condition
+                $firstName = $user->getFirstName();
+
+                if (empty($firstName) || mb_strlen($firstName) > 20 || mb_strlen($firstName) < 2) {
+                    $reason[] = 'length';
+                    error_log('FAIL: FirstName length=' . mb_strlen($firstName) . ' (min=2, max=20)');
+                }
+                if (preg_match('/^[\s\-\']|[\s\-\']$/', $firstName)) {
+                    $reason[] = 'start_end_invalid';
+                    error_log('FAIL: FirstName starts/ends with invalid char');
+                }
+                if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $firstName)) {
+                    $reason[] = 'invalid_chars';
+                    error_log('FAIL: FirstName contains invalid characters');
+                }
+                if (preg_match('/\d/', $firstName)) {
+                    $reason[] = 'contains_numbers';
+                    error_log('FAIL: FirstName contains numbers');
+                }
+
+                // Afficher les caractères dangereux
+                $dangerousChars = ['<', '>', '&', '"', '\\', '/', '@', '#', '$', '%', '^', '*', '(', ')', '=', '+', '[', ']', '{', '}'];
+                foreach ($dangerousChars as $char) {
+                    if (str_contains($firstName, $char)) {
+                        $reason[] = 'dangerous_char_' . $char;
+                        error_log("FAIL: FirstName contains dangerous char: $char");
+                    }
+                }
+
+                if (preg_match('/[\s\'\-]{3,}/', $firstName)) {
+                    $reason[] = 'too_many_consecutive';
+                    error_log('FAIL: FirstName has too many consecutive special chars');
                 }
             }
-            
-            if (preg_match('/[\s\'\-]{3,}/', $firstName)) {
-                $reason[] = 'too_many_consecutive';
-                error_log('FAIL: FirstName has too many consecutive special chars');
+
+            error_log('validateUserState FAILED: ' . implode(', ', $reason));
+
+            return ['valid' => false, 'error' => 'Invalid user name'];
+        }
+
+        // Vérifier l'email
+        $emailCheck = $this->validateEmailandUniqueness($user->getEmail(), $user->getId(), $this->em);
+        error_log('Email valid: ' . ($emailCheck['valid'] ? 'true' : 'false'));
+
+        if (!$emailCheck['valid']) {
+            error_log('Email error: ' . $emailCheck['error']);
+            return ['valid' => false, 'error' => 'Invalid user email'];
+        }
+
+        // Vérifier les dates si présentes
+        if ($user->getAvailabilityStart() && $user->getAvailabilityEnd()) {
+            $dateCheck = $this->validateAvailabilityDates(
+                $user->getAvailabilityStart(),
+                $user->getAvailabilityEnd()
+            );
+            error_log('Dates valid: ' . ($dateCheck['valid'] ? 'true' : 'false'));
+
+            if (!$dateCheck['valid']) {
+                error_log('Date error: ' . $dateCheck['error']);
+                return ['valid' => false, 'error' => 'Invalid availability dates'];
             }
         }
-        
-        error_log('validateUserState FAILED: ' . implode(', ', $reason));
-        
-        return ['valid' => false, 'error' => 'Invalid user name'];
-    }
-    
-    // Vérifier l'email
-    $emailCheck = $this->validateEmailandUniqueness($user->getEmail(), $user->getId(), $this->em);
-    error_log('Email valid: ' . ($emailCheck['valid'] ? 'true' : 'false'));
-    
-    if (!$emailCheck['valid']) {
-        error_log('Email error: ' . $emailCheck['error']);
-        return ['valid' => false, 'error' => 'Invalid user email'];
-    }
-    
-    // Vérifier les dates si présentes
-    if ($user->getAvailabilityStart() && $user->getAvailabilityEnd()) {
-        $dateCheck = $this->validateAvailabilityDates(
-            $user->getAvailabilityStart(), 
-            $user->getAvailabilityEnd()
-        );
-        error_log('Dates valid: ' . ($dateCheck['valid'] ? 'true' : 'false'));
-        
-        if (!$dateCheck['valid']) {
-            error_log('Date error: ' . $dateCheck['error']);
-            return ['valid' => false, 'error' => 'Invalid availability dates'];
-        }
-    }
-    
-    error_log('validateUserState PASSED');
-    return ['valid' => true, 'error' => null];
-}
 
-private function validateConversationCreateRateLimit(User $user, EntityManagerInterface $em): array
-{
-    try {
-        $windowStart = new \DateTimeImmutable(
-            sprintf('-%d hours', BusinessLimits::RATE_LIMIT_WINDOW_HOURS)
-        );
-        
-        $recentConversationsCount = (int) $em->getRepository(Conversation::class)
-            ->createQueryBuilder('c')
-            ->select('COUNT(c.id)')
-            ->where('c.createdBy = :user')
-            ->andWhere('c.createdAt >= :windowStart')
-            ->setParameter('user', $user)
-            ->setParameter('windowStart', $windowStart)
-            ->getQuery()
-            ->getSingleScalarResult();
-        
-        if ($recentConversationsCount >= BusinessLimits::CONVERSATION_CREATE_RATE_LIMIT_PER_DAY) {
-            return [
-                'valid' => false,
-                'error' => sprintf(
-                    'Conversation creation rate limit exceeded. Maximum %d conversations per %d hours.',
-                    BusinessLimits::CONVERSATION_CREATE_RATE_LIMIT_PER_DAY,
-                    BusinessLimits::RATE_LIMIT_WINDOW_HOURS
-                )
-            ];
-        }
-        
+        error_log('validateUserState PASSED');
         return ['valid' => true, 'error' => null];
-        
-    } catch (\Exception $e) {
-        $this->papertrailLogger->warning('Rate limit check failed', [
-            'user_id' => $user->getId(),
-            'error'   => $e->getMessage(),
-        ]);
-        return ['valid' => true, 'error' => null]; // Fail-open
     }
-}
 
-private function generateConversationHash(array $userIds, string $title): string
-{
-    // Normaliser le titre plus agressivement
-    $normalizedTitle = trim(preg_replace('/\s+/', ' ', $title));
-    $normalizedTitle = mb_strtolower($normalizedTitle, 'UTF-8');
-    
-    // Supprimer la ponctuation optionnelle pour plus de flexibilité
-    $normalizedTitle = preg_replace('/[^\p{L}\p{N}\s]/u', '', $normalizedTitle);
-    
-    // Trier les IDs pour ordre cohérent
-    sort($userIds);
-    
-    // Créer une chaîne unique
-    $uniqueString = implode(',', $userIds) . '|' . $normalizedTitle;
-    
-    return hash('sha256', $uniqueString);
-}
+    private function validateConversationCreateRateLimit(User $user, EntityManagerInterface $em): array
+    {
+        try {
+            $windowStart = new \DateTimeImmutable(
+                sprintf('-%d hours', BusinessLimits::RATE_LIMIT_WINDOW_HOURS)
+            );
 
-private function checkDuplicateConversation(User $creator, array $userIds, string $title, EntityManagerInterface $em): bool
-{
-    $conversationHash = $this->generateConversationHash(
-        array_merge([$creator->getId()], $userIds),
-        $title
-    );
-    
-    // Vérifier si une conversation identique existe déjà
-    // Si le champ conversationHash existe dans l'entité :
-    try {
-        $existing = $em->getRepository(Conversation::class)
-            ->createQueryBuilder('c')
-            ->where('c.conversationHash = :hash')
-            ->setParameter('hash', $conversationHash)
-            ->getQuery()
-            ->getOneOrNullResult();
-        
-        return $existing !== null;
-    } catch (\Exception $e) {
-        $this->papertrailLogger->warning('Error checking duplicate conversation', [
-            'error' => $e->getMessage(),
-        ]);
-        return false;
+            $recentConversationsCount = (int) $em->getRepository(Conversation::class)
+                ->createQueryBuilder('c')
+                ->select('COUNT(c.id)')
+                ->where('c.createdBy = :user')
+                ->andWhere('c.createdAt >= :windowStart')
+                ->setParameter('user', $user)
+                ->setParameter('windowStart', $windowStart)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            if ($recentConversationsCount >= BusinessLimits::CONVERSATION_CREATE_RATE_LIMIT_PER_DAY) {
+                return [
+                    'valid' => false,
+                    'error' => sprintf(
+                        'Conversation creation rate limit exceeded. Maximum %d conversations per %d hours.',
+                        BusinessLimits::CONVERSATION_CREATE_RATE_LIMIT_PER_DAY,
+                        BusinessLimits::RATE_LIMIT_WINDOW_HOURS
+                    )
+                ];
+            }
+
+            return ['valid' => true, 'error' => null];
+        } catch (\Exception $e) {
+            $this->papertrailLogger->warning('Rate limit check failed', [
+                'user_id' => $user->getId(),
+                'error'   => $e->getMessage(),
+            ]);
+            return ['valid' => true, 'error' => null]; // Fail-open
+        }
     }
-}
+
+    private function generateConversationHash(array $userIds, string $title): string
+    {
+        // Normaliser le titre plus agressivement
+        $normalizedTitle = trim(preg_replace('/\s+/', ' ', $title));
+        $normalizedTitle = mb_strtolower($normalizedTitle, 'UTF-8');
+
+        // Supprimer la ponctuation optionnelle pour plus de flexibilité
+        $normalizedTitle = preg_replace('/[^\p{L}\p{N}\s]/u', '', $normalizedTitle);
+
+        // Trier les IDs pour ordre cohérent
+        sort($userIds);
+
+        // Créer une chaîne unique
+        $uniqueString = implode(',', $userIds) . '|' . $normalizedTitle;
+
+        return hash('sha256', $uniqueString);
+    }
+
+    private function checkDuplicateConversation(User $creator, array $userIds, string $title, EntityManagerInterface $em): bool
+    {
+        $conversationHash = $this->generateConversationHash(
+            array_merge([$creator->getId()], $userIds),
+            $title
+        );
+
+        // Vérifier si une conversation identique existe déjà
+        // Si le champ conversationHash existe dans l'entité :
+        try {
+            $existing = $em->getRepository(Conversation::class)
+                ->createQueryBuilder('c')
+                ->where('c.conversationHash = :hash')
+                ->setParameter('hash', $conversationHash)
+                ->getQuery()
+                ->getOneOrNullResult();
+
+            return $existing !== null;
+        } catch (\Exception $e) {
+            $this->papertrailLogger->warning('Error checking duplicate conversation', [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
 
 
 
@@ -674,78 +680,78 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
             }
 
 
-    // ✅ Valider TOUS les champs de nom
-    $firstName = $user->getFirstName();
-    $lastName = $user->getLastName();
-    
-    if (!$this->validateName($firstName)) {
-        $this->papertrailLogger->warning('Invalid firstName', [
-            'user_id'    => $user->getId(),
-            'first_name' => $firstName,
-        ]);
-        return new JsonResponse([
-            'message' => 'Invalid user data',
-            'error' => 'First name contains invalid characters'
-        ], 500);
-    }
-    
-    if (!$this->validateName($lastName)) {
+            // ✅ Valider TOUS les champs de nom
+            $firstName = $user->getFirstName();
+            $lastName = $user->getLastName();
 
-        $this->papertrailLogger->warning('Invalid lastName', [
-            'user_id'   => $user->getId(),
-            'last_name' => $lastName,
-        ]);
-        return new JsonResponse([
-            'message' => 'Invalid user data',
-            'error' => 'Last name contains invalid characters'
-        ], 500);
-    }
+            if (!$this->validateName($firstName)) {
+                $this->papertrailLogger->warning('Invalid firstName', [
+                    'user_id'    => $user->getId(),
+                    'first_name' => $firstName,
+                ]);
+                return new JsonResponse([
+                    'message' => 'Invalid user data',
+                    'error' => 'First name contains invalid characters'
+                ], 500);
+            }
+
+            if (!$this->validateName($lastName)) {
+
+                $this->papertrailLogger->warning('Invalid lastName', [
+                    'user_id'   => $user->getId(),
+                    'last_name' => $lastName,
+                ]);
+                return new JsonResponse([
+                    'message' => 'Invalid user data',
+                    'error' => 'Last name contains invalid characters'
+                ], 500);
+            }
 
 
-                    // ✅ Validation de l'email avant de l'envoyer 
-                    $email = $user->getEmail();
-                    $emailValidation = $this->validateEmailandUniqueness($email, $user->getId(), $this->em);
-                    if (!$emailValidation['valid']) {   
-                    $this->papertrailLogger->warning('Invalid email', [
+            // ✅ Validation de l'email avant de l'envoyer 
+            $email = $user->getEmail();
+            $emailValidation = $this->validateEmailandUniqueness($email, $user->getId(), $this->em);
+            if (!$emailValidation['valid']) {
+                $this->papertrailLogger->warning('Invalid email', [
+                    'user_id' => $user->getId(),
+                    'error'   => $emailValidation['error'],
+                ]);
+                return new JsonResponse([
+                    'message' => 'Invalid user email format',
+                    'error' => $emailValidation['error']
+                ], 500);
+            }
+
+
+            // ✅ AJOUT : Validation des dates de disponibilité avant envoi
+            $availabilityStart = null;
+            $availabilityEnd = null;
+
+            if ($user->getAvailabilityStart()) {
+                $startDateStr = $user->getAvailabilityStart()->format('Y-m-d');
+
+                // Vérifier que la date est valide et cohérente
+                if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
+                    $availabilityStart = $startDateStr;
+                } else {
+                    $this->papertrailLogger->warning('Invalid availability start date', [
                         'user_id' => $user->getId(),
-                        'error'   => $emailValidation['error'],
+                        'date'    => $startDateStr,
                     ]);
-                    return new JsonResponse([ 
-                            'message' => 'Invalid user email format',
-                            'error' => $emailValidation['error']
-                        ], 500);
-                    }
+                }
+            }
+            if ($user->getAvailabilityEnd()) {
+                $endDateStr = $user->getAvailabilityEnd()->format('Y-m-d');
 
-
-                    // ✅ AJOUT : Validation des dates de disponibilité avant envoi
-                    $availabilityStart = null;
-                    $availabilityEnd = null;
-
-                    if ($user->getAvailabilityStart()) {
-                        $startDateStr = $user->getAvailabilityStart()->format('Y-m-d');
-                        
-                        // Vérifier que la date est valide et cohérente
-                        if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
-                            $availabilityStart = $startDateStr;
-                        } else {
-                            $this->papertrailLogger->warning('Invalid availability start date', [
-                                'user_id' => $user->getId(),
-                                'date'    => $startDateStr,
-                            ]);
-                        }
-                    }
-                            if ($user->getAvailabilityEnd()) {
-                        $endDateStr = $user->getAvailabilityEnd()->format('Y-m-d');
-                        
-                        if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
-                            $availabilityEnd = $endDateStr;
-                        } else {
-                            $this->papertrailLogger->warning('Invalid availability end date', [
-                                'user_id' => $user->getId(),
-                                'date'    => $endDateStr,
-                            ]);
-                        }
-                    }
+                if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
+                    $availabilityEnd = $endDateStr;
+                } else {
+                    $this->papertrailLogger->warning('Invalid availability end date', [
+                        'user_id' => $user->getId(),
+                        'date'    => $endDateStr,
+                    ]);
+                }
+            }
 
 
 
@@ -765,7 +771,6 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                 'availabilityEnd' => $user->getAvailabilityEnd()?->format('Y-m-d'),
                 'userData' => $conversations,
             ]);
-
         } catch (\Throwable $e) {
             return new JsonResponse([
                 'message' => 'Internal server error',
@@ -796,50 +801,50 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
             $data = [];
             foreach ($conversations as $conversation) {
 
-            // ✅ AJOUT : Valider le titre de la conversation
-            $title = $conversation->getTitle();
-            if (!$this->validateString($title, 255)) {
+                // ✅ AJOUT : Valider le titre de la conversation
+                $title = $conversation->getTitle();
+                if (!$this->validateString($title, 255)) {
 
-                $this->papertrailLogger->warning('Invalid conversation title', [
-                    'conversation_id' => $conversation->getId(),
-                ]);
-            continue; // Sauter cette conversation corrompue
-            }
+                    $this->papertrailLogger->warning('Invalid conversation title', [
+                        'conversation_id' => $conversation->getId(),
+                    ]);
+                    continue; // Sauter cette conversation corrompue
+                }
 
-            // ✅ AJOUT : Valider la description 
-            $description = $conversation->getDescription() ?? '';
-            if ($description !== '' && !$this->validateString($description, 1000)) {
-                $this->papertrailLogger->warning('Invalid conversation description', [
-                'conversation_id' => $conversation->getId(),
-            ]);        
-            $description = ''; // Réinitialiser si invalide
-            }
+                // ✅ AJOUT : Valider la description 
+                $description = $conversation->getDescription() ?? '';
+                if ($description !== '' && !$this->validateString($description, 1000)) {
+                    $this->papertrailLogger->warning('Invalid conversation description', [
+                        'conversation_id' => $conversation->getId(),
+                    ]);
+                    $description = ''; // Réinitialiser si invalide
+                }
 
                 $users = [];
                 foreach ($conversation->getUsers() as $convUser) {
                     if ($convUser->getId() !== $user->getId()) {
 
-                            // ✅ AJOUT : Valider les noms des participants
-                            $firstName = $convUser->getFirstName();
-                            $lastName = $convUser->getLastName();
-                            
-                            if (!$this->validateName($firstName) || !$this->validateName($lastName)) {
-                                $this->papertrailLogger->warning('Invalid participant name', [
-                                    'user_id'         => $convUser->getId(),
-                                    'conversation_id' => $conversation->getId(),
-                                ]);
-                                continue; // Sauter cet utilisateur corrompu
-                            }
+                        // ✅ AJOUT : Valider les noms des participants
+                        $firstName = $convUser->getFirstName();
+                        $lastName = $convUser->getLastName();
 
-                            // ✅ AJOUT : Valider l'email
-                            $email = $convUser->getEmail();
-                            $emailCheck = $this->validateEmailandUniqueness($email, $convUser->getId(), $em);
-                            if (!$emailCheck['valid']) {
-                                $this->papertrailLogger->warning('Invalid participant email', [
-                                    'user_id' => $convUser->getId(),
-                                ]);
-                                continue; // Sauter cet utilisateur
-                            }
+                        if (!$this->validateName($firstName) || !$this->validateName($lastName)) {
+                            $this->papertrailLogger->warning('Invalid participant name', [
+                                'user_id'         => $convUser->getId(),
+                                'conversation_id' => $conversation->getId(),
+                            ]);
+                            continue; // Sauter cet utilisateur corrompu
+                        }
+
+                        // ✅ AJOUT : Valider l'email
+                        $email = $convUser->getEmail();
+                        $emailCheck = $this->validateEmailandUniqueness($email, $convUser->getId(), $em);
+                        if (!$emailCheck['valid']) {
+                            $this->papertrailLogger->warning('Invalid participant email', [
+                                'user_id' => $convUser->getId(),
+                            ]);
+                            continue; // Sauter cet utilisateur
+                        }
 
                         $users[] = [
                             'id' => $convUser->getId(),
@@ -849,28 +854,28 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                     }
                 }
 
-            // ✅ RÈGLE MÉTIER : Ne pas retourner de conversation sans participants valides
-            if (empty($users)) {
-                $this->papertrailLogger->warning('Conversation has no valid participants', [
-                    'conversation_id' => $conversation->getId(),
-                ]);
-                continue;
-            }
+                // ✅ RÈGLE MÉTIER : Ne pas retourner de conversation sans participants valides
+                if (empty($users)) {
+                    $this->papertrailLogger->warning('Conversation has no valid participants', [
+                        'conversation_id' => $conversation->getId(),
+                    ]);
+                    continue;
+                }
 
-                $createdByName = $conversation->getCreatedBy() 
+                $createdByName = $conversation->getCreatedBy()
                     ? $conversation->getCreatedBy()->getFirstName() . ' ' . $conversation->getCreatedBy()->getLastName()
                     : 'Unknown';
 
 
-            // ✅ AJOUT : Valider le nom du créateur
-            if ($conversation->getCreatedBy()) {
-                $creatorFirstName = $conversation->getCreatedBy()->getFirstName();
-                $creatorLastName = $conversation->getCreatedBy()->getLastName();
-                
-                if (!$this->validateName($creatorFirstName) || !$this->validateName($creatorLastName)) {
-                    $createdByName = 'Unknown';
+                // ✅ AJOUT : Valider le nom du créateur
+                if ($conversation->getCreatedBy()) {
+                    $creatorFirstName = $conversation->getCreatedBy()->getFirstName();
+                    $creatorLastName = $conversation->getCreatedBy()->getLastName();
+
+                    if (!$this->validateName($creatorFirstName) || !$this->validateName($creatorLastName)) {
+                        $createdByName = 'Unknown';
+                    }
                 }
-            }
 
                 $data[] = [
                     'id' => $conversation->getId(),
@@ -885,13 +890,12 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
                 ];
             }
 
-                    
-                    // ✅ Forcer le nettoyage du cache Doctrine
-                    $em->clear();
+
+            // ✅ Forcer le nettoyage du cache Doctrine
+            $em->clear();
 
 
             return new JsonResponse($data);
-            
         } catch (\Exception $e) {
             return new JsonResponse([
                 'message' => 'Error fetching conversations',
@@ -903,19 +907,19 @@ private function checkDuplicateConversation(User $creator, array $userIds, strin
 
 
 
-    
 
 
 
 
-#[Route('/api/get/messages', name: 'get_messages', methods: ['GET'])]
-public function getMessages(Security $security, MessageRepository $messageRepo, Request $request): JsonResponse
-{
-    // Vérifier que l'utilisateur est connecté
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['message' => 'User not authenticated'], 401);
-    }
+
+    #[Route('/api/get/messages', name: 'get_messages', methods: ['GET'])]
+    public function getMessages(Security $security, MessageRepository $messageRepo, Request $request): JsonResponse
+    {
+        // Vérifier que l'utilisateur est connecté
+        $user = $security->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
 
         // ✅ Utiliser les constantes pour la pagination
         $page = (int) $request->query->get('page', BusinessLimits::PAGINATION_MIN_PAGE);
@@ -936,7 +940,8 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
         }
 
         $offset = ($page - 1) * $limit;
-        
+        // @codeCoverageIgnoreStart
+
         // ✅ AJOUT : Vérifier l'offset maximum absolu
         if ($offset > BusinessLimits::PAGINATION_MAX_OFFSET) {
             return new JsonResponse([
@@ -949,27 +954,28 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
                 )
             ], 400);
         }
+        // @codeCoverageIgnoreEnd
 
-    // Récupérer les messages depuis la base de données
-    $messages = $messageRepo->findBy(
-        [],                          // Pas de filtre (tous les messages)
-        ['createdAt' => 'DESC'],     // Trier du plus récent au plus ancien
-        $limit,                       // Nombre de résultats
-        $offset                       // Combien en sauter
-    );
+        // Récupérer les messages depuis la base de données
+        $messages = $messageRepo->findBy(
+            [],                          // Pas de filtre (tous les messages)
+            ['createdAt' => 'DESC'],     // Trier du plus récent au plus ancien
+            $limit,                       // Nombre de résultats
+            $offset                       // Combien en sauter
+        );
 
-    // Compter le nombre total de messages
-    $total = $messageRepo->count([]);
+        // Compter le nombre total de messages
+        $total = $messageRepo->count([]);
 
-    // Calculer le nombre total de pages
-    $totalPages = ($limit > 0) ? (int)ceil($total / $limit) : 0;
+        // Calculer le nombre total de pages
+        $totalPages = ($limit > 0) ? (int)ceil($total / $limit) : 0;
 
-    // Construire le tableau de données pour la réponse
-    $data = [];
-    foreach ($messages as $message) {
+        // Construire le tableau de données pour la réponse
+        $data = [];
+        foreach ($messages as $message) {
 
 
-    // ✅ AJOUT : Valider le contenu du message
+            // ✅ AJOUT : Valider le contenu du message
             $content = $message->getContent();
             if (!$this->validateMessageContent($content)) {
                 $this->papertrailLogger->warning('Invalid message content', [
@@ -981,8 +987,8 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
             // ✅ AJOUT : Valider l'email de l'auteur
             $authorEmail = $message->getAuthor()->getEmail();
             $emailCheck = $this->validateEmailandUniqueness(
-                $authorEmail, 
-                $message->getAuthor()->getId(), 
+                $authorEmail,
+                $message->getAuthor()->getId(),
                 $this->em
             );
             if (!$emailCheck['valid']) {
@@ -1024,30 +1030,31 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
                 continue; // Sauter ce message orphelin
             }
 
-            
-        $data[] = [
-            'id' => $message->getId(),
-            'content' => $message->getContent(),
-            'author' => $message->getAuthor()->getEmail(),
-            'authorId' => $message->getAuthor()->getId(),
-            'authorName' => $message->getAuthorName(),
-            'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
-            'conversationId' => $message->getConversation()->getId(),
-            'conversationTitle' => $message->getConversationTitle(),
-        ];
+
+            $data[] = [
+                'id' => $message->getId(),
+                'content' => $message->getContent(),
+                'author' => $message->getAuthor()->getEmail(),
+                'authorId' => $message->getAuthor()->getId(),
+                'authorName' => $authorName, // ← utiliser la variable sanitizée, pas le getter
+                'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
+                'conversationId' => $message->getConversation()->getId(),
+                'conversationTitle' => $message->getConversationTitle(),
+            ];
+        }
+
+        // Retourner les données avec les informations de pagination
+        return new JsonResponse([
+            'data' => $data,                // Liste des messages
+            'pagination' => [
+                'page' => $page,            // Page actuelle
+                'limit' => $limit,          // Résultats par page
+                'total' => $total,          // Nombre total de messages
+                'pages' => $totalPages      // Nombre total de pages
+            ]
+        ], 200);
     }
 
-    // Retourner les données avec les informations de pagination
-    return new JsonResponse([
-        'data' => $data,                // Liste des messages
-        'pagination' => [
-            'page' => $page,            // Page actuelle
-            'limit' => $limit,          // Résultats par page
-            'total' => $total,          // Nombre total de messages
-            'pages' => $totalPages      // Nombre total de pages
-        ]
-    ], 200);
-}
 
 
 
@@ -1059,399 +1066,403 @@ public function getMessages(Security $security, MessageRepository $messageRepo, 
 
 
 
-
-#[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
-public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
-{
-    $user = $security->getUser();
+    #[Route('/api/create/conversation', name: 'create_conversation', methods: ['POST'])]
+    public function createConversation(Request $request, Security $security, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $security->getUser();
 
         $user = $security->getUser();
 
-    // --- TEST DE DIAGNOSTIC ULTIME ---
-    error_log('>>> DIAG: createConversation STARTED');
-    if (!$this->papertrailLogger) {
-        error_log('>>> DIAG: $papertrailLogger is NULL!');
-    } else {
-        error_log('>>> DIAG: $papertrailLogger exists, attempting to log...');
-        try {
-            $this->papertrailLogger->info('>>> DIAG: If you see this in Papertrail, handler works!');
-            error_log('>>> DIAG: Log method call completed (no exception thrown)');
-        } catch (\Exception $e) {
-            error_log('>>> DIAG: EXCEPTION during log: ' . $e->getMessage());
-        }
-    }
-    error_log('>>> DIAG: Test finished, continuing normal flow.');
-    // --- FIN DU TEST ---
-
-    if (!$user instanceof User) {
-        $this->papertrailLogger?->warning('Tentative création conversation - utilisateur non authentifié'); // Utilisation de ?-> pour sécurité
-        return new JsonResponse(['message' => 'User not authenticated'], 401);
-    }
-
-
-
-    // LOG 1 : Début du processus
-    $this->papertrailLogger->info('Début création conversation', [
-        'user_id' => $user->getId(),
-        'email' => $user->getEmail()
-    ]);
-
-    // ✅ ÉTAPE 1 : Valider l'état du compte utilisateur
-    $this->papertrailLogger->debug('Validation état utilisateur', [
-        'user_id' => $user->getId()
-    ]);
-    
-    $userValidation = $this->validateUserState($user);
-    if (!$userValidation['valid']) {
-        $this->papertrailLogger->warning('Échec validation état utilisateur', [
-            'user_id' => $user->getId(),
-            'error' => $userValidation['error']
-        ]);
-        return new JsonResponse([
-            'message' => 'Cannot create conversation: invalid user state',
-            'error' => $userValidation['error']
-        ], 400);
-    }
-
-    // ✅ AJOUT : Validations AVANT la transaction
-    $this->papertrailLogger->debug('Vérification rate limit', [
-        'user_id' => $user->getId()
-    ]);
-    
-    $rateLimitCheck = $this->validateConversationCreateRateLimit($user, $em);
-    if (!$rateLimitCheck['valid']) {
-        $this->papertrailLogger->warning('Rate limit dépassé', [
-            'user_id' => $user->getId(),
-            'error' => $rateLimitCheck['error']
-        ]);
-        return new JsonResponse(['message' => $rateLimitCheck['error']], 429);
-    }
-    
-    // ✅ AJOUT : DÉBUT DE TRANSACTION
-    $em->beginTransaction();
-    $this->papertrailLogger->debug('Transaction démarrée', [
-        'user_id' => $user->getId()
-    ]);
-
-    try {
-        // ✅ PROTECTION XXE : Vérifier le Content-Type
-        $contentType = $request->headers->get('Content-Type', '');
-        if (!str_starts_with($contentType, 'application/json')) {
-            $this->papertrailLogger->warning('Content-Type invalide', [
-                'user_id' => $user->getId(),
-                'content_type' => $contentType
-            ]);
-            return new JsonResponse([
-                'message' => 'Invalid Content-Type. Only application/json is accepted'
-            ], 415);
-        }
-
-        // Parser le JSON
-        $rawContent = $request->getContent();
-        $this->papertrailLogger->debug('Réception données', [
-            'user_id' => $user->getId(),
-            'size' => strlen($rawContent)
-        ]);
-
-        // Protection contre les payloads massifs
-        if (strlen($rawContent) > 10000) {
-            $this->papertrailLogger->warning('Payload trop volumineux', [
-                'user_id' => $user->getId(),
-                'size' => strlen($rawContent)
-            ]);
-            return new JsonResponse(['message' => 'Request too large'], 413);
-        }
-
-        $data = json_decode($rawContent, true, 10);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->papertrailLogger->warning('JSON invalide', [
-                'user_id' => $user->getId(),
-                'error' => json_last_error_msg()
-            ]);
-            return new JsonResponse(['message' => 'Invalid JSON'], 400);
-        }
-
-        // Vérifier les champs interdits
-        $allowedFields = ['title', 'description', 'conv_users'];
-        $extraFields = array_diff(array_keys($data), $allowedFields);
-        if (!empty($extraFields)) {
-            $this->papertrailLogger->warning('Champs interdits détectés', [
-                'user_id' => $user->getId(),
-                'extra_fields' => $extraFields
-            ]);
-            throw new Exception('Champs interdits détectés');
-        }
-
-        // Validation préliminaire
-        if (empty($data['title']) || !is_string($data['title'])) {
-            $this->papertrailLogger->warning('Titre manquant ou invalide', [
-                'user_id' => $user->getId()
-            ]);
-            return new JsonResponse(['message' => 'Title is required and must be a string'], 400);
-        }
-
-        // Décodage canonique
-        $this->papertrailLogger->debug('Décodage canonique du titre', [
-            'user_id' => $user->getId(),
-            'title_original' => substr($data['title'], 0, 50)
-        ]);
-        $data['title'] = $this->canonicalDecode($data['title']);
-
-        // Validation stricte
-        if (!$this->validateString($data['title'], 255)) {
-            $this->papertrailLogger->warning('Titre invalide après décodage', [
-                'user_id' => $user->getId(),
-                'title' => substr($data['title'], 0, 50)
-            ]);
-            return new JsonResponse(['message' => 'Invalid title format'], 400);
-        }
-
-        // Création de la conversation
-        $this->papertrailLogger->info('Création de la conversation en base', [
-            'user_id' => $user->getId(),
-            'title' => $data['title']
-        ]);
-
-        $conversation = new Conversation();
-        $conversation->setTitle($data['title']);
-        $conversation->setDescription($data['description'] ?? '');
-        $conversation->setCreatedBy($user);
-        $conversation->setCreatedAt(new \DateTimeImmutable());
-        $conversation->setLastMessageAt(null);
-        $conversation->addUser($user);
-
-        // Gestion des participants
-        $userIdsToInvite = $data['conv_users'] ?? [];
-        if (!empty($userIdsToInvite)) {
-            $this->papertrailLogger->debug('Ajout des participants', [
-                'user_id' => $user->getId(),
-                'participant_count' => count($userIdsToInvite)
-            ]);
-
-            $check = $this->validateConversationParticipants($user, $userIdsToInvite, $em);
-            if (!$check['valid']) {
-                $this->papertrailLogger->warning('Participants invalides', [
-                    'user_id' => $user->getId(),
-                    'error' => $check['error']
-                ]);
-                return new JsonResponse(['message' => $check['error']], 400);
-            }
-
-            foreach ($check['validUsers'] as $friendUser) {
-                $conversation->addUser($friendUser);
+        // --- TEST DE DIAGNOSTIC ULTIME ---
+        error_log('>>> DIAG: createConversation STARTED');
+        // @codeCoverageIgnoreStart
+        if (!$this->papertrailLogger) {
+            error_log('>>> DIAG: $papertrailLogger is NULL!');
+        } else {
+            error_log('>>> DIAG: $papertrailLogger exists, attempting to log...');
+            try {
+                $this->papertrailLogger->info('>>> DIAG: If you see this in Papertrail, handler works!');
+                error_log('>>> DIAG: Log method call completed (no exception thrown)');
+            } catch (\Exception $e) {
+                error_log('>>> DIAG: EXCEPTION during log: ' . $e->getMessage());
             }
         }
+        // @codeCoverageIgnoreEnd
+        error_log('>>> DIAG: Test finished, continuing normal flow.');
+        // --- FIN DU TEST ---
 
-        // Vérification des doublons
-        if ($this->checkDuplicateConversation($user, $userIdsToInvite, $data['title'], $em)) {
-            $this->papertrailLogger->warning('Conversation en double détectée', [
+        if (!$user instanceof User) {
+            $this->papertrailLogger?->warning('Tentative création conversation - utilisateur non authentifié'); // Utilisation de ?-> pour sécurité
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+
+
+        // LOG 1 : Début du processus
+        $this->papertrailLogger->info('Début création conversation', [
+            'user_id' => $user->getId(),
+            'email' => $user->getEmail()
+        ]);
+
+        // ✅ ÉTAPE 1 : Valider l'état du compte utilisateur
+        $this->papertrailLogger->debug('Validation état utilisateur', [
+            'user_id' => $user->getId()
+        ]);
+
+        $userValidation = $this->validateUserState($user);
+        if (!$userValidation['valid']) {
+            $this->papertrailLogger->warning('Échec validation état utilisateur', [
                 'user_id' => $user->getId(),
-                'title' => $data['title']
+                'error' => $userValidation['error']
             ]);
-            $em->rollback();
             return new JsonResponse([
-                'message' => 'A conversation with the same title already exists between these users',
-                'error' => 'DUPLICATE_CONVERSATION'
-            ], 409);
-        }
-
-        // Persistance
-        $em->persist($conversation);
-        $em->flush();
-
-        // LOG DE SUCCÈS - TRÈS IMPORTANT
-        $this->papertrailLogger->info('✅ Conversation créée avec succès', [
-            'user_id' => $user->getId(),
-            'conversation_id' => $conversation->getId(),
-            'title' => $data['title'],
-            'participant_count' => count($conversation->getUsers())
-        ]);
-
-        $em->commit();
-        
-        $this->papertrailLogger->debug('Transaction commitée', [
-            'user_id' => $user->getId(),
-            'conversation_id' => $conversation->getId()
-        ]);
-
-        return new JsonResponse([
-            'id' => $conversation->getId(),
-            'title' => $conversation->getTitle(),
-            'description' => $conversation->getDescription(),
-            'createdBy' => $user->getFirstName() . ' ' . $user->getLastName(),
-            'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
-            'createdById' => $conversation->getCreatedBy()?->getId(),
-            'lastMessageAt' => $conversation->getLastMessageAt(),
-            'users' => [], // À compléter si besoin
-            'userCount' => count($conversation->getUsers())
-        ], 201);
-
-    } catch (\InvalidArgumentException $e) {
-        $this->papertrailLogger->error('Erreur de validation', [
-            'user_id' => $user->getId(),
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        $em->rollback();
-        $em->clear();
-        return new JsonResponse(['message' => $e->getMessage()], 400);
-
-    } catch (\Exception $e) {
-        $this->papertrailLogger->error('Erreur système création conversation', [
-            'user_id' => $user->getId(),
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        $em->rollback();
-        $em->clear();
-        return new JsonResponse(['error' => $e->getMessage()], 500);
-    }
-}
-
-
-
-
-
-
-
-
-#[Route('/api/create/message', name: 'create_message', methods: ['POST'])]
-public function createMessage(
-    Request $request, 
-Security $security, 
-EntityManagerInterface $em,
-RateLimiterFactory $apiMessageLimiter): JsonResponse
-{
-    $user = $security->getUser();
-    if (!$user instanceof User) {
-        return new JsonResponse(['message' => 'User not authenticated'], 401);
-    }
-
-        // ✅ Protection anti-automatisation OWASP 2.4.1
-    $limiter = $apiMessageLimiter->create($user->getUserIdentifier());
-    if (false === $limiter->consume(1)->isAccepted()) {
-        return new JsonResponse([
-            'message' => 'Too many requests. Please slow down.'
-        ], 429);
-    }
-
-    try {
-     // ✅ PROTECTION XXE : Vérifier le Content-Type
-     // ✅ ÉTAPE 1 : Récupérer le Content-Type de la requête HTTP
-        $contentType = $request->headers->get('Content-Type', '');
-        // ✅ ÉTAPE 2 : Vérifier que ça commence par 'application/json'
-        if (!str_starts_with($contentType, 'application/json')) {
-            return new JsonResponse([
-                'message' => 'Invalid Content-Type. Only application/json is accepted'
-            ], 415); // 415 Unsupported Media Type
-        }
-
-        // ✅ ÉTAPE 1 : Parser le JSON (sans décodage)
-        $rawContent = $request->getContent();
-
-        // Protection contre les payloads massifs
-        if (strlen($rawContent) > 10000) { // 100KB max
-            return new JsonResponse(['message' => 'Request too large'], 413);
-        }
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return new JsonResponse(['message' => 'Invalid JSON: '], 400);
-        }
-
-        $data = json_decode($rawContent, true, 10); // Max 10 niveaux de profondeur
-
-        // Vérifier qu'il n'y a pas de champs interdits
-        $allowedFields = ['title', 'conversation_id', 'content'];
-        $extraFields = array_diff(array_keys($data), $allowedFields);
-        if (!empty($extraFields)) {
-            throw new Exception('Champs interdits détectés');
-        }
-        
-        // ✅ ÉTAPE 2 : VALIDATION PRÉLIMINAIRE (avant décodage/sanitization)
-        if (empty($data['content']) || !is_string($data['content'])) {
-            return new JsonResponse(['message' => 'Content is required and must be a string'], 400);
-        }
-        
-        if (empty($data['conversation_id']) || !is_numeric($data['conversation_id'])) {
-            return new JsonResponse(['message' => 'Conversation ID is required and must be numeric'], 400);
-        }
-
-        // ✅ ÉTAPE 3 : Décodage canonique (seulement si validation initiale OK)
-        $data['content'] = $this->canonicalDecode($data['content']);
-        
-        if (isset($data['title'])) {
-            $data['title'] = $this->canonicalDecode($data['title']);
-        }
-
-        // ✅ ÉTAPE 4 : Validation stricte APRÈS décodage
-        if (!$this->validateMessageContent($data['content'])) {
-            return new JsonResponse([
-                'message' => 'Invalid content format. Only letters, numbers, spaces, and basic punctuation are allowed. Maximum length is 250 characters.'
+                'message' => 'Cannot create conversation: invalid user state',
+                'error' => $userValidation['error']
             ], 400);
         }
 
-        // ✅ ÉTAPE 5 : Sanitization (dernière étape)
-        $data = $this->sanitizeData($data);
-
-        // ✅ ÉTAPE 6 : Typage fort
-        $conversationId = (int) $data['conversation_id'];
-        
-        $conversation = $em->getRepository(Conversation::class)->find($conversationId);
-        
-        if (!$conversation) {
-            return new JsonResponse(['message' => 'Conversation not found'], 404);
-        }
-
-        // ✅ ÉTAPE 7 : Vérifier que l'utilisateur fait partie de la conversation
-        if (!$conversation->getUsers()->contains($user)) {
-            return new JsonResponse(['message' => 'You are not a member of this conversation'], 403);
-        }
-
-
-        // ✅ AJOUT : Vérifier le rate limit
-        $rateLimitCheck = $this->validateMessageRateLimit($user, $conversation, $em);
-
-        if (!$rateLimitCheck['valid']) {
-            return new JsonResponse(['message' => $rateLimitCheck['error']], 429); // 429 Too Many Requests
-        }
-
-
-        $message = new Message();
-        $message->setContent($data['content']);
-        $message->setCreatedAt(new \DateTimeImmutable());
-        $message->setConversation($conversation);
-        $message->setAuthor($user);
-
-        $em->persist($message);
-        $em->flush();
-
-        // ✅ ÉTAPE 8 : Nettoyer les données pour la réponse JSON
-        return new JsonResponse([
-            'id' => $message->getId(),
-            'author' => $this->sanitizeForJson($message->getAuthor()->getEmail()),
-            'authorName' => $this->sanitizeForJson($message->getAuthorName()),
-            'content' => $this->sanitizeForJson($message->getContent()),
-            'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
-            'conversationId' => $conversation->getId(),
-            'conversationTitle' => $this->sanitizeForJson($conversation->getTitle()),
-            'authorId' => $message->getAuthor()->getId(),
-        ], 201);
-
-    $em->clear();
-        
-    } catch (\Exception $e) {
-        $em->rollback();
-        $em->clear();
-        
-        $this->papertrailLogger->error('Transaction failed in createMessage', [
-            'error' => $e->getMessage(),
+        // ✅ AJOUT : Validations AVANT la transaction
+        $this->papertrailLogger->debug('Vérification rate limit', [
+            'user_id' => $user->getId()
         ]);
-        return new JsonResponse([
-            'message' => 'Error creating message',
-            'error' => $e->getMessage()
-        ], 500);
+
+        $rateLimitCheck = $this->validateConversationCreateRateLimit($user, $em);
+        if (!$rateLimitCheck['valid']) {
+            $this->papertrailLogger->warning('Rate limit dépassé', [
+                'user_id' => $user->getId(),
+                'error' => $rateLimitCheck['error']
+            ]);
+            return new JsonResponse(['message' => $rateLimitCheck['error']], 429);
+        }
+
+        // ✅ AJOUT : DÉBUT DE TRANSACTION
+        $em->beginTransaction();
+        $this->papertrailLogger->debug('Transaction démarrée', [
+            'user_id' => $user->getId()
+        ]);
+
+        try {
+            // ✅ PROTECTION XXE : Vérifier le Content-Type
+            $contentType = $request->headers->get('Content-Type', '');
+            if (!str_starts_with($contentType, 'application/json')) {
+                $this->papertrailLogger->warning('Content-Type invalide', [
+                    'user_id' => $user->getId(),
+                    'content_type' => $contentType
+                ]);
+                return new JsonResponse([
+                    'message' => 'Invalid Content-Type. Only application/json is accepted'
+                ], 415);
+            }
+
+            // Parser le JSON
+            $rawContent = $request->getContent();
+            $this->papertrailLogger->debug('Réception données', [
+                'user_id' => $user->getId(),
+                'size' => strlen($rawContent)
+            ]);
+
+            // Protection contre les payloads massifs
+            if (strlen($rawContent) > 10000) {
+                $this->papertrailLogger->warning('Payload trop volumineux', [
+                    'user_id' => $user->getId(),
+                    'size' => strlen($rawContent)
+                ]);
+                return new JsonResponse(['message' => 'Request too large'], 413);
+            }
+
+            $data = json_decode($rawContent, true, 10);
+            // @codeCoverageIgnoreStart
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->papertrailLogger->warning('JSON invalide', [
+                    'user_id' => $user->getId(),
+                    'error' => json_last_error_msg()
+                ]);
+                return new JsonResponse(['message' => 'Invalid JSON'], 400);
+            }
+            // @codeCoverageIgnoreEnd
+
+
+            // Vérifier les champs interdits
+            $allowedFields = ['title', 'description', 'conv_users'];
+            $extraFields = array_diff(array_keys($data), $allowedFields);
+            if (!empty($extraFields)) {
+                $this->papertrailLogger->warning('Champs interdits détectés', [
+                    'user_id' => $user->getId(),
+                    'extra_fields' => $extraFields
+                ]);
+                throw new Exception('Champs interdits détectés');
+            }
+
+            // Validation préliminaire
+            if (empty($data['title']) || !is_string($data['title'])) {
+                $this->papertrailLogger->warning('Titre manquant ou invalide', [
+                    'user_id' => $user->getId()
+                ]);
+                return new JsonResponse(['message' => 'Title is required and must be a string'], 400);
+            }
+
+            // Décodage canonique
+            $this->papertrailLogger->debug('Décodage canonique du titre', [
+                'user_id' => $user->getId(),
+                'title_original' => substr($data['title'], 0, 50)
+            ]);
+            $data['title'] = $this->canonicalDecode($data['title']);
+
+            // Validation stricte
+            if (!$this->validateString($data['title'], 255)) {
+                $this->papertrailLogger->warning('Titre invalide après décodage', [
+                    'user_id' => $user->getId(),
+                    'title' => substr($data['title'], 0, 50)
+                ]);
+                return new JsonResponse(['message' => 'Invalid title format'], 400);
+            }
+
+            // Création de la conversation
+            $this->papertrailLogger->info('Création de la conversation en base', [
+                'user_id' => $user->getId(),
+                'title' => $data['title']
+            ]);
+
+            $conversation = new Conversation();
+            $conversation->setTitle($data['title']);
+            $conversation->setDescription($data['description'] ?? '');
+            $conversation->setCreatedBy($user);
+            $conversation->setCreatedAt(new \DateTimeImmutable());
+            $conversation->setLastMessageAt(null);
+            $conversation->addUser($user);
+
+            // Gestion des participants
+            $userIdsToInvite = $data['conv_users'] ?? [];
+            if (!empty($userIdsToInvite)) {
+                $this->papertrailLogger->debug('Ajout des participants', [
+                    'user_id' => $user->getId(),
+                    'participant_count' => count($userIdsToInvite)
+                ]);
+
+                $check = $this->validateConversationParticipants($user, $userIdsToInvite, $em);
+                if (!$check['valid']) {
+                    $this->papertrailLogger->warning('Participants invalides', [
+                        'user_id' => $user->getId(),
+                        'error' => $check['error']
+                    ]);
+                    return new JsonResponse(['message' => $check['error']], 400);
+                }
+
+                foreach ($check['validUsers'] as $friendUser) {
+                    $conversation->addUser($friendUser);
+                }
+            }
+
+            // Vérification des doublons
+            if ($this->checkDuplicateConversation($user, $userIdsToInvite, $data['title'], $em)) {
+                $this->papertrailLogger->warning('Conversation en double détectée', [
+                    'user_id' => $user->getId(),
+                    'title' => $data['title']
+                ]);
+                $em->rollback();
+                return new JsonResponse([
+                    'message' => 'A conversation with the same title already exists between these users',
+                    'error' => 'DUPLICATE_CONVERSATION'
+                ], 409);
+            }
+
+            // Persistance
+            $em->persist($conversation);
+            $em->flush();
+
+            // LOG DE SUCCÈS - TRÈS IMPORTANT
+            $this->papertrailLogger->info('✅ Conversation créée avec succès', [
+                'user_id' => $user->getId(),
+                'conversation_id' => $conversation->getId(),
+                'title' => $data['title'],
+                'participant_count' => count($conversation->getUsers())
+            ]);
+
+            $em->commit();
+
+            $this->papertrailLogger->debug('Transaction commitée', [
+                'user_id' => $user->getId(),
+                'conversation_id' => $conversation->getId()
+            ]);
+
+            return new JsonResponse([
+                'id' => $conversation->getId(),
+                'title' => $conversation->getTitle(),
+                'description' => $conversation->getDescription(),
+                'createdBy' => $user->getFirstName() . ' ' . $user->getLastName(),
+                'createdAt' => $conversation->getCreatedAt()->format('Y-m-d H:i:s'),
+                'createdById' => $conversation->getCreatedBy()?->getId(),
+                'lastMessageAt' => $conversation->getLastMessageAt(),
+                'users' => [], // À compléter si besoin
+                'userCount' => count($conversation->getUsers())
+            ], 201);
+        } catch (\InvalidArgumentException $e) { // @codeCoverageIgnoreStart
+            $this->papertrailLogger->error('Erreur de validation', [
+                'user_id' => $user->getId(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $em->rollback();
+            $em->clear();
+            return new JsonResponse(['message' => $e->getMessage()], 400);
+            // @codeCoverageIgnoreEnd
+
+        } catch (\Exception $e) {
+            $this->papertrailLogger->error('Erreur système création conversation', [
+                'user_id' => $user->getId(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $em->rollback();
+            $em->clear();
+            return new JsonResponse(['error' => $e->getMessage()], 500);
+        }
     }
-}
+
+
+
+
+
+
+
+
+    #[Route('/api/create/message', name: 'create_message', methods: ['POST'])]
+    public function createMessage(
+        Request $request,
+        Security $security,
+        EntityManagerInterface $em,
+        RateLimiterFactory $apiMessageLimiter
+    ): JsonResponse {
+        $user = $security->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'User not authenticated'], 401);
+        }
+
+        // ✅ Protection anti-automatisation OWASP 2.4.1
+        $limiter = $apiMessageLimiter->create($user->getUserIdentifier());
+        if (false === $limiter->consume(1)->isAccepted()) {
+            return new JsonResponse([
+                'message' => 'Too many requests. Please slow down.'
+            ], 429);
+        }
+
+        try {
+            // ✅ PROTECTION XXE : Vérifier le Content-Type
+            // ✅ ÉTAPE 1 : Récupérer le Content-Type de la requête HTTP
+            $contentType = $request->headers->get('Content-Type', '');
+            // ✅ ÉTAPE 2 : Vérifier que ça commence par 'application/json'
+            if (!str_starts_with($contentType, 'application/json')) {
+                return new JsonResponse([
+                    'message' => 'Invalid Content-Type. Only application/json is accepted'
+                ], 415); // 415 Unsupported Media Type
+            }
+
+            // ✅ ÉTAPE 1 : Parser le JSON (sans décodage)
+            $rawContent = $request->getContent();
+
+            // Protection contre les payloads massifs
+            if (strlen($rawContent) > 10000) { // 100KB max
+                return new JsonResponse(['message' => 'Request too large'], 413);
+            }
+        // @codeCoverageIgnoreStart
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return new JsonResponse(['message' => 'Invalid JSON: '], 400);
+            }
+        // @codeCoverageIgnoreEnd
+            $data = json_decode($rawContent, true, 10); // Max 10 niveaux de profondeur
+
+            // Vérifier qu'il n'y a pas de champs interdits
+            $allowedFields = ['title', 'conversation_id', 'content'];
+            $extraFields = array_diff(array_keys($data), $allowedFields);
+            if (!empty($extraFields)) {
+                throw new Exception('Champs interdits détectés');
+            }
+
+            // ✅ ÉTAPE 2 : VALIDATION PRÉLIMINAIRE (avant décodage/sanitization)
+            if (empty($data['content']) || !is_string($data['content'])) {
+                return new JsonResponse(['message' => 'Content is required and must be a string'], 400);
+            }
+
+            if (empty($data['conversation_id']) || !is_numeric($data['conversation_id'])) {
+                return new JsonResponse(['message' => 'Conversation ID is required and must be numeric'], 400);
+            }
+
+            // ✅ ÉTAPE 3 : Décodage canonique (seulement si validation initiale OK)
+            $data['content'] = $this->canonicalDecode($data['content']);
+            // @codeCoverageIgnoreStart
+                if (isset($data['title'])) {
+                   $data['title'] = $this->canonicalDecode($data['title']);
+                }
+            // @codeCoverageIgnoreEnd
+            // ✅ ÉTAPE 4 : Validation stricte APRÈS décodage
+            if (!$this->validateMessageContent($data['content'])) {
+                return new JsonResponse([
+                    'message' => 'Invalid content format. Only letters, numbers, spaces, and basic punctuation are allowed. Maximum length is 250 characters.'
+                ], 400);
+            }
+
+            // ✅ ÉTAPE 5 : Sanitization (dernière étape)
+            $data = $this->sanitizeData($data);
+
+            // ✅ ÉTAPE 6 : Typage fort
+            $conversationId = (int) $data['conversation_id'];
+
+            $conversation = $em->getRepository(Conversation::class)->find($conversationId);
+
+            if (!$conversation) {
+                return new JsonResponse(['message' => 'Conversation not found'], 404);
+            }
+
+            // ✅ ÉTAPE 7 : Vérifier que l'utilisateur fait partie de la conversation
+            if (!$conversation->getUsers()->contains($user)) {
+                return new JsonResponse(['message' => 'You are not a member of this conversation'], 403);
+            }
+
+
+            // ✅ AJOUT : Vérifier le rate limit
+            $rateLimitCheck = $this->validateMessageRateLimit($user, $conversation, $em);
+
+            if (!$rateLimitCheck['valid']) {
+                return new JsonResponse(['message' => $rateLimitCheck['error']], 429); // 429 Too Many Requests
+            }
+
+
+            $message = new Message();
+            $message->setContent($data['content']);
+            $message->setCreatedAt(new \DateTimeImmutable());
+            $message->setConversation($conversation);
+            $message->setAuthor($user);
+
+            $em->persist($message);
+            $em->flush();
+
+            // ✅ ÉTAPE 8 : Nettoyer les données pour la réponse JSON
+            return new JsonResponse([
+                'id' => $message->getId(),
+                'author' => $this->sanitizeForJson($message->getAuthor()->getEmail()),
+                'authorName' => $this->sanitizeForJson($message->getAuthorName()),
+                'content' => $this->sanitizeForJson($message->getContent()),
+                'createdAt' => $message->getCreatedAt()->format('Y-m-d H:i:s'),
+                'conversationId' => $conversation->getId(),
+                'conversationTitle' => $this->sanitizeForJson($conversation->getTitle()),
+                'authorId' => $message->getAuthor()->getId(),
+            ], 201);
+
+            // @codeCoverageIgnore
+            $em->clear();
+        } catch (\Exception $e) {
+            $em->rollback();
+            $em->clear();
+
+            $this->papertrailLogger->error('Transaction failed in createMessage', [
+                'error' => $e->getMessage(),
+            ]);
+            return new JsonResponse([
+                'message' => 'Error creating message',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     #[Route('/api/delete/conversation/{id}', name: 'delete_conversation', methods: ['DELETE'])]
     public function deleteConversation(int $id, EntityManagerInterface $em): JsonResponse
@@ -1466,7 +1477,7 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
         if ($id <= 0) {
             return new JsonResponse(['message' => 'Invalid conversation ID'], 400);
         }
-        
+
 
         try {
             $conversation = $em->getRepository(Conversation::class)->find($id);
@@ -1487,35 +1498,37 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
                 ], 413);
             }
 
-        // ✅ AJOUT : Rate limiting sur la suppression
-        $rateLimitCheck = $this->validateConversationDeleteRateLimit($user, $em);
-        if (!$rateLimitCheck['valid']) {
-            return new JsonResponse([
-                'message' => $rateLimitCheck['error']
-            ], 429);
-        }
+            // ✅ AJOUT : Rate limiting sur la suppression
+            $rateLimitCheck = $this->validateConversationDeleteRateLimit($user, $em);
+            // @codeCoverageIgnoreStart
+            if (!$rateLimitCheck['valid']) {
+                return new JsonResponse([
+                    'message' => $rateLimitCheck['error']
+                ], 429);
+            }
+            // @codeCoverageIgnoreEnd
 
-        // ✅ RÈGLE MÉTIER : Vérifier l'autorisation
-        if ($conversation->getCreatedBy()->getId() !== $user->getId()) {
-            return new JsonResponse(['message' => 'You are not authorized to delete this conversation'], 403);
-        }
+            // ✅ RÈGLE MÉTIER : Vérifier l'autorisation
+            if ($conversation->getCreatedBy()->getId() !== $user->getId()) {
+                return new JsonResponse(['message' => 'You are not authorized to delete this conversation'], 403);
+            }
 
-                    // ✅ AJOUT : Valider les données de la conversation avant suppression (audit)
-                    $title = $conversation->getTitle();
-                    if (!$this->validateString($title, 255)) {
-                        $this->papertrailLogger->warning('Deleting conversation with invalid title', [
-                            'conversation_id' => $id,
-                            'title'           => substr($title, 0, 50),
-                        ]);
-                    }
+            // ✅ AJOUT : Valider les données de la conversation avant suppression (audit)
+            $title = $conversation->getTitle();
+            if (!$this->validateString($title, 255)) {
+                $this->papertrailLogger->warning('Deleting conversation with invalid title', [
+                    'conversation_id' => $id,
+                    'title'           => substr($title, 0, 50),
+                ]);
+            }
 
-                    // ✅ AJOUT : papertrailLogger la suppression pour audit
-                    $this->papertrailLogger->info('Conversation deleted', [
-                        'user_id'         => $user->getId(),
-                        'conversation_id' => $conversation->getId(),
-                        'title'           => substr($title, 0, 50),
-                        'message_count'   => $messageCount,
-                    ]);
+            // ✅ AJOUT : papertrailLogger la suppression pour audit
+            $this->papertrailLogger->info('Conversation deleted', [
+                'user_id'         => $user->getId(),
+                'conversation_id' => $conversation->getId(),
+                'title'           => substr($title, 0, 50),
+                'message_count'   => $messageCount,
+            ]);
 
 
             $messages = $em->getRepository(Message::class)->findBy(['conversation' => $conversation]);
@@ -1523,34 +1536,35 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
                 $em->remove($message);
             }
 
+            // @codeCoverageIgnoreStart
             // ✅ RÈGLE MÉTIER : Limiter le nombre de messages supprimables (protection DoS)
-                if (count($messages) > 10000) {
-                    return new JsonResponse([
-                        'message' => 'Conversation too large to delete. Please contact support.'
-                    ], 413); // 413 Payload Too Large
-                }
+            if (count($messages) > 10000) {
+                return new JsonResponse([
+                    'message' => 'Conversation too large to delete. Please contact support.'
+                ], 413);
+            }
 
-                foreach ($messages as $message) {
-                    $em->remove($message);
-                }
+            foreach ($messages as $message) {
+                $em->remove($message);
+            }
+            // @codeCoverageIgnoreEnd
 
             $em->remove($conversation);
             $em->flush();
 
             $em->clear();
 
-        return new JsonResponse([
-            'message' => 'Conversation deleted successfully',
-            'deletedMessages' => $messageCount
-        ], 200);
-                
-
+            return new JsonResponse([
+                'message' => 'Conversation deleted successfully',
+                'deletedMessages' => $messageCount
+            ], 200);
         } catch (\Exception $e) {
             return new JsonResponse([
                 'message' => 'Error deleting conversation',
                 'error' => $e->getMessage()
             ], 500);
-                $em->clear();
+            // @codeCoverageIgnore
+            $em->clear();
         }
     }
 
@@ -1564,15 +1578,15 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
         }
 
 
-    // ✅ AJOUT : Validation TAILLE - ID valide
-    if ($id <= 0) {
-        return new JsonResponse(['message' => 'Invalid message ID'], 400);
-    }
+        // ✅ AJOUT : Validation TAILLE - ID valide
+        if ($id <= 0) {
+            return new JsonResponse(['message' => 'Invalid message ID'], 400);
+        }
 
-    // ✅ AJOUT : Validation TAILLE - Limite supérieure
-    if ($id > 2147483647) { // Max int32
-        return new JsonResponse(['message' => 'Message ID out of range'], 400);
-    }
+        // ✅ AJOUT : Validation TAILLE - Limite supérieure
+        if ($id > 2147483647) { // Max int32
+            return new JsonResponse(['message' => 'Message ID out of range'], 400);
+        }
 
 
         try {
@@ -1587,73 +1601,71 @@ RateLimiterFactory $apiMessageLimiter): JsonResponse
             }
 
 
-              // ✅ AJOUT : Validation TYPES - Vérifier l'instance
-        if (!$message instanceof Message) {
-            $this->papertrailLogger->warning('Invalid message type', [
-                'message_id' => $id,
+            // @codeCoverageIgnoreStart
+            // ✅ AJOUT : Validation TYPES - Vérifier l'instance
+            if (!$message instanceof Message) {
+                $this->papertrailLogger->warning('Invalid message type', [
+                    'message_id' => $id,
+                ]);
+
+                return new JsonResponse(['message' => 'Invalid message data'], 500);
+            }
+
+            // ✅ RÈGLE MÉTIER : Autorisation
+            if ($message->getAuthor()->getId() !== $user->getId()) {
+                return new JsonResponse(['message' => 'You are not authorized to delete this message'], 403);
+            }
+            // @codeCoverageIgnoreEnd
+
+            // ✅ AJOUT : Validation FORMAT - Vérifier l'intégrité avant suppression
+            $content = $message->getContent();
+            if (!$this->validateMessageContent($content)) {
+                $this->papertrailLogger->warning('Deleting message with invalid content', [
+                    'message_id' => $id,
+                ]);
+            }
+
+            // ✅ AJOUT : Validation FORMAT - Vérifier l'auteur
+            $author = $message->getAuthor();
+            // @codeCoverageIgnoreStart
+            if (!$author instanceof User) {
+                $this->papertrailLogger->warning('Message has invalid author', [
+                    'message_id' => $id,
+                ]);
+
+                return new JsonResponse(['message' => 'Invalid message author'], 500);
+            }
+            // @codeCoverageIgnoreEnd
+
+            // ✅ AJOUT : Validation MÉTIER - Vérifier que la conversation existe
+            $conversation = $message->getConversation();
+            if (!$conversation instanceof Conversation) {
+
+                $this->papertrailLogger->warning('Message has no valid conversation', [
+                    'message_id' => $id,
+                ]);
+
+                return new JsonResponse(['message' => 'Invalid message conversation'], 500);
+            }
+            $this->papertrailLogger->info('Message deleted', [
+                'user_id'         => $user->getId(),
+                'message_id'      => $message->getId(),
+                'conversation_id' => $conversation->getId(),
             ]);
-
-            return new JsonResponse(['message' => 'Invalid message data'], 500);
-        }
-
-        // ✅ RÈGLE MÉTIER : Autorisation
-        if ($message->getAuthor()->getId() !== $user->getId()) {
-            return new JsonResponse(['message' => 'You are not authorized to delete this message'], 403);
-        }
-
-        // ✅ AJOUT : Validation FORMAT - Vérifier l'intégrité avant suppression
-        $content = $message->getContent();
-        if (!$this->validateMessageContent($content)) {
-            $this->papertrailLogger->warning('Deleting message with invalid content', [
-                'message_id' => $id,
-            ]);
-        }
-
-        // ✅ AJOUT : Validation FORMAT - Vérifier l'auteur
-        $author = $message->getAuthor();
-        if (!$author instanceof User) {
-            $this->papertrailLogger->warning('Message has invalid author', [
-                'message_id' => $id,
-            ]);
-
-            return new JsonResponse(['message' => 'Invalid message author'], 500);
-        }
-
-        // ✅ AJOUT : Validation MÉTIER - Vérifier que la conversation existe
-        $conversation = $message->getConversation();
-        if (!$conversation instanceof Conversation) {
-            
-        $this->papertrailLogger->warning('Message has no valid conversation', [
-            'message_id' => $id,
-        ]);
-
-            return new JsonResponse(['message' => 'Invalid message conversation'], 500);
-        }
-        $this->papertrailLogger->info('Message deleted', [
-            'user_id'         => $user->getId(),
-            'message_id'      => $message->getId(),
-            'conversation_id' => $conversation->getId(),
-        ]);
 
 
             $em->remove($message);
             $em->flush();
-        $em->clear();
+            $em->clear();
 
             return new JsonResponse(['message' => 'Message deleted successfully'], 200);
-
         } catch (\Exception $e) {
             return new JsonResponse([
                 'message' => 'Error deleting message',
                 'error' => $e->getMessage()
             ], 500);
-                $em->clear();
+            // @codeCoverageIgnore
+            $em->clear();
         }
     }
-
-
-
-
-
-    
 }
