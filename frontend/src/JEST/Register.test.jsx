@@ -116,22 +116,22 @@ describe("Register Component", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getByText("Prénom requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
     });
 
     it("should show error when lastName is empty and clicking Continue", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getByText("Nom requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
     });
 
     it("should show both errors when both fields are empty", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getByText("Prénom requis")).toBeInTheDocument();
-      expect(screen.getByText("Nom requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
     });
 
     it("should clear error when user starts typing", () => {
@@ -139,12 +139,12 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getByText("Prénom requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
 
       const firstNameInput = screen.getByPlaceholderText("Votre prénom");
       fireEvent.change(firstNameInput, { target: { value: "John" } });
 
-      expect(screen.queryByText("Prénom requis")).not.toBeInTheDocument();
+      expect(screen.queryByText("Champ requis")).not.toBeInTheDocument();
     });
 
     it("should not advance to step 2 if validation fails", () => {
@@ -554,14 +554,14 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getByText("Prénom requis")).toBeInTheDocument();
-      expect(screen.getByText("Nom requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
 
       const firstNameInput = screen.getByPlaceholderText("Votre prénom");
       fireEvent.change(firstNameInput, { target: { value: "John" } });
 
-      expect(screen.queryByText("Prénom requis")).not.toBeInTheDocument();
-      expect(screen.getByText("Nom requis")).toBeInTheDocument(); // Should still be there
+      expect(screen.queryByText("Champ requis")).not.toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument(); // Should still be there
     });
 
     it("should not submit if step 3 validation fails", () => {

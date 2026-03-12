@@ -399,7 +399,7 @@ const Home = () => {
                 <span className={styles.infoLabel}>Available from</span>
                 <span className={styles.infoValue}>
                   {user.availabilityStart
-                    ? new Date(user.availabilityStart).toLocaleDateString()
+                    ? new Date(user.availabilityStart).toLocaleDateString("FR-fr")
                     : "Not set"}
                 </span>
               </div>
@@ -407,7 +407,7 @@ const Home = () => {
                 <span className={styles.infoLabel}>to</span>
                 <span className={styles.infoValue}>
                   {user.availabilityEnd
-                    ? new Date(user.availabilityEnd).toLocaleDateString()
+                    ? new Date(user.availabilityEnd).toLocaleDateString("FR-fr")
                     : "Not set"}
                 </span>
               </div>
