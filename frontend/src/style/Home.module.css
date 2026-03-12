@@ -31,7 +31,9 @@
   text-decoration: none;
   text-align: center;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
   animation: gradientMove 8s ease infinite;
   box-shadow: 0 4px 15px rgba(255, 75, 43, 0.5);
 }
@@ -44,12 +46,16 @@
 
 /* Continuous gradient animation */
 @keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
-
-
 
 /* ===== CONTAINER PRINCIPAL ===== */
 .profileContainer {
@@ -59,7 +65,8 @@
 }
 
 /* ===== LOADING AND ERROR STATES ===== */
-.loadingContainer, .errorContainer {
+.loadingContainer,
+.errorContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -91,19 +98,27 @@
 }
 
 .profileHeader::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   right: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
   animation: rotate 20s linear infinite;
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .headerContent {
@@ -197,15 +212,21 @@
 }
 
 /* ===== GRID COMPÉTENCES/PROJETS ===== */
-.skillsGrid, .projectsGrid {
+.skillsGrid,
+.projectsGrid {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1rem;
 }
 
-.skillButton, .projectButton {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+.skillButton,
+.projectButton {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   color: white;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -217,10 +238,15 @@
   box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
-.skillButton:hover, .projectButton:hover {
+.skillButton:hover,
+.projectButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-light) 0%,
+    var(--primary) 100%
+  );
 }
 
 /* ===== ÉTATS VIDES ===== */
@@ -441,8 +467,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ===== MODAL ===== */
@@ -462,8 +492,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modalContent {
@@ -576,9 +610,8 @@
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-
   .profileHeader {
-  margin-top: 5rem;
+    margin-top: 5rem;
   }
 
   .profileContainer {
@@ -598,8 +631,6 @@
   .nameContainer h2 {
     font-size: 1.5rem;
   }
-
-
 
   .divider {
     grid-template-columns: 1fr;
@@ -628,16 +659,17 @@
   .profileContainer {
     padding: 0.5rem;
   }
-  
+
   .infoSection {
     padding: 1rem;
   }
-  
+
   .subsection {
     padding: 1rem;
   }
-  
-  .skillsGrid, .projectsGrid {
+
+  .skillsGrid,
+  .projectsGrid {
     justify-content: center;
   }
 }

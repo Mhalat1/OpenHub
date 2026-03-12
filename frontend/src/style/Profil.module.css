@@ -22,13 +22,14 @@
 .profileContainer {
   min-height: 100vh;
   padding: 2rem;
-      margin-bottom: 6rem;
+  margin-bottom: 6rem;
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* ===== LOADING AND ERROR STATES ===== */
-.loadingContainer, .errorContainer {
+.loadingContainer,
+.errorContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -49,8 +50,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ===== HEADER ===== */
@@ -213,14 +218,18 @@
 }
 
 /* ===== GRIDS ===== */
-.usersGrid, .friendsGrid, .invitationsGrid {
+.usersGrid,
+.friendsGrid,
+.invitationsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
 /* ===== CARDS ===== */
-.userCard, .friendCard, .invitationCard {
+.userCard,
+.friendCard,
+.invitationCard {
   background: var(--bg-card);
   border: 2px solid var(--border);
   border-radius: 16px;
@@ -233,7 +242,9 @@
   box-shadow: 0 4px 15px var(--shadow);
 }
 
-.userCard:hover, .friendCard:hover, .invitationCard:hover {
+.userCard:hover,
+.friendCard:hover,
+.invitationCard:hover {
   transform: translateY(-5px);
   border-color: var(--primary-light);
   box-shadow: 0 8px 30px var(--shadow-hover);
@@ -244,7 +255,10 @@
 }
 
 /* ===== AVATARS ===== */
-.userAvatar, .friendAvatar, .invitationAvatar, .modalAvatar {
+.userAvatar,
+.friendAvatar,
+.invitationAvatar,
+.modalAvatar {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -265,25 +279,31 @@
 }
 
 /* ===== INFO SECTIONS ===== */
-.userInfo, .friendInfo, .invitationInfo {
+.userInfo,
+.friendInfo,
+.invitationInfo {
   flex: 1;
 }
 
-.userName, .friendName {
+.userName,
+.friendName {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.25rem 0;
 }
 
-.userEmail, .friendEmail {
+.userEmail,
+.friendEmail {
   font-size: 0.9rem;
   color: var(--text-secondary);
   margin: 0;
 }
 
 /* ===== ACTIONS ===== */
-.userAction, .friendActions, .invitationActions {
+.userAction,
+.friendActions,
+.invitationActions {
   display: flex;
   gap: 0.5rem;
 }
@@ -310,7 +330,9 @@
 }
 
 /* ===== BUTTONS ===== */
-.unfriendBtn, .cancelBtn, .rejectBtn {
+.unfriendBtn,
+.cancelBtn,
+.rejectBtn {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 8px;
@@ -323,12 +345,14 @@
   font-size: 0.9rem;
 }
 
-.unfriendBtn, .rejectBtn {
+.unfriendBtn,
+.rejectBtn {
   background: var(--error);
   color: white;
 }
 
-.unfriendBtn:hover, .rejectBtn:hover {
+.unfriendBtn:hover,
+.rejectBtn:hover {
   background: #dc2626;
   transform: translateY(-1px);
 }
@@ -397,8 +421,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modalContent {
@@ -505,7 +533,8 @@
   flex-wrap: wrap;
 }
 
-.primaryButton, .secondaryButton {
+.primaryButton,
+.secondaryButton {
   padding: 0.75rem 1.5rem;
   border-radius: 12px;
   font-weight: 600;
@@ -582,17 +611,23 @@
     padding: 1.5rem;
   }
 
-  .usersGrid, .friendsGrid, .invitationsGrid {
+  .usersGrid,
+  .friendsGrid,
+  .invitationsGrid {
     grid-template-columns: 1fr;
   }
 
-  .userCard, .friendCard, .invitationCard {
+  .userCard,
+  .friendCard,
+  .invitationCard {
     flex-direction: column;
     text-align: center;
     gap: 1rem;
   }
 
-  .userAction, .friendActions, .invitationActions {
+  .userAction,
+  .friendActions,
+  .invitationActions {
     justify-content: center;
   }
 
@@ -605,7 +640,8 @@
     flex-direction: column;
   }
 
-  .primaryButton, .secondaryButton {
+  .primaryButton,
+  .secondaryButton {
     width: 100%;
   }
 
@@ -615,7 +651,8 @@
     text-align: center;
   }
 
-  .infoLabel, .infoValue {
+  .infoLabel,
+  .infoValue {
     text-align: center;
     min-width: auto;
   }

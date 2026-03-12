@@ -14,8 +14,8 @@
   --radius: 12px;
 }
 
-body{
-      background: linear-gradient(135deg, #407cff, #000);
+body {
+  background: linear-gradient(135deg, #407cff, #000);
 }
 /* Container principal */
 .container {
@@ -82,8 +82,14 @@ body{
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateX(10px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .stepHeader {
@@ -242,7 +248,6 @@ body{
 }
 
 .linkButton:hover {
-
   background: var(--primary);
   color: white;
 }
@@ -262,9 +267,9 @@ body{
 /* Desktop */
 @media (min-width: 768px) {
   .container {
-        max-width: 50%;
-        margin: 0% 25%;
-        padding: 2rem 1rem;
+    max-width: 50%;
+    margin: 0% 25%;
+    padding: 2rem 1rem;
   }
 
   .header {
@@ -287,4 +292,3 @@ body{
     border: 1px solid var(--border);
   }
 }
-

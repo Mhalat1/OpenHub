@@ -61,7 +61,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 5px 15px rgba(230, 57, 70, 0.3);
-      width: 100%;
+  width: 100%;
 }
 
 .logout-btn:hover {
@@ -81,7 +81,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-      width: 100%;
+  width: 100%;
 }
 
 .return-btn:hover {

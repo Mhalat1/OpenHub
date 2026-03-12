@@ -661,7 +661,7 @@ const Profil = () => {
                 {selectedUser.availabilityEnd && (
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>
-                      📅 Disponible jusqu'au:
+                      📅 Disponible jusqu au:
                     </span>
                     <span className={styles.infoValue}>
                       {new Date(
