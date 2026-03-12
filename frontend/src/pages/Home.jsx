@@ -396,7 +396,10 @@ const Home = () => {
                 <span className={styles.infoLabel}>Available from</span>
                 <span className={styles.infoValue}>
                   {user.availabilityStart
-                    ? new Date(user.availabilityStart).toLocaleDateString("fr-FR")
+                    ? // ✅ What Prettier wants
+                      new Date(user.availabilityStart).toLocaleDateString(
+                        "fr-FR",
+                      )
                     : "Not set"}
                 </span>
               </div>
