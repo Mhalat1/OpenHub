@@ -4,12 +4,12 @@ module.exports = {
     ['@babel/preset-react', { runtime: 'automatic' }]
   ],
   plugins: [
-    './babel-plugin-transform-vite-meta-env.js'
+    './babel-plugin-transform-vite-meta-env.cjs'
   ],
   env: {
     test: {
       plugins: [
-        './babel-plugin-transform-vite-meta-env.js'
+        './babel-plugin-transform-vite-meta-env.cjs'
       ]
     }
   }
