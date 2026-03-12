@@ -1,10 +1,10 @@
-import { defineConfig } from "eslint/config";
-import globals from "globals";
 import js from "@eslint/js";
+import configPrettier from "eslint-config-prettier";
+import pluginPrettier from "eslint-plugin-prettier";
 import pluginReact from "eslint-plugin-react";
 import pluginReactHooks from "eslint-plugin-react-hooks";
-import pluginPrettier from "eslint-plugin-prettier";
-import configPrettier from "eslint-config-prettier";
+import { defineConfig } from "eslint/config";
+import globals from "globals";
 
 export default defineConfig([
   {
@@ -53,7 +53,10 @@ export default defineConfig([
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_" 
       }],
-      "no-console": "warn",
+      "no-console": ["warn", { 
+        "allow": ["error", "warn"] 
+      }],
+
       "prettier/prettier": "error"
     }
   }
