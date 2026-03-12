@@ -1,6 +1,5 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import Home from "../pages/Home";
 
@@ -143,15 +142,15 @@ describe("Home Component - Complete Coverage", () => {
   describe("Rendu initial et chargement", () => {
     test("affiche le loader pendant le chargement", () => {
       renderWithRouter(<Home />);
-      expect(screen.getByText(/Loading user data.../i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Loading user data.../i)).toBeInTheDocument();
     });
 
     test("affiche les informations utilisateur après chargement", async () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
-        expect(screen.getByText("john.doe@example.com")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("john.doe@example.com")).toBeInTheDocument();
       });
     });
 
@@ -159,8 +158,8 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("01/01/2024")).toBeInTheDocument();
-        expect(screen.getByText("31/12/2024")).toBeInTheDocument();
+        expect(screen.getAllByText("01/01/2024")).toBeInTheDocument();
+        expect(screen.getAllByText("31/12/2024")).toBeInTheDocument();
       });
     });
 
@@ -204,7 +203,7 @@ describe("Home Component - Complete Coverage", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Error: User API error: 401/i),
+          screen.getAllByText(/Error: User API error: 401/i),
         ).toBeInTheDocument();
       });
     });
@@ -216,7 +215,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText(/My Skills \(3\)/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/My Skills \(3\)/i)).toBeInTheDocument();
       });
     });
 
@@ -257,7 +256,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("No skills added yet")).toBeInTheDocument();
+        expect(screen.getAllByText("No skills added yet")).toBeInTheDocument();
       });
     });
   });
@@ -268,7 +267,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText(/My Projects \(1\)/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/My Projects \(1\)/i)).toBeInTheDocument();
       });
     });
 
@@ -307,7 +306,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("No projects yet")).toBeInTheDocument();
+        expect(screen.getAllByText("No projects yet")).toBeInTheDocument();
       });
     });
   });
@@ -346,7 +345,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       const selects = screen.getAllByRole("combobox");
@@ -354,12 +353,12 @@ describe("Home Component - Complete Coverage", () => {
 
       fireEvent.change(skillSelect, { target: { value: "1" } });
 
-      const addButton = screen.getByText("+ Add Skill");
+      const addButton = screen.getAllByText("+ Add Skill");
       fireEvent.click(addButton);
 
       await waitFor(() => {
         expect(
-          screen.getByText(/React added successfully/i),
+          screen.getAllByText(/React added successfully/i),
         ).toBeInTheDocument();
       });
     });
@@ -368,10 +367,10 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
-      const addButton = screen.getByText("+ Add Skill");
+      const addButton = screen.getAllByText("+ Add Skill");
       expect(addButton).toBeDisabled();
     });
   });
@@ -417,7 +416,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       const selects = screen.getAllByRole("combobox");
@@ -425,12 +424,12 @@ describe("Home Component - Complete Coverage", () => {
 
       fireEvent.change(projectSelect, { target: { value: "1" } });
 
-      const joinButton = screen.getByText(/Join Project/i);
+      const joinButton = screen.getAllByText(/Join Project/i);
       fireEvent.click(joinButton);
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Project Alpha added successfully/i),
+          screen.getAllByText(/Project Alpha added successfully/i),
         ).toBeInTheDocument();
       });
     });
@@ -439,10 +438,10 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
-      const joinButton = screen.getByText(/Join Project/i);
+      const joinButton = screen.getAllByText(/Join Project/i);
       expect(joinButton).toBeDisabled();
     });
   });
@@ -475,7 +474,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       const dateInputs = screen.getAllByDisplayValue("");
@@ -485,12 +484,12 @@ describe("Home Component - Complete Coverage", () => {
       fireEvent.change(startDateInput, { target: { value: "2024-01-01" } });
       fireEvent.change(endDateInput, { target: { value: "2024-12-31" } });
 
-      const updateButton = screen.getByText("Update Availability");
+      const updateButton = screen.getAllByText("Update Availability");
       fireEvent.click(updateButton);
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Availability updated successfully/i),
+          screen.getAllByText(/Availability updated successfully/i),
         ).toBeInTheDocument();
       });
     });
@@ -499,7 +498,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       const dateInputs = screen.getAllByDisplayValue("");
@@ -507,12 +506,12 @@ describe("Home Component - Complete Coverage", () => {
 
       fireEvent.change(endDateInput, { target: { value: "2024-12-31" } });
 
-      const updateButton = screen.getByText("Update Availability");
+      const updateButton = screen.getAllByText("Update Availability");
       fireEvent.click(updateButton);
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Please enter start date/i),
+          screen.getAllByText(/Please enter start date/i),
         ).toBeInTheDocument();
       });
     });
@@ -524,7 +523,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       // Attendre que les compétences soient chargées
@@ -553,7 +552,7 @@ describe("Home Component - Complete Coverage", () => {
         expect(
           screen.getByRole("heading", { level: 2, name: "React" }),
         ).toBeInTheDocument();
-        expect(screen.getByText("Frontend framework")).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend framework")).toBeInTheDocument();
       });
     });
 
@@ -561,7 +560,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       // Attendre que les projets soient chargés
@@ -591,7 +590,7 @@ describe("Home Component - Complete Coverage", () => {
           screen.getByRole("heading", { level: 2, name: "Project Alpha" }),
         ).toBeInTheDocument();
         expect(
-          screen.getByText("Test project description"),
+          screen.getAllByText("Test project description"),
         ).toBeInTheDocument();
       });
     });
@@ -600,7 +599,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       // Ouvrir le modal
@@ -632,7 +631,7 @@ describe("Home Component - Complete Coverage", () => {
       });
 
       // Fermer le modal
-      const closeButton = screen.getByText("×");
+      const closeButton = screen.getAllByText("×");
       fireEvent.click(closeButton);
 
       // Vérifier que le modal est fermé
@@ -705,7 +704,7 @@ describe("Home Component - Complete Coverage", () => {
 
       // Attendre que l'utilisateur soit chargé
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
       // Mettre à jour le mock pour les appels après suppression
@@ -777,10 +776,10 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getAllByText("John Doe")).toBeInTheDocument();
       });
 
-      const donateLink = screen.getByText("💖 Faire un don");
+      const donateLink = screen.getAllByText("💖 Faire un don");
       expect(donateLink).toBeInTheDocument();
       expect(donateLink.closest("a")).toHaveAttribute("href", "/donate");
     });

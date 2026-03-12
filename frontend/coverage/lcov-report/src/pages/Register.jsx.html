@@ -644,7 +644,7 @@ const Register = () =&gt; {
     }
     
     if (step === 2) {
-      if (!formState.email.includes('@')) newErrors.email = "Email invalide";
+      if (!formState.email.includes('@')) newErrors.email = "L'email doit contenir un @";
       if (formState.password.length &lt; 6) newErrors.password = "6 caractères minimum";
     }
 &nbsp;

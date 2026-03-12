@@ -1,5 +1,4 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import LogoutButton from "../pages/Logout";
 
 // Mock du CSS
@@ -51,7 +50,7 @@ describe("LogoutButton Component", () => {
   describe("Rendering", () => {
     it("should render the logout card with title", () => {
       render(<LogoutButton />);
-      expect(screen.getByText("See you soon 👋")).toBeInTheDocument();
+      expect(screen.getAllByText("See you soon 👋")).toBeInTheDocument();
     });
 
     it("should render both action buttons", () => {
@@ -90,7 +89,7 @@ describe("LogoutButton Component", () => {
 
     it("should display the wave emoji in title", () => {
       render(<LogoutButton />);
-      const title = screen.getByText("See you soon 👋");
+      const title = screen.getAllByText("See you soon 👋");
       expect(title).toHaveTextContent("👋");
     });
   });

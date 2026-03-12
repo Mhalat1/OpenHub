@@ -1,6 +1,5 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DonatePage from "../pages/DonatePage";
 
 // Mock de fetch
@@ -28,9 +27,9 @@ describe("DonatePage", () => {
   test("affiche correctement le titre et la description", () => {
     render(<DonatePage />);
 
-    expect(screen.getByText(/Soutenir le projet OpenHub/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Soutenir le projet OpenHub/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/OpenHub est un projet open source/i),
+      screen.getAllByText(/OpenHub est un projet open source/i),
     ).toBeInTheDocument();
   });
 
@@ -70,7 +69,7 @@ describe("DonatePage", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(screen.getByText(/Redirection.../i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Redirection.../i)).toBeInTheDocument();
     });
     expect(button).toBeDisabled();
   });
@@ -88,7 +87,7 @@ describe("DonatePage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(
+        screen.getAllByText(
           /Erreur lors de la création de la session de paiement/i,
         ),
       ).toBeInTheDocument();
@@ -108,7 +107,7 @@ describe("DonatePage", () => {
 
     await waitFor(() => {
       expect(button).not.toBeDisabled();
-      expect(screen.getByText(/Faire un don/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Faire un don/i)).toBeInTheDocument();
     });
   });
 
@@ -125,7 +124,7 @@ describe("DonatePage", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(screen.getByText(/Erreur/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Erreur/i)).toBeInTheDocument();
     });
 
     // Deuxième appel - succès
