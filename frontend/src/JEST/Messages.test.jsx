@@ -164,7 +164,7 @@ describe("Messages Component", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText("Loading..."))[0].toBeInTheDocument();
+    expect(screen.getByText ("Loading..."))[0].toBeInTheDocument();
   });
 
   test("3. Affiche un message d'erreur sans token", async () => {
@@ -179,7 +179,7 @@ describe("Messages Component", () => {
     await waitFor(
       () => {
         expect(
-          screen.getAllByText(/Please log in to view messages/i),
+          screen.getByText (/Please log in to view messages/i),
         ).toBeInTheDocument();
       },
       { timeout: 3000 },
@@ -199,18 +199,18 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    const toggleButtons = screen.getAllByText("▼");
+    const toggleButtons = screen.getByText ("▼");
     fireEvent.click(toggleButtons[0]);
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Hello everyone!"))[0].toBeInTheDocument();
-        expect(screen.getAllByText("Hi John!"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Hello everyone!"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Hi John!"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -312,7 +312,7 @@ describe("Messages Component", () => {
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[0]);
 
-    const createButton = screen.getAllByText("Create");
+    const createButton = screen.getByText ("Create");
     await waitFor(
       () => {
         expect(createButton).not.toBeDisabled();
@@ -350,12 +350,12 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    const toggleButtons = screen.getAllByText("▼");
+    const toggleButtons = screen.getByText ("▼");
     fireEvent.click(toggleButtons[0]);
 
     await waitFor(
@@ -372,7 +372,7 @@ describe("Messages Component", () => {
       target: { value: "Test message from Jest!" },
     });
 
-    const sendButton = screen.getAllByText("Send");
+    const sendButton = screen.getByText ("Send");
     fireEvent.click(sendButton);
 
     await waitFor(
@@ -405,12 +405,12 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    const deleteButtons = screen.getAllByText("🗑");
+    const deleteButtons = screen.getByText ("🗑");
     fireEvent.click(deleteButtons[0]);
 
     expect(global.confirm).toHaveBeenCalledWith("Delete this conversation?");
@@ -458,7 +458,7 @@ describe("Messages Component", () => {
       await waitFor(
         () => {
           expect(
-            screen.getAllByText(/Please log in to view messages/i),
+            screen.getByText (/Please log in to view messages/i),
           ).toBeInTheDocument();
         },
         { timeout: 3000 },
@@ -505,8 +505,8 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Friends \(0\)/i))[0].toBeInTheDocument();
-          expect(screen.getAllByText("No friends available"))[0].toBeInTheDocument();
+          expect(screen.getByText (/Friends \(0\)/i))[0].toBeInTheDocument();
+          expect(screen.getByText ("No friends available"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -554,7 +554,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Conversations \(0\)/i))[0].toBeInTheDocument();
+          expect(screen.getByText (/Conversations \(0\)/i))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -573,7 +573,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("New Conversation"))[0].toBeInTheDocument();
+          expect(screen.getByText ("New Conversation"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -581,7 +581,7 @@ describe("Messages Component", () => {
       const titleInput = screen.getByPlaceholderText(
         "Title (2-255 characters)",
       );
-      const createButton = screen.getAllByText("Create");
+      const createButton = screen.getByText ("Create");
 
       fireEvent.change(titleInput, { target: { value: "A" } });
 
@@ -593,7 +593,7 @@ describe("Messages Component", () => {
       await waitFor(
         () => {
           expect(
-            screen.getAllByText(/Title must be between 2 and 255 characters/i),
+            screen.getByText (/Title must be between 2 and 255 characters/i),
           ).toBeInTheDocument();
         },
         { timeout: 3000 },
@@ -611,7 +611,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("New Conversation"))[0].toBeInTheDocument();
+          expect(screen.getByText ("New Conversation"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -619,7 +619,7 @@ describe("Messages Component", () => {
       const titleInput = screen.getByPlaceholderText(
         "Title (2-255 characters)",
       );
-      const createButton = screen.getAllByText("Create");
+      const createButton = screen.getByText ("Create");
 
       fireEvent.change(titleInput, { target: { value: "A".repeat(256) } });
 
@@ -631,7 +631,7 @@ describe("Messages Component", () => {
       await waitFor(
         () => {
           expect(
-            screen.getAllByText(/Title must be between 2 and 255 characters/i),
+            screen.getByText (/Title must be between 2 and 255 characters/i),
           ).toBeInTheDocument();
         },
         { timeout: 3000 },
@@ -649,12 +649,12 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+          expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getAllByText("▼");
+      const toggleButtons = screen.getByText ("▼");
       fireEvent.click(toggleButtons[0]);
 
       await waitFor(
@@ -667,7 +667,7 @@ describe("Messages Component", () => {
       );
 
       const textarea = screen.getByPlaceholderText(/Type your message/i);
-      const sendButton = screen.getAllByText("Send");
+      const sendButton = screen.getByText ("Send");
 
       fireEvent.change(textarea, { target: { value: "A".repeat(251) } });
       fireEvent.click(sendButton);
@@ -675,7 +675,7 @@ describe("Messages Component", () => {
       await waitFor(
         () => {
           expect(
-            screen.getAllByText(/Message cannot exceed 250 characters/i),
+            screen.getByText (/Message cannot exceed 250 characters/i),
           ).toBeInTheDocument();
         },
         { timeout: 3000 },
@@ -693,22 +693,22 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+          expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getAllByText("▼");
+      const toggleButtons = screen.getByText ("▼");
       fireEvent.click(toggleButtons[0]);
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Hello everyone!"))[0].toBeInTheDocument();
+          expect(screen.getByText ("Hello everyone!"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
 
-      const deleteMsgButtons = screen.getAllByText("🗑");
+      const deleteMsgButtons = screen.getByText ("🗑");
       // Le premier bouton est pour la conversation, le second pour le message
       fireEvent.click(deleteMsgButtons[1]);
 
@@ -738,22 +738,22 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+          expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getAllByText("▼");
+      const toggleButtons = screen.getByText ("▼");
       fireEvent.click(toggleButtons[0]);
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Hello everyone!"))[0].toBeInTheDocument();
+          expect(screen.getByText ("Hello everyone!"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
 
-      const deleteMsgButtons = screen.getAllByText("🗑");
+      const deleteMsgButtons = screen.getByText ("🗑");
       fireEvent.click(deleteMsgButtons[1]);
 
       expect(global.confirm).toHaveBeenCalledWith("Delete this message?");
@@ -809,7 +809,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("New Conversation"))[0].toBeInTheDocument();
+          expect(screen.getByText ("New Conversation"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -822,12 +822,12 @@ describe("Messages Component", () => {
       const checkboxes = screen.getAllByRole("checkbox");
       fireEvent.click(checkboxes[0]);
 
-      const createButton = screen.getAllByText("Create");
+      const createButton = screen.getByText ("Create");
       fireEvent.click(createButton);
 
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Network error/i))[0].toBeInTheDocument();
+          expect(screen.getByText (/Network error/i))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -884,12 +884,12 @@ describe("Messages Component", () => {
       );
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
+          expect(screen.getByText ("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getAllByText("▼");
+      const toggleButtons = screen.getByText ("▼");
       fireEvent.click(toggleButtons[0]);
       await waitFor(
         () => {
@@ -901,14 +901,14 @@ describe("Messages Component", () => {
       );
 
       const textarea = screen.getByPlaceholderText(/Type your message/i);
-      const sendButton = screen.getAllByText("Send");
+      const sendButton = screen.getByText ("Send");
       fireEvent.change(textarea, {
         target: { value: "Test message from Jest!" },
       });
       fireEvent.click(sendButton);
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Network error/i))[0].toBeInTheDocument();
+          expect(screen.getByText (/Network error/i))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );

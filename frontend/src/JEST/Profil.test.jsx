@@ -133,7 +133,7 @@ describe("Profil Component", () => {
     // Vérifier que le titre est présent
     await waitFor(
       () => {
-        expect(screen.getAllByText("Réseau Social"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Réseau Social"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -152,9 +152,9 @@ describe("Profil Component", () => {
     // Vérifier que les utilisateurs sont affichés
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
-        expect(screen.getAllByText("Bob Johnson"))[0].toBeInTheDocument();
-        expect(screen.getAllByText("Charlie Brown"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Bob Johnson"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Charlie Brown"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -216,7 +216,7 @@ describe("Profil Component", () => {
     // Attendre que les utilisateurs soient chargés
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -231,7 +231,7 @@ describe("Profil Component", () => {
     // Vérifier que seul Alice Smith est visible
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
         expect(screen.queryByText("Bob Johnson")).not.toBeInTheDocument();
         expect(screen.queryByText("Charlie Brown")).not.toBeInTheDocument();
       },
@@ -284,7 +284,7 @@ describe("Profil Component", () => {
     // Attendre que le composant soit chargé
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -299,14 +299,14 @@ describe("Profil Component", () => {
     // Vérifier que les amis sont affichés
     await waitFor(
       () => {
-        expect(screen.getAllByText("David Wilson"))[0].toBeInTheDocument();
-        expect(screen.getAllByText("david@example.com"))[0].toBeInTheDocument();
+        expect(screen.getByText ("David Wilson"))[0].toBeInTheDocument();
+        expect(screen.getByText ("david@example.com"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Vérifier que le titre de section est correct
-    expect(screen.getAllByText("👥 Mes Amis"))[0].toBeInTheDocument();
+    expect(screen.getByText ("👥 Mes Amis"))[0].toBeInTheDocument();
   });
 
   // Test 4: Switch to sent invitations tab
@@ -353,7 +353,7 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -370,13 +370,13 @@ describe("Profil Component", () => {
     // Vérifier que les invitations sont affichées
     await waitFor(
       () => {
-        expect(screen.getAllByText("Emma Watson"))[0].toBeInTheDocument();
-        expect(screen.getAllByText("emma@example.com"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Emma Watson"))[0].toBeInTheDocument();
+        expect(screen.getByText ("emma@example.com"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    expect(screen.getAllByText("📤 Invitations Envoyées"))[0].toBeInTheDocument();
+    expect(screen.getByText ("📤 Invitations Envoyées"))[0].toBeInTheDocument();
   });
 
   // Test 5: Switch to received invitations tab
@@ -423,7 +423,7 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -440,13 +440,13 @@ describe("Profil Component", () => {
     // Vérifier que les invitations sont affichées
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frank Miller"))[0].toBeInTheDocument();
-        expect(screen.getAllByText("frank@example.com"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Frank Miller"))[0].toBeInTheDocument();
+        expect(screen.getByText ("frank@example.com"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    expect(screen.getAllByText("📥 Invitations Reçues"))[0].toBeInTheDocument();
+    expect(screen.getByText ("📥 Invitations Reçues"))[0].toBeInTheDocument();
   });
 
   // Test 6: Shows empty states
@@ -494,7 +494,7 @@ describe("Profil Component", () => {
     await waitFor(
       () => {
         expect(
-          screen.getAllByText("Aucun utilisateur trouvé"),
+          screen.getByText ("Aucun utilisateur trouvé"),
         ).toBeInTheDocument();
       },
       { timeout: 3000 },
@@ -506,7 +506,7 @@ describe("Profil Component", () => {
     await waitFor(
       () => {
         expect(
-          screen.getAllByText("Aucun ami pour le moment"),
+          screen.getByText ("Aucun ami pour le moment"),
         ).toBeInTheDocument();
       },
       { timeout: 3000 },
@@ -519,7 +519,7 @@ describe("Profil Component", () => {
     await waitFor(
       () => {
         expect(
-          screen.getAllByText("Aucune invitation envoyée"),
+          screen.getByText ("Aucune invitation envoyée"),
         ).toBeInTheDocument();
       },
       { timeout: 3000 },
@@ -531,7 +531,7 @@ describe("Profil Component", () => {
     await user.click(receivedTab);
     await waitFor(
       () => {
-        expect(screen.getAllByText("Aucune invitation reçue"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Aucune invitation reçue"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -581,26 +581,26 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Trouver et cliquer sur le bouton +
-    const addButtons = screen.getAllByText("+");
+    const addButtons = screen.getByText ("+");
     await user.click(addButtons[0]);
 
     // Attendre que le modal s'ouvre
     await waitFor(
       () => {
-        expect(screen.getAllByText("➕ Ajouter comme ami"))[0].toBeInTheDocument();
+        expect(screen.getByText ("➕ Ajouter comme ami"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Vérifier que le modal contient les bonnes informations
-    expect(screen.getAllByText(/📧 Email:/i))[0].toBeInTheDocument();
-    const emailElements = screen.getAllByText("alice@example.com");
+    expect(screen.getByText (/📧 Email:/i))[0].toBeInTheDocument();
+    const emailElements = screen.getByText ("alice@example.com");
     expect(emailElements.length).toBeGreaterThan(0);
   });
 
@@ -671,13 +671,13 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("David Wilson"))[0].toBeInTheDocument();
+        expect(screen.getByText ("David Wilson"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Cliquer sur le bouton Supprimer
-    const deleteButton = screen.getAllByText("❌ Supprimer");
+    const deleteButton = screen.getByText ("❌ Supprimer");
     await user.click(deleteButton);
 
     // Vérifier que fetch a été appelé pour supprimer
@@ -763,13 +763,13 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frank Miller"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Frank Miller"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Cliquer sur le bouton Accepter
-    const acceptButton = screen.getAllByText("Accepter");
+    const acceptButton = screen.getByText ("Accepter");
     await user.click(acceptButton);
 
     // Vérifier que fetch a été appelé pour accepter
@@ -855,13 +855,13 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frank Miller"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Frank Miller"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Cliquer sur le bouton Refuser
-    const rejectButton = screen.getAllByText("Refuser");
+    const rejectButton = screen.getByText ("Refuser");
     await user.click(rejectButton);
 
     // Vérifier que fetch a été appelé pour refuser
@@ -949,13 +949,13 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Emma Watson"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Emma Watson"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Cliquer sur le bouton Annuler
-    const cancelButton = screen.getAllByText("Annuler");
+    const cancelButton = screen.getByText ("Annuler");
     await user.click(cancelButton);
 
     // Vérifier que fetch a été appelé pour annuler
@@ -1026,24 +1026,24 @@ describe("Profil Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Alice Smith"))[0].toBeInTheDocument();
+        expect(screen.getByText ("Alice Smith"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Ouvrir le modal
-    const addButtons = screen.getAllByText("+");
+    const addButtons = screen.getByText ("+");
     await user.click(addButtons[0]);
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("➕ Ajouter comme ami"))[0].toBeInTheDocument();
+        expect(screen.getByText ("➕ Ajouter comme ami"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Cliquer sur le bouton d'ajout d'ami dans le modal
-    const addFriendButton = screen.getAllByText("➕ Ajouter comme ami");
+    const addFriendButton = screen.getByText ("➕ Ajouter comme ami");
     await user.click(addFriendButton);
 
     // Vérifier que fetch a été appelé pour envoyer l'invitation
@@ -1071,6 +1071,6 @@ describe("Profil Component", () => {
     renderWithRouter(<Profil />);
 
     // Vérifier que l'état de chargement est affiché
-    expect(screen.getAllByText("Chargement des données..."))[0].toBeInTheDocument();
+    expect(screen.getByText ("Chargement des données..."))[0].toBeInTheDocument();
   });
 });

@@ -27,9 +27,9 @@ describe("DonatePage", () => {
   test("affiche correctement le titre et la description", () => {
     render(<DonatePage />);
 
-    expect(screen.getAllByText(/Soutenir le projet OpenHub/i))[0].toBeInTheDocument();
+    expect(screen.getByText (/Soutenir le projet OpenHub/i))[0].toBeInTheDocument();
     expect(
-      screen.getAllByText(/OpenHub est un projet open source/i),
+      screen.getByText (/OpenHub est un projet open source/i),
     ).toBeInTheDocument();
   });
 
@@ -69,7 +69,7 @@ describe("DonatePage", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Redirection.../i))[0].toBeInTheDocument();
+      expect(screen.getByText (/Redirection.../i))[0].toBeInTheDocument();
     });
     expect(button).toBeDisabled();
   });
@@ -87,7 +87,7 @@ describe("DonatePage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getAllByText(
+        screen.getByText (
           /Erreur lors de la création de la session de paiement/i,
         ),
       ).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe("DonatePage", () => {
 
     await waitFor(() => {
       expect(button).not.toBeDisabled();
-      expect(screen.getAllByText(/Faire un don/i))[0].toBeInTheDocument();
+      expect(screen.getByText (/Faire un don/i))[0].toBeInTheDocument();
     });
   });
 
@@ -124,7 +124,7 @@ describe("DonatePage", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Erreur/i))[0].toBeInTheDocument();
+      expect(screen.getByText (/Erreur/i))[0].toBeInTheDocument();
     });
 
     // Deuxième appel - succès
