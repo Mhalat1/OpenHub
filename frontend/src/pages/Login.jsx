@@ -18,7 +18,6 @@ const Login = () => {
 
     // Validation côté client
     if (!email || !password) {
-      console.log("Empty fields");
       setError("Veuillez remplir tous les champs");
       setIsLoading(false);
       return;

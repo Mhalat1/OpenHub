@@ -37,7 +37,6 @@ const validateName = (name) => {
 };
 
 const validateEmail = (email) => {
-  console.log("Validating email:", email);
   const trimmed = email.trim();
 
   if (!trimmed) return "Email requis";

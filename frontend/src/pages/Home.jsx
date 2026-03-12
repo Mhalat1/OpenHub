@@ -254,8 +254,6 @@ const Home = () => {
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
-    console.log("Token:", token);
-
     try {
       const userResponse = await fetch(`${API_URL}/api/getConnectedUser`, {
         method: "GET",
