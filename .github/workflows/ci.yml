@@ -3,24 +3,28 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, develop ]
-    paths-ignore:
-      - 'README.md'  # Ne pas lancer pour les mises à jour README
   pull_request:
     branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend 
+    
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json  # 👈 AJOUTE CECI
           
       - name: Install dependencies
-        run: npm ci
+        run: npm ci  # Maintenant ça marchera !
         
       - name: Lint
         run: npm run lint
@@ -30,12 +34,3 @@ jobs:
         
       - name: Build
         run: npm run build
-        
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Render Deploy
-        run: |
-          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
