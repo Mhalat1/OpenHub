@@ -65,11 +65,11 @@ describe("Login Component", () => {
     it("should render the login form with all elements", () => {
       renderLogin();
 
-      expect(screen.getAllByText("Bienvenue sur OpenHub")).toBeInTheDocument();
+      expect(screen.getAllByText("Bienvenue sur OpenHub"))[0].toBeInTheDocument();
       expect(
         screen.getAllByText("Rejoignez la communauté des développeurs passionnés"),
       ).toBeInTheDocument();
-      expect(screen.getAllByText("Connexion")).toBeInTheDocument();
+      expect(screen.getAllByText("Connexion"))[0].toBeInTheDocument();
       expect(
         screen.getAllByText("Accédez à votre espace personnel"),
       ).toBeInTheDocument();
@@ -86,8 +86,8 @@ describe("Login Component", () => {
       expect(
         screen.getAllByText("Connectez avec des développeurs"),
       ).toBeInTheDocument();
-      expect(screen.getAllByText("Partagez vos projets")).toBeInTheDocument();
-      expect(screen.getAllByText("Collaborez en temps réel")).toBeInTheDocument();
+      expect(screen.getAllByText("Partagez vos projets"))[0].toBeInTheDocument();
+      expect(screen.getAllByText("Collaborez en temps réel"))[0].toBeInTheDocument();
     });
 
     it("should render the logo", () => {
@@ -212,7 +212,7 @@ describe("Login Component", () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText("Invalid email format")).toBeInTheDocument();
+        expect(screen.getAllByText("Invalid email format"))[0].toBeInTheDocument();
       });
 
       expect(global.fetch).not.toHaveBeenCalled();
@@ -240,7 +240,7 @@ describe("Login Component", () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText("Identifiants incorrects")).toBeInTheDocument();
+        expect(screen.getAllByText("Identifiants incorrects"))[0].toBeInTheDocument();
       });
 
       expect(localStorage.getItem("token")).toBeNull();
@@ -292,7 +292,7 @@ describe("Login Component", () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText("Network error")).toBeInTheDocument();
+        expect(screen.getAllByText("Network error"))[0].toBeInTheDocument();
       });
 
       expect(mockNavigate).not.toHaveBeenCalled();
@@ -433,7 +433,7 @@ describe("Login Component", () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText("⚠️")).toBeInTheDocument();
+        expect(screen.getAllByText("⚠️"))[0].toBeInTheDocument();
         expect(
           screen.getAllByText("Veuillez remplir tous les champs"),
         ).toBeInTheDocument();
@@ -466,7 +466,7 @@ describe("Login Component", () => {
         expect(
           screen.queryByText("Veuillez remplir tous les champs"),
         ).not.toBeInTheDocument();
-        expect(screen.getAllByText("Invalid email format")).toBeInTheDocument();
+        expect(screen.getAllByText("Invalid email format"))[0].toBeInTheDocument();
       });
     });
   });

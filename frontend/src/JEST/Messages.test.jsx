@@ -164,7 +164,7 @@ describe("Messages Component", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText("Loading...")).toBeInTheDocument();
+    expect(screen.getAllByText("Loading..."))[0].toBeInTheDocument();
   });
 
   test("3. Affiche un message d'erreur sans token", async () => {
@@ -199,7 +199,7 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -209,8 +209,8 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Hello everyone!")).toBeInTheDocument();
-        expect(screen.getAllByText("Hi John!")).toBeInTheDocument();
+        expect(screen.getAllByText("Hello everyone!"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Hi John!"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -350,7 +350,7 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -405,7 +405,7 @@ describe("Messages Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -505,8 +505,8 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Friends \(0\)/i)).toBeInTheDocument();
-          expect(screen.getAllByText("No friends available")).toBeInTheDocument();
+          expect(screen.getAllByText(/Friends \(0\)/i))[0].toBeInTheDocument();
+          expect(screen.getAllByText("No friends available"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -554,7 +554,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Conversations \(0\)/i)).toBeInTheDocument();
+          expect(screen.getAllByText(/Conversations \(0\)/i))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -573,7 +573,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("New Conversation")).toBeInTheDocument();
+          expect(screen.getAllByText("New Conversation"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -611,7 +611,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("New Conversation")).toBeInTheDocument();
+          expect(screen.getAllByText("New Conversation"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -649,7 +649,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -693,7 +693,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -703,7 +703,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Hello everyone!")).toBeInTheDocument();
+          expect(screen.getAllByText("Hello everyone!"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -738,7 +738,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -748,7 +748,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("Hello everyone!")).toBeInTheDocument();
+          expect(screen.getAllByText("Hello everyone!"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -809,7 +809,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText("New Conversation")).toBeInTheDocument();
+          expect(screen.getAllByText("New Conversation"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -827,7 +827,7 @@ describe("Messages Component", () => {
 
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Network error/i)).toBeInTheDocument();
+          expect(screen.getAllByText(/Network error/i))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -884,7 +884,7 @@ describe("Messages Component", () => {
       );
       await waitFor(
         () => {
-          expect(screen.getAllByText("Project Discussion")).toBeInTheDocument();
+          expect(screen.getAllByText("Project Discussion"))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );
@@ -908,7 +908,7 @@ describe("Messages Component", () => {
       fireEvent.click(sendButton);
       await waitFor(
         () => {
-          expect(screen.getAllByText(/Network error/i)).toBeInTheDocument();
+          expect(screen.getAllByText(/Network error/i))[0].toBeInTheDocument();
         },
         { timeout: 3000 },
       );

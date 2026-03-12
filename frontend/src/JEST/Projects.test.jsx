@@ -121,16 +121,16 @@ describe("Projects Component", () => {
     );
 
     // Verify projects are displayed
-    expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
-    expect(screen.getAllByText("Project Beta")).toBeInTheDocument();
+    expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
+    expect(screen.getAllByText("Project Beta"))[0].toBeInTheDocument();
 
     // Verify skills are displayed
-    expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
-    expect(screen.getAllByText("Backend Development")).toBeInTheDocument();
+    expect(screen.getAllByText("Frontend Development"))[0].toBeInTheDocument();
+    expect(screen.getAllByText("Backend Development"))[0].toBeInTheDocument();
 
     // Verify counts
-    expect(screen.getAllByText(/Projects Management \(2\)/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Skills Management \(2\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Projects Management \(2\)/i))[0].toBeInTheDocument();
+    expect(screen.getAllByText(/Skills Management \(2\)/i))[0].toBeInTheDocument();
   });
 
   // Test 3: Search functionality
@@ -156,7 +156,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -170,8 +170,8 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
-        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development"))[0].toBeInTheDocument();
         expect(
           screen.queryByText("Backend Development"),
         ).not.toBeInTheDocument();
@@ -203,7 +203,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -213,7 +213,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project"))[0].toBeInTheDocument();
         expect(
           screen.getByPlaceholderText("Enter project name"),
         ).toBeInTheDocument();
@@ -255,7 +255,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -266,7 +266,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -323,7 +323,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -333,7 +333,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Create New Skill")).toBeInTheDocument();
+        expect(screen.getAllByText("Create New Skill"))[0].toBeInTheDocument();
         expect(
           screen.getByPlaceholderText("Enter skill name"),
         ).toBeInTheDocument();
@@ -375,7 +375,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -386,7 +386,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Create New Skill")).toBeInTheDocument();
+        expect(screen.getAllByText("Create New Skill"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -442,7 +442,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -453,7 +453,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Edit Project")).toBeInTheDocument();
+        expect(screen.getAllByText("Edit Project"))[0].toBeInTheDocument();
         expect(screen.getByDisplayValue("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
@@ -489,7 +489,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -542,7 +542,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -595,7 +595,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -606,7 +606,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Edit Project")).toBeInTheDocument();
+        expect(screen.getAllByText("Edit Project"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -663,7 +663,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -674,7 +674,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Edit Skill")).toBeInTheDocument();
+        expect(screen.getAllByText("Edit Skill"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -724,7 +724,7 @@ describe("Projects Component", () => {
     await waitFor(
       () => {
         expect(screen.getAllByText("No projects available")).toHaveLength(1);
-        expect(screen.getAllByText("No skills available")).toBeInTheDocument();
+        expect(screen.getAllByText("No skills available"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -753,7 +753,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -764,7 +764,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -806,7 +806,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -817,7 +817,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project"))[0].toBeInTheDocument();
       },
       { timeout: 3000 },
     );
