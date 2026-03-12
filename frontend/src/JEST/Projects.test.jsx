@@ -86,7 +86,7 @@ describe("Projects Component", () => {
     render(<Projects />);
 
     expect(
-      screen.getByText (/loading projects and skills/i),
+      screen.getAllByText(/loading projects and skills/i),
     ).toBeInTheDocument();
     expect(document.querySelector(".spinner")).toBeInTheDocument();
   });
@@ -114,23 +114,23 @@ describe("Projects Component", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByText ("Projects & Skills Management"),
+          screen.getAllByText("Projects & Skills Management"),
         ).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Verify projects are displayed
-    expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
-    expect(screen.getByText ("Project Beta"))[0].toBeInTheDocument();
+    expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+    expect(screen.getAllByText("Project Beta")).toBeInTheDocument();
 
     // Verify skills are displayed
-    expect(screen.getByText ("Frontend Development"))[0].toBeInTheDocument();
-    expect(screen.getByText ("Backend Development"))[0].toBeInTheDocument();
+    expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
+    expect(screen.getAllByText("Backend Development")).toBeInTheDocument();
 
     // Verify counts
-    expect(screen.getByText (/Projects Management \(2\)/i))[0].toBeInTheDocument();
-    expect(screen.getByText (/Skills Management \(2\)/i))[0].toBeInTheDocument();
+    expect(screen.getAllByText(/Projects Management \(2\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Skills Management \(2\)/i)).toBeInTheDocument();
   });
 
   // Test 3: Search functionality
@@ -156,7 +156,7 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -170,8 +170,8 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
-        expect(screen.getByText ("Frontend Development"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
         expect(
           screen.queryByText("Backend Development"),
         ).not.toBeInTheDocument();
@@ -203,17 +203,17 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    const createProjectButton = screen.getByText (/✨ Create New Project/i);
+    const createProjectButton = screen.getAllByText(/✨ Create New Project/i);
     await user.click(createProjectButton);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Create New Project"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
         expect(
           screen.getByPlaceholderText("Enter project name"),
         ).toBeInTheDocument();
@@ -255,18 +255,18 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Open modal
-    const createButton = screen.getByText (/✨ Create New Project/i);
+    const createButton = screen.getAllByText(/✨ Create New Project/i);
     await user.click(createButton);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Create New Project"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -281,7 +281,7 @@ describe("Projects Component", () => {
     await user.type(descriptionInput, "This is a test project description");
 
     // Submit
-    const submitButton = screen.getByText ("✨ Create Project");
+    const submitButton = screen.getAllByText("✨ Create Project");
     await user.click(submitButton);
 
     await waitFor(
@@ -323,17 +323,17 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Frontend Development"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
-    const createSkillButton = screen.getByText (/✨ Create New Skill/i);
+    const createSkillButton = screen.getAllByText(/✨ Create New Skill/i);
     await user.click(createSkillButton);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Create New Skill"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Create New Skill")).toBeInTheDocument();
         expect(
           screen.getByPlaceholderText("Enter skill name"),
         ).toBeInTheDocument();
@@ -375,18 +375,18 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Frontend Development"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Open modal
-    const createButton = screen.getByText (/✨ Create New Skill/i);
+    const createButton = screen.getAllByText(/✨ Create New Skill/i);
     await user.click(createButton);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Create New Skill"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Create New Skill")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -403,7 +403,7 @@ describe("Projects Component", () => {
     await user.type(techInput, "React, TypeScript");
 
     // Submit
-    const submitButton = screen.getByText ("✨ Create Skill");
+    const submitButton = screen.getAllByText("✨ Create Skill");
     await user.click(submitButton);
 
     await waitFor(
@@ -442,18 +442,18 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Find and click edit button
     const editButtons = screen.getAllByTitle("Edit project");
-    await user.click(editButtons[0]);
+    await user.click(editButtons);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Edit Project"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Edit Project")).toBeInTheDocument();
         expect(screen.getByDisplayValue("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
@@ -489,14 +489,14 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Find and click delete button
     const deleteButtons = screen.getAllByTitle("Delete project");
-    await user.click(deleteButtons[0]);
+    await user.click(deleteButtons);
 
     await waitFor(
       () => {
@@ -542,14 +542,14 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Frontend Development"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Find and click delete button
     const deleteButtons = screen.getAllByTitle("Delete skill");
-    await user.click(deleteButtons[0]);
+    await user.click(deleteButtons);
 
     await waitFor(
       () => {
@@ -595,18 +595,18 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Open edit modal
     const editButtons = screen.getAllByTitle("Edit project");
-    await user.click(editButtons[0]);
+    await user.click(editButtons);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Edit Project"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Edit Project")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -617,7 +617,7 @@ describe("Projects Component", () => {
     await user.type(nameInput, "Updated Project Alpha");
 
     // Submit
-    const updateButton = screen.getByText ("💾 Update Project");
+    const updateButton = screen.getAllByText("💾 Update Project");
     await user.click(updateButton);
 
     await waitFor(
@@ -663,18 +663,18 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Frontend Development"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Open edit modal
     const editButtons = screen.getAllByTitle("Edit skill");
-    await user.click(editButtons[0]);
+    await user.click(editButtons);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Edit Skill"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Edit Skill")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -685,7 +685,7 @@ describe("Projects Component", () => {
     await user.type(nameInput, "Updated Frontend");
 
     // Submit
-    const updateButton = screen.getByText ("💾 Update Skill");
+    const updateButton = screen.getAllByText("💾 Update Skill");
     await user.click(updateButton);
 
     await waitFor(
@@ -723,8 +723,8 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("No projects available")).toHaveLength(1);
-        expect(screen.getByText ("No skills available"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("No projects available")).toHaveLength(1);
+        expect(screen.getAllByText("No skills available")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -753,18 +753,18 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Open modal
-    const createButton = screen.getByText (/✨ Create New Project/i);
+    const createButton = screen.getAllByText(/✨ Create New Project/i);
     await user.click(createButton);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Create New Project"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -806,30 +806,30 @@ describe("Projects Component", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Project Alpha"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Project Alpha")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Open modal
-    const createButton = screen.getByText (/✨ Create New Project/i);
+    const createButton = screen.getAllByText(/✨ Create New Project/i);
     await user.click(createButton);
 
     await waitFor(
       () => {
-        expect(screen.getByText ("Create New Project"))[0].toBeInTheDocument();
+        expect(screen.getAllByText("Create New Project")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
 
     // Try to submit without filling required fields
-    const submitButton = screen.getByText ("✨ Create Project");
+    const submitButton = screen.getAllByText("✨ Create Project");
     await user.click(submitButton);
 
     await waitFor(
       () => {
         expect(
-          screen.getByText (/name and description are required/i),
+          screen.getAllByText(/name and description are required/i),
         ).toBeInTheDocument();
       },
       { timeout: 3000 },
