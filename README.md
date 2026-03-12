@@ -31,3 +31,6 @@ composer install
 php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 symfony server:start
+
+
+![CI/CD](https://github.com/Mhalat1/OpenHub/actions/workflows/ci.yml/badge.svg)
