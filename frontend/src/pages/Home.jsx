@@ -1,8 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import userPhoto from "../images/users/user1.png";
+import { useEffect, useState } from "react";
 import styles from "../style/Home.module.css";
-import React, { useEffect, useState } from "react";
-import Projects from "./Projects";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -399,7 +396,7 @@ const Home = () => {
                 <span className={styles.infoLabel}>Available from</span>
                 <span className={styles.infoValue}>
                   {user.availabilityStart
-                    ? new Date(user.availabilityStart).toLocaleDateString("FR-fr")
+                    ? new Date(user.availabilityStart).toLocaleDateString("fr-FR")
                     : "Not set"}
                 </span>
               </div>
@@ -407,7 +404,7 @@ const Home = () => {
                 <span className={styles.infoLabel}>to</span>
                 <span className={styles.infoValue}>
                   {user.availabilityEnd
-                    ? new Date(user.availabilityEnd).toLocaleDateString("FR-fr")
+                    ? new Date(user.availabilityEnd).toLocaleDateString("fr-FR")
                     : "Not set"}
                 </span>
               </div>
