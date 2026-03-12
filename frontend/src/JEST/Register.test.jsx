@@ -56,9 +56,9 @@ describe("Register Component", () => {
   describe("Initial Rendering", () => {
     it("should render the register page with header", () => {
       renderRegister();
-      expect(screen.getAllByText("Rejoindre OpenHub")).toBeInTheDocument();
+      expect(screen.getByText("Rejoindre OpenHub")).toBeInTheDocument();
       expect(
-        screen.getAllByText("Créez votre profil en 3 étapes"),
+        screen.getByText("Créez votre profil en 3 étapes"),
       ).toBeInTheDocument();
     });
 
@@ -77,7 +77,7 @@ describe("Register Component", () => {
 
     it("should render login link", () => {
       renderRegister();
-      expect(screen.getAllByText("Déjà un compte ?")).toBeInTheDocument();
+      expect(screen.getByText("Déjà un compte ?")).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /se connecter/i }),
       ).toBeInTheDocument();
@@ -85,14 +85,14 @@ describe("Register Component", () => {
 
     it("should start at step 1", () => {
       renderRegister();
-      expect(screen.getAllByText("Qui êtes-vous ?")).toBeInTheDocument();
+      expect(screen.getByText("Qui êtes-vous ?")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Votre prénom")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Votre nom")).toBeInTheDocument();
     });
 
     it("should show step indicator 1", () => {
       renderRegister();
-      expect(screen.getAllByText("1")).toBeInTheDocument();
+      expect(screen.getByText("1")).toBeInTheDocument();
     });
   });
 
@@ -115,22 +115,22 @@ describe("Register Component", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
     });
 
     it("should show error when lastName is empty and clicking Continue", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
     });
 
     it("should show both errors when both fields are empty", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
     });
 
     it("should clear error when user starts typing", () => {
@@ -138,7 +138,7 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
 
       const firstNameInput = screen.getByPlaceholderText("Votre prénom");
       fireEvent.change(firstNameInput, { target: { value: "John" } });
@@ -152,7 +152,7 @@ describe("Register Component", () => {
       fireEvent.click(continueButton);
 
       // Should still be on step 1
-      expect(screen.getAllByText("Qui êtes-vous ?")).toBeInTheDocument();
+      expect(screen.getByText("Qui êtes-vous ?")).toBeInTheDocument();
     });
 
     it("should advance to step 2 when both fields are filled", () => {
@@ -168,7 +168,7 @@ describe("Register Component", () => {
       fireEvent.click(continueButton);
 
       // Should be on step 2
-      expect(screen.getAllByText("Votre compte")).toBeInTheDocument();
+      expect(screen.getByText("Votre compte")).toBeInTheDocument();
     });
 
     it("should apply error style to invalid inputs", () => {
@@ -195,7 +195,7 @@ describe("Register Component", () => {
     });
 
     it("should show step indicator 2", () => {
-      expect(screen.getAllByText("2")).toBeInTheDocument();
+      expect(screen.getByText("2")).toBeInTheDocument();
     });
 
     it("should render back and continue buttons", () => {
@@ -226,7 +226,7 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getAllByText("L'email doit contenir un @")).toBeInTheDocument();
+      expect(screen.getByText("L'email doit contenir un @")).toBeInTheDocument();
     });
 
     it("should show error for short password", () => {
@@ -239,14 +239,14 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getAllByText("6 caractères minimum")).toBeInTheDocument();
+      expect(screen.getByText("6 caractères minimum")).toBeInTheDocument();
     });
 
     it("should go back to step 1 when clicking Retour", () => {
       const backButton = screen.getByRole("button", { name: /retour/i });
       fireEvent.click(backButton);
 
-      expect(screen.getAllByText("Qui êtes-vous ?")).toBeInTheDocument();
+      expect(screen.getByText("Qui êtes-vous ?")).toBeInTheDocument();
     });
 
     it("should advance to step 3 with valid email and password", () => {
@@ -259,7 +259,7 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getAllByText("Vos disponibilités")).toBeInTheDocument();
+      expect(screen.getByText("Vos disponibilités")).toBeInTheDocument();
     });
 
     it("should preserve data when navigating back and forth", () => {
@@ -299,7 +299,7 @@ describe("Register Component", () => {
     });
 
     it("should show step indicator 3", () => {
-      expect(screen.getAllByText("3")).toBeInTheDocument();
+      expect(screen.getByText("3")).toBeInTheDocument();
     });
 
     it("should render back and submit buttons", () => {
@@ -320,14 +320,14 @@ describe("Register Component", () => {
     });
 
     it("should show helper text for skills", () => {
-      expect(screen.getAllByText("Séparez par des virgules")).toBeInTheDocument();
+      expect(screen.getByText("Séparez par des virgules")).toBeInTheDocument();
     });
 
     it("should go back to step 2 when clicking Retour", () => {
       const backButton = screen.getByRole("button", { name: /retour/i });
       fireEvent.click(backButton);
 
-      expect(screen.getAllByText("Votre compte")).toBeInTheDocument();
+      expect(screen.getByText("Votre compte")).toBeInTheDocument();
     });
   });
 
@@ -400,7 +400,7 @@ describe("Register Component", () => {
       });
       fireEvent.click(submitButton);
 
-      expect(screen.getAllByText("Création...")).toBeInTheDocument();
+      expect(screen.getByText("Création...")).toBeInTheDocument();
       expect(submitButton).toBeDisabled();
 
       await waitFor(
@@ -451,7 +451,7 @@ describe("Register Component", () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText("Email déjà utilisé")).toBeInTheDocument();
+        expect(screen.getByText("Email déjà utilisé")).toBeInTheDocument();
       });
     });
 
@@ -464,7 +464,7 @@ describe("Register Component", () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText("Erreur réseau")).toBeInTheDocument();
+        expect(screen.getByText("Erreur réseau")).toBeInTheDocument();
       });
     });
   });
@@ -553,14 +553,14 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getByText("Champ requis")).toBeInTheDocument();
 
       const firstNameInput = screen.getByPlaceholderText("Votre prénom");
       fireEvent.change(firstNameInput, { target: { value: "John" } });
 
       expect(screen.queryByText("Champ requis")).not.toBeInTheDocument();
-      expect(screen.getAllByText("Champ requis")).toBeInTheDocument(); // Should still be there
+      expect(screen.getByText("Champ requis")).toBeInTheDocument(); // Should still be there
     });
 
     it("should not submit if step 3 validation fails", () => {
