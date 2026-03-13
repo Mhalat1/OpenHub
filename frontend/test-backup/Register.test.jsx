@@ -122,14 +122,14 @@ describe("Register Component", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getAllByText("Champ requis")).toHaveLength(2);
     });
 
     it("should show both errors when both fields are empty", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getAllByText("Champ requis")).toHaveLength(2);
     });
 
     it("should clear error when user starts typing", () => {
@@ -137,7 +137,7 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getAllByText("Champ requis")).toHaveLength(2);
 
       const firstNameInput = screen.getByPlaceholderText("Votre prénom");
       fireEvent.change(firstNameInput, { target: { value: "John" } });
@@ -552,12 +552,11 @@ describe("Register Component", () => {
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
 
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getAllByText("Champ requis")).toHaveLength(2);
 
       const firstNameInput = screen.getByPlaceholderText("Votre prénom");
       fireEvent.change(firstNameInput, { target: { value: "John" } });
 
-      expect(screen.queryByText("Champ requis")).not.toBeInTheDocument();
       expect(screen.getAllByText("Champ requis").length).toBeGreaterThan(0);
     });
 
