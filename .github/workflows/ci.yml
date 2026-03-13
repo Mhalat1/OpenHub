@@ -49,13 +49,16 @@ jobs:
           coverage: xdebug
 
       - name: Create .env for CI
-        run: cp .env.example .env || echo "APP_ENV=test" > .env
+        run: |
+          echo "APP_ENV=test" > .env
+          echo "APP_SECRET=ci_secret_for_tests" >> .env
+          echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" >> .env
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction --no-scripts -v
 
-      - name: Debug - check vendor
-        run: ls vendor/bin/ || echo "vendor/bin introuvable"
+      - name: Debug - list vendor/bin
+        run: ls vendor/bin/ || echo "vendor/bin introuvable → composer install a échoué"
 
       - name: Phpunit
         run: php vendor/bin/phpunit tests
