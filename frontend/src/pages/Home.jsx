@@ -347,13 +347,117 @@ const Home = () => {
     }
   };
 
-
+  // Move all data fetching inside useEffect
   useEffect(() => {
-  fetchData();
-  fetchAvailableSkills();
-  fetchAllProjects();
-  fetchUserProjects();
-}, [fetchData, fetchAvailableSkills, fetchAllProjects, fetchUserProjects]);
+    const fetchAllData = async () => {
+      const token = localStorage.getItem("token");
+      
+      // Fetch user data
+      try {
+        const userResponse = await fetch(`${API_URL}/api/getConnectedUser`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!userResponse.ok) {
+          throw new Error(`User API error: ${userResponse.status}`);
+        }
+
+        const dataUser = await userResponse.json();
+        setUser(dataUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+
+      // Fetch skills
+      try {
+        const skillsResponse = await fetch(`${API_URL}/api/user/skills`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!skillsResponse.ok) {
+          throw new Error(`Skills API error: ${skillsResponse.status}`);
+        }
+
+        const dataSkills = await skillsResponse.json();
+        setSkills(Array.isArray(dataSkills) ? dataSkills : []);
+      } catch (error) {
+        console.error("Error fetching skills:", error);
+      }
+
+      // Fetch available skills
+      try {
+        const availableSkillsResponse = await fetch(`${API_URL}/api/skills`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!availableSkillsResponse.ok) {
+          throw new Error(`Skills API error: ${availableSkillsResponse.status}`);
+        }
+
+        const data = await availableSkillsResponse.json();
+        setAvailableSkills(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Error fetching available skills:", error);
+      }
+
+      // Fetch all projects
+      try {
+        const allProjectsResponse = await fetch(`${API_URL}/api/allprojects`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!allProjectsResponse.ok) {
+          throw new Error(`Projects API error: ${allProjectsResponse.status}`);
+        }
+
+        const dataAllProject = await allProjectsResponse.json();
+        setProjects(Array.isArray(dataAllProject) ? dataAllProject : []);
+      } catch (error) {
+        console.error("Error fetching all projects:", error);
+      }
+
+      // Fetch user projects
+      try {
+        const userProjectsResponse = await fetch(`${API_URL}/api/user/projects`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!userProjectsResponse.ok) {
+          throw new Error(`Projects API error: ${userProjectsResponse.status}`);
+        }
+
+        const data = await userProjectsResponse.json();
+        setUserProjects(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Error fetching user projects:", error);
+      }
+    };
+
+    fetchAllData();
+  }, []); // Empty dependency array is fine now since all fetching is inside
 
   if (loading)
     return (
@@ -394,9 +498,8 @@ const Home = () => {
                 <span className={styles.infoLabel}>Available from</span>
                 <span className={styles.infoValue}>
                   {user.availabilityStart
-                    ? // ✅ What Prettier wants
-                      new Date(user.availabilityStart).toLocaleDateString(
-                        "fr-FR",
+                    ? new Date(user.availabilityStart).toLocaleDateString(
+                        "fr-FR"
                       )
                     : "Not set"}
                 </span>
@@ -468,8 +571,8 @@ const Home = () => {
               message.includes("✅")
                 ? styles.success
                 : message.includes("⏳")
-                  ? styles.info
-                  : styles.error
+                ? styles.info
+                : styles.error
             }`}
           >
             {message}
