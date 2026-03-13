@@ -115,7 +115,7 @@ describe("Register Component", () => {
       renderRegister();
       const continueButton = screen.getByRole("button", { name: /continuer/i });
       fireEvent.click(continueButton);
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
+      expect(screen.getAllByText("Champ requis")).toHaveLength(2);
     });
 
     it("should show error when lastName is empty and clicking Continue", () => {

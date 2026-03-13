@@ -179,8 +179,7 @@ describe("Home Component - Complete Coverage", () => {
       renderWithRouter(<Home />);
 
       await waitFor(() => {
-        const notSetElements = screen.getByText ("Not set");
-        expect(notSetElements.length).toBe(2);
+        expect(screen.getAllByText("Not set")).toHaveLength(2);
       });
     });
 

@@ -600,7 +600,7 @@ describe("Profil Component", () => {
 
     // Vérifier que le modal contient les bonnes informations
     expect(screen.getByText (/📧 Email:/i))[0].toBeInTheDocument();
-    const emailElements = screen.getByText ("alice@example.com");
+    expect(screen.getAllByText("alice@example.com")[0]).toBeInTheDocument();
     expect(emailElements.length).toBeGreaterThan(0);
   });
 

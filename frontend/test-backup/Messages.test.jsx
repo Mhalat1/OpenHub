@@ -202,7 +202,7 @@ describe("Messages Component", () => {
       { timeout: 3000 },
     );
 
-    const toggleButtons = screen.getByText ("▼");
+    const toggleButtons = screen.getAllByText ("▼");
     fireEvent.click(toggleButtons[0]);
 
     await waitFor(
@@ -350,7 +350,7 @@ describe("Messages Component", () => {
       { timeout: 3000 },
     );
 
-    const toggleButtons = screen.getByText ("▼");
+    const toggleButtons = screen.getAllByText ("▼");
     fireEvent.click(toggleButtons[0]);
 
     await waitFor(
@@ -647,7 +647,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getByText ("▼");
+      const toggleButtons = screen.getAllByText ("▼");
       fireEvent.click(toggleButtons[0]);
 
       await waitFor(
@@ -691,7 +691,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getByText ("▼");
+      const toggleButtons = screen.getAllByText ("▼");
       fireEvent.click(toggleButtons[0]);
 
       await waitFor(
@@ -736,7 +736,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getByText ("▼");
+      const toggleButtons = screen.getAllByText ("▼");
       fireEvent.click(toggleButtons[0]);
 
       await waitFor(
@@ -882,7 +882,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const toggleButtons = screen.getByText ("▼");
+      const toggleButtons = screen.getAllByText ("▼");
       fireEvent.click(toggleButtons[0]);
       await waitFor(
         () => {
