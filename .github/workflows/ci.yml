@@ -57,10 +57,23 @@ jobs:
           echo "APP_SECRET=ci_secret_for_tests" >> .env
           echo "DATABASE_URL=sqlite:///:memory:" >> .env
 
+      - name: Force SQLite for test environment
+        run: |
+          mkdir -p config/packages/test
+          cat > config/packages/test/doctrine.yaml << 'YAML'
+          doctrine:
+              dbal:
+                  url: 'sqlite:///:memory:'
+                  driver: pdo_sqlite
+          YAML
+
       - name: Install Composer dependencies
         run: |
           rm -rf vendor/
           composer install --prefer-dist --no-progress --no-interaction --no-scripts
+
+      - name: Clear cache
+        run: php bin/console cache:clear --env=test --no-warmup
 
       - name: Create database schema
         run: php bin/console doctrine:schema:create --env=test
