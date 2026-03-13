@@ -42,20 +42,9 @@ jobs:
         working-directory: ./backend
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: mbstring, pdo, pdo_mysql
-          coverage: xdebug
 
       - name: Create .env for CI
         run: cp .env.example .env || echo "APP_ENV=test" > .env
-
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction --no-scripts
 
       - name: Phpunit
         run: php vendor/bin/phpunit tests
