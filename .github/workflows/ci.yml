@@ -51,9 +51,6 @@ jobs:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -94,13 +91,6 @@ jobs:
           rm -rf vendor/
           composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Wait for MySQL
-        run: |
-          for i in {1..30}; do
-            mysqladmin ping -h 127.0.0.1 -u root -proot --silent && break
-            echo "Waiting for MySQL... ($i/30)"
-            sleep 2
-          done
 
       - name: Create database
         run: php bin/console doctrine:database:create --env=test --if-not-exists
