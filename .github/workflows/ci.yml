@@ -65,26 +65,34 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           coverage: xdebug
 
-      - name: Create .env for CI
+      - name: Create .env.test.local for CI
         run: |
-          echo "APP_ENV=test" > .env
-          echo "APP_SECRET=ci_secret_for_tests" >> .env
-          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test" >> .env
+          cat > .env.test.local << 'DOTENV'
+          DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test?serverVersion=8.0.32&charset=utf8mb4
+          JWT_PASSPHRASE=ci_jwt_passphrase
+          DOTENV
 
       - name: Install Composer dependencies
         run: |
           rm -rf vendor/
           composer install --prefer-dist --no-progress --no-interaction --no-scripts
 
+      - name: Generate JWT keys
+        run: |
+          mkdir -p config/jwt
+          openssl genrsa -passout pass:ci_jwt_passphrase -out config/jwt/private.pem 2048
+          openssl rsa -in config/jwt/private.pem -passin pass:ci_jwt_passphrase -pubout -out config/jwt/public.pem
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -u root -proot --silent && break
+            echo "Attente MySQL... ($i/30)"
+            sleep 2
+          done
+
       - name: Create database schema
         run: php bin/console doctrine:schema:create --env=test
 
       - name: Phpunit
-        run: php vendor/bin/phpunit tests --log-junit phpunit-report.xml || true
-
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phpunit-report
-          path: backend/phpunit-report.xml
+        run: php vendor/bin/phpunit tests
