@@ -43,8 +43,5 @@ jobs:
 
     steps:
 
-      - name: Create .env for CI
-        run: cp .env.example .env || echo "APP_ENV=test" > .env
-
       - name: Phpunit
         run: php vendor/bin/phpunit tests
