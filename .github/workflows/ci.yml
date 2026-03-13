@@ -92,6 +92,7 @@ jobs:
           composer install --prefer-dist --no-progress --no-interaction
 
 
+
       - name: Create database
         run: php bin/console doctrine:database:create --env=test --if-not-exists
 
