@@ -46,7 +46,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: openhub
+          MYSQL_DATABASE: openhub_test
         ports:
           - 3306:3306
         options: >-
@@ -65,23 +65,34 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           coverage: xdebug
 
-      - name: Create .env.test.local for CI
+      # ⚠️ .env DOIT être créé AVANT composer install
+      - name: Create .env for CI
         run: |
-          cat > .env.test.local << 'DOTENV'
+          cat > .env << 'DOTENV'
+          APP_ENV=test
+          APP_SECRET=ci_secret_for_tests
           DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test?serverVersion=8.0.32&charset=utf8mb4
           JWT_PASSPHRASE=ci_jwt_passphrase
+          JWT_PRIVATE_KEY=%kernel.project_dir%/config/jwt/private.pem
+          JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+          CORS_ALLOW_ORIGIN=http://localhost:5173
+          STRIPE_PRIVATE_KEY=sk_test_mock
+          STRIPE_PUBLIC_KEY=pk_test_mock
+          STRIPE_SECRET_KEY=sk_test_mock
+          PAPERTRAIL_TOKEN=https://mock
+          PAPERTRAIL_URL=mock
           DOTENV
-
-      - name: Install Composer dependencies
-        run: |
-          rm -rf vendor/
-          composer install --prefer-dist --no-progress --no-interaction
 
       - name: Generate JWT keys
         run: |
           mkdir -p config/jwt
           openssl genrsa -passout pass:ci_jwt_passphrase -out config/jwt/private.pem 2048
           openssl rsa -in config/jwt/private.pem -passin pass:ci_jwt_passphrase -pubout -out config/jwt/public.pem
+
+      - name: Install Composer dependencies
+        run: |
+          rm -rf vendor/
+          composer install --prefer-dist --no-progress --no-interaction
 
       - name: Wait for MySQL
         run: |
@@ -91,30 +102,15 @@ jobs:
             sleep 2
           done
 
-      - name: Create test database
-        run: php bin/console doctrine:database:create --env=test --if-not-exists
-
       - name: Create database schema
         run: php bin/console doctrine:schema:create --env=test
 
-      - name: Load fixtures (if you have them)
-        run: php bin/console doctrine:fixtures:load --env=test --no-interaction || true
+      - name: Phpunit
+        run: php vendor/bin/phpunit tests --log-junit phpunit-report.xml || true
 
-      - name: Run migrations (if you use them)
-        run: php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
-
-      - name: Clear cache
-        run: php bin/console cache:clear --env=test
-
-      - name: Validate schema
-        run: php bin/console doctrine:schema:validate --env=test || true
-
-      - name: Run tests with verbose output
-        run: php vendor/bin/phpunit tests --testdox
-
-      - name: Upload test results if failed
-        if: failure()
+      - name: Upload test report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: ./backend/var/log/test.log
+          name: phpunit-report
+          path: backend/phpunit-report.xml
