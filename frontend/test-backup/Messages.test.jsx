@@ -1,10 +1,10 @@
 // src/JEST/Messages.test.jsx
 import "@testing-library/jest-dom";
 import {
-    fireEvent,
-    render,
-    screen,
-    waitFor
+  fireEvent,
+  render,
+  screen,
+  waitFor
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Messages from "../pages/Messages";
@@ -404,7 +404,7 @@ describe("Messages Component", () => {
       { timeout: 3000 },
     );
 
-    const deleteButtons = screen.getAllByText ("🗑");
+    const deleteButtons = screen.getAllByText("🗑");
     fireEvent.click(deleteButtons[0]);
 
     expect(global.confirm).toHaveBeenCalledWith("Delete this conversation?");
@@ -701,7 +701,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const deleteMsgButtons = screen.getAllByText ("🗑");
+      const deleteMsgButtons = screen.getAllByText("🗑");
       // Le premier bouton est pour la conversation, le second pour le message
       fireEvent.click(deleteMsgButtons[1]);
 
@@ -746,7 +746,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const deleteMsgButtons = screen.getAllByText ("🗑");
+      const deleteMsgButtons = screen.getAllByText("🗑");
       fireEvent.click(deleteMsgButtons[1]);
 
       expect(global.confirm).toHaveBeenCalledWith("Delete this message?");
