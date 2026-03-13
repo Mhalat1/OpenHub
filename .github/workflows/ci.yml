@@ -41,6 +41,20 @@ jobs:
       run:
         working-directory: ./backend
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: openhub_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +69,7 @@ jobs:
         run: |
           echo "APP_ENV=test" > .env
           echo "APP_SECRET=ci_secret_for_tests" >> .env
-          echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" >> .env
+          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test" >> .env
 
       - name: Install Composer dependencies
         run: |
