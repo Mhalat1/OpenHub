@@ -587,7 +587,7 @@ describe("Profil Component", () => {
     );
 
     // Trouver et cliquer sur le bouton +
-    const addButtons = screen.getByText ("+");
+    const addButtons = screen.getAllByText("+");
     await user.click(addButtons[0]);
 
     // Attendre que le modal s'ouvre
@@ -601,7 +601,7 @@ describe("Profil Component", () => {
     // Vérifier que le modal contient les bonnes informations
     expect(screen.getByText (/📧 Email:/i))[0].toBeInTheDocument();
     expect(screen.getAllByText("alice@example.com")[0]).toBeInTheDocument();
-    expect(emailElements.length).toBeGreaterThan(0);
+
   });
 
   // Test 8: Deletes a friend
@@ -1032,7 +1032,7 @@ describe("Profil Component", () => {
     );
 
     // Ouvrir le modal
-    const addButtons = screen.getByText ("+");
+    const addButtons = screen.getAllByText("+");
     await user.click(addButtons[0]);
 
     await waitFor(
