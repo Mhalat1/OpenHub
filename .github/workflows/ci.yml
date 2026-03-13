@@ -102,6 +102,9 @@ jobs:
             sleep 2
           done
 
+      - name: Create database
+        run: php bin/console doctrine:database:create --env=test --if-not-exists
+
       - name: Create database schema
         run: php bin/console doctrine:schema:create --env=test
 
