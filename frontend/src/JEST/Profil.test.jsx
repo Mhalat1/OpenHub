@@ -587,8 +587,8 @@ describe("Profil Component", () => {
     );
 
     // Trouver et cliquer sur le bouton +
-    const addButtons = screen.getByText ("+");
-    await user.click(addButtons[0]);
+const addButtons = screen.getAllByText("+");
+await user.click(addButtons[0]);
 
     // Attendre que le modal s'ouvre
     await waitFor(
@@ -677,7 +677,8 @@ describe("Profil Component", () => {
     );
 
     // Cliquer sur le bouton Supprimer
-    const deleteButton = screen.getByText ("❌ Supprimer");
+    const deleteButton = screen.getByText("❌ Supprimer");
+    
     await user.click(deleteButton);
 
     // Vérifier que fetch a été appelé pour supprimer
@@ -1032,8 +1033,8 @@ describe("Profil Component", () => {
     );
 
     // Ouvrir le modal
-    const addButtons = screen.getByText ("+");
-    await user.click(addButtons[0]);
+const addButtons = screen.getAllByText("+");
+await user.click(addButtons[0]);
 
     await waitFor(
       () => {
@@ -1043,7 +1044,8 @@ describe("Profil Component", () => {
     );
 
     // Cliquer sur le bouton d'ajout d'ami dans le modal
-    const addFriendButton = screen.getByText ("➕ Ajouter comme ami");
+    const addFriendButton = screen.getByText("➕ Ajouter comme ami");
+
     await user.click(addFriendButton);
 
     // Vérifier que fetch a été appelé pour envoyer l'invitation
