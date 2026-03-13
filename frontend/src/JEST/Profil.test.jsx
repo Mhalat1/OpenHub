@@ -600,8 +600,8 @@ await user.click(addButtons[0]);
 
     // Vérifier que le modal contient les bonnes informations
     expect(screen.getByText(/📧 Email:/i)).toBeInTheDocument();
-    const emailElements = screen.getByText ("alice@example.com");
-    expect(emailElements.length).toBeGreaterThan(0);
+    // alice@example.com appears in both the card and modal — use getAllByText
+    expect(screen.getAllByText("alice@example.com")[0]).toBeInTheDocument();
   });
 
   // Test 8: Deletes a friend

@@ -1,602 +1,832 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import Register from "../pages/Register";
+import "@testing-library/jest-dom";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import Projects from "../pages/Projects";
 
-// Mock de useNavigate
-const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
-  useNavigate: () => mockNavigate,
-}));
+// Mock de l'API URL
+jest.mock("../pages/Projects", () => {
+  const actual = jest.requireActual("../pages/Projects");
+  return {
+    ...actual,
+    __esModule: true,
+    default: actual.default,
+  };
+});
 
-// Mock du logo
-jest.mock("../images/logo.png", () => "mocked-logo.png");
+// Configuration des variables d'environnement
+const API_URL = "http://localhost:3000";
+process.env.VITE_API_URL = API_URL;
 
-// Mock des styles CSS modules
-jest.mock("../style/register.module.css", () => ({
-  container: "container",
-  header: "header",
-  logo: "logo",
-  progressBar: "progressBar",
-  progress: "progress",
-  form: "form",
-  step: "step",
-  stepHeader: "stepHeader",
-  stepIndicator: "stepIndicator",
-  inputGroup: "inputGroup",
-  errorInput: "errorInput",
-  errorText: "errorText",
-  primaryButton: "primaryButton",
-  secondaryButton: "secondaryButton",
-  buttonGroup: "buttonGroup",
-  loginLink: "loginLink",
-  linkButton: "linkButton",
-  errorMessage: "errorMessage",
-}));
+// Mock pour fetch
+global.fetch = jest.fn();
 
-// Helper pour rendre le composant
-const renderRegister = () => {
-  return render(
-    <BrowserRouter>
-      <Register />
-    </BrowserRouter>,
-  );
+// Mock pour localStorage
+const localStorageMock = {
+  getItem: jest.fn(() => "mock-token"),
+  setItem: jest.fn(),
+  clear: jest.fn(),
+  removeItem: jest.fn(),
 };
+Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
-describe("Register Component", () => {
+// Mock pour window.confirm
+window.confirm = jest.fn(() => true);
+
+describe("Projects Component", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    global.fetch = jest.fn();
+    fetch.mockClear();
+    localStorageMock.getItem.mockClear();
+    window.confirm.mockClear();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
-  describe("Initial Rendering", () => {
-    it("should render the register page with header", () => {
-      renderRegister();
-      expect(screen.getByText("Rejoindre OpenHub")).toBeInTheDocument();
-      expect(
-        screen.getByText("Créez votre profil en 3 étapes"),
-      ).toBeInTheDocument();
-    });
+  const mockProjects = [
+    {
+      id: 1,
+      name: "Project Alpha",
+      description: "A cutting-edge web application",
+      requiredSkills: "React, Node.js, MongoDB",
+      startDate: "2024-01-01T00:00:00.000Z",
+      endDate: "2024-06-30T00:00:00.000Z",
+    },
+    {
+      id: 2,
+      name: "Project Beta",
+      description: "Mobile app development",
+      requiredSkills: "React Native, Firebase",
+      startDate: "2024-02-01T00:00:00.000Z",
+      endDate: "2024-08-31T00:00:00.000Z",
+    },
+  ];
 
-    it("should render the logo", () => {
-      renderRegister();
-      const logo = screen.getByAltText("OpenHub");
-      expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute("src", "mocked-logo.png");
-    });
+  const mockSkills = [
+    {
+      id: 1,
+      name: "Frontend Development",
+      description: "Building responsive user interfaces",
+      technoUtilisees: "React, Vue, Angular",
+      duree: "3 months",
+    },
+    {
+      id: 2,
+      name: "Backend Development",
+      description: "Server-side programming",
+      technoUtilisees: "Node.js, Express, MongoDB",
+      duree: "4 months",
+    },
+  ];
 
-    it("should render progress bar", () => {
-      const { container } = renderRegister();
-      expect(container.querySelector(".progressBar")).toBeInTheDocument();
-      expect(container.querySelector(".progress")).toBeInTheDocument();
-    });
+  // Test 1: Initial loading state
+  test("1. Displays loading state initially", () => {
+    fetch.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-    it("should render login link", () => {
-      renderRegister();
-      expect(screen.getByText("Déjà un compte ?")).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /se connecter/i }),
-      ).toBeInTheDocument();
-    });
+    render(<Projects />);
 
-    it("should start at step 1", () => {
-      renderRegister();
-      expect(screen.getByText("Qui êtes-vous ?")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Votre prénom")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Votre nom")).toBeInTheDocument();
-    });
-
-    it("should show step indicator 1", () => {
-      renderRegister();
-      expect(screen.getByText("1")).toBeInTheDocument();
-    });
+    expect(screen.getAllByText(/loading projects and skills/i)[0]).toBeInTheDocument();
+    expect(document.querySelector(".spinner")).toBeInTheDocument();
   });
 
-  describe("Step 1 - Personal Information", () => {
-    it("should update firstName on input change", () => {
-      renderRegister();
-      const firstNameInput = screen.getByPlaceholderText("Votre prénom");
-      fireEvent.change(firstNameInput, { target: { value: "John" } });
-      expect(firstNameInput.value).toBe("John");
+  // Test 2: Renders projects and skills after loading
+  test("2. Renders projects and skills after successful data fetch", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should update lastName on input change", () => {
-      renderRegister();
-      const lastNameInput = screen.getByPlaceholderText("Votre nom");
-      fireEvent.change(lastNameInput, { target: { value: "Doe" } });
-      expect(lastNameInput.value).toBe("Doe");
-    });
+    render(<Projects />);
 
-    it("should show error when firstName is empty and clicking Continue", () => {
-      renderRegister();
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Projects & Skills Management")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-    it("should show error when lastName is empty and clicking Continue", () => {
-      renderRegister();
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
-    });
+    // Verify projects are displayed
+    expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Project Beta")[0]).toBeInTheDocument();
 
-    it("should show both errors when both fields are empty", () => {
-      renderRegister();
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
-    });
+    // Verify skills are displayed
+    expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Backend Development")[0]).toBeInTheDocument();
 
-    it("should clear error when user starts typing", () => {
-      renderRegister();
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
-
-      const firstNameInput = screen.getByPlaceholderText("Votre prénom");
-      fireEvent.change(firstNameInput, { target: { value: "John" } });
-
-      expect(screen.queryByText("Champ requis")).not.toBeInTheDocument();
-    });
-
-    it("should not advance to step 2 if validation fails", () => {
-      renderRegister();
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      // Should still be on step 1
-      expect(screen.getByText("Qui êtes-vous ?")).toBeInTheDocument();
-    });
-
-    it("should advance to step 2 when both fields are filled", () => {
-      renderRegister();
-
-      const firstNameInput = screen.getByPlaceholderText("Votre prénom");
-      const lastNameInput = screen.getByPlaceholderText("Votre nom");
-
-      fireEvent.change(firstNameInput, { target: { value: "John" } });
-      fireEvent.change(lastNameInput, { target: { value: "Doe" } });
-
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      // Should be on step 2
-      expect(screen.getByText("Votre compte")).toBeInTheDocument();
-    });
-
-    it("should apply error style to invalid inputs", () => {
-      renderRegister();
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      const firstNameInput = screen.getByPlaceholderText("Votre prénom");
-      expect(firstNameInput).toHaveClass("errorInput");
-    });
+    // Verify counts
+    expect(screen.getAllByText(/Projects Management \(2\)/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/Skills Management \(2\)/i)[0]).toBeInTheDocument();
   });
 
-  describe("Step 2 - Account Information", () => {
-    beforeEach(() => {
-      renderRegister();
-      // Navigate to step 2
-      fireEvent.change(screen.getByPlaceholderText("Votre prénom"), {
-        target: { value: "John" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("Votre nom"), {
-        target: { value: "Doe" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
+  // Test 3: Search functionality
+  test("3. Filters projects and skills based on search input", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should show step indicator 2", () => {
-      expect(screen.getByText("2")).toBeInTheDocument();
-    });
+    render(<Projects />);
+    const user = userEvent.setup();
 
-    it("should render back and continue buttons", () => {
-      expect(
-        screen.getByRole("button", { name: /retour/i }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /continuer/i }),
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-    it("should update email on input change", () => {
-      const emailInput = screen.getByPlaceholderText("exemple@email.com");
-      fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-      expect(emailInput.value).toBe("test@example.com");
-    });
+    // Search for React
+    const searchInput = screen.getByPlaceholderText(
+      /search projects or skills/i,
+    );
+    await user.clear(searchInput);
+    await user.type(searchInput, "React");
 
-    it("should update password on input change", () => {
-      const passwordInput = screen.getByPlaceholderText("6 caractères minimum");
-      fireEvent.change(passwordInput, { target: { value: "password123" } });
-      expect(passwordInput.value).toBe("password123");
-    });
-
-    it("should show error for invalid email", () => {
-      const emailInput = screen.getByPlaceholderText("exemple@email.com");
-      fireEvent.change(emailInput, { target: { value: "invalidemail" } });
-
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      expect(screen.getByText("L'email doit contenir un @")).toBeInTheDocument();
-    });
-
-    it("should show error for short password", () => {
-      const emailInput = screen.getByPlaceholderText("exemple@email.com");
-      const passwordInput = screen.getByPlaceholderText("6 caractères minimum");
-
-      fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-      fireEvent.change(passwordInput, { target: { value: "123" } });
-
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      expect(screen.getByText("6 caractères minimum")).toBeInTheDocument();
-    });
-
-    it("should go back to step 1 when clicking Retour", () => {
-      const backButton = screen.getByRole("button", { name: /retour/i });
-      fireEvent.click(backButton);
-
-      expect(screen.getByText("Qui êtes-vous ?")).toBeInTheDocument();
-    });
-
-    it("should advance to step 3 with valid email and password", () => {
-      const emailInput = screen.getByPlaceholderText("exemple@email.com");
-      const passwordInput = screen.getByPlaceholderText("6 caractères minimum");
-
-      fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-      fireEvent.change(passwordInput, { target: { value: "password123" } });
-
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      expect(screen.getByText("Vos disponibilités")).toBeInTheDocument();
-    });
-
-    it("should preserve data when navigating back and forth", () => {
-      const emailInput = screen.getByPlaceholderText("exemple@email.com");
-      fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-
-      const backButton = screen.getByRole("button", { name: /retour/i });
-      fireEvent.click(backButton);
-
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      const emailInputAgain = screen.getByPlaceholderText("exemple@email.com");
-      expect(emailInputAgain.value).toBe("test@example.com");
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
+        expect(
+          screen.queryByText("Backend Development"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("Step 3 - Availability", () => {
-    beforeEach(() => {
-      renderRegister();
-      // Navigate to step 3
-      fireEvent.change(screen.getByPlaceholderText("Votre prénom"), {
-        target: { value: "John" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("Votre nom"), {
-        target: { value: "Doe" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
-
-      fireEvent.change(screen.getByPlaceholderText("exemple@email.com"), {
-        target: { value: "test@example.com" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("6 caractères minimum"), {
-        target: { value: "password123" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
+  // Test 4: Opens create project modal
+  test("4. Opens create project modal when button is clicked", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should show step indicator 3", () => {
-      expect(screen.getByText("3")).toBeInTheDocument();
-    });
+    render(<Projects />);
+    const user = userEvent.setup();
 
-    it("should render back and submit buttons", () => {
-      expect(
-        screen.getByRole("button", { name: /retour/i }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /créer mon compte/i }),
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-    it("should update skills input", () => {
-      const skillsInput = screen.getByPlaceholderText(
-        /JavaScript, React, Node.js.../i,
-      );
-      fireEvent.change(skillsInput, { target: { value: "React, Node.js" } });
-      expect(skillsInput.value).toBe("React, Node.js");
-    });
+    const createProjectButton = screen.getAllByText(/✨ Create New Project/i);
+    await user.click(createProjectButton[0]);
 
-    it("should show helper text for skills", () => {
-      expect(screen.getByText("Séparez par des virgules")).toBeInTheDocument();
-    });
-
-    it("should go back to step 2 when clicking Retour", () => {
-      const backButton = screen.getByRole("button", { name: /retour/i });
-      fireEvent.click(backButton);
-
-      expect(screen.getByText("Votre compte")).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText("Enter project name"),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("Form Submission", () => {
-    beforeEach(() => {
-      renderRegister();
-      // Navigate to step 3
-      fireEvent.change(screen.getByPlaceholderText("Votre prénom"), {
-        target: { value: "John" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("Votre nom"), {
-        target: { value: "Doe" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
-
-      fireEvent.change(screen.getByPlaceholderText("exemple@email.com"), {
-        target: { value: "test@example.com" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("6 caractères minimum"), {
-        target: { value: "password123" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
+  // Test 5: Creates a new project
+  test("5. Creates a new project successfully", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      if (url.includes("create/new/project") && options?.method === "POST") {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              message: "Project created successfully",
+            }),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should submit form with all data", async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: true }),
-      });
+    render(<Projects />);
+    const user = userEvent.setup();
 
-      const skillsInput = screen.getByPlaceholderText(
-        /JavaScript, React, Node.js.../i,
-      );
-      fireEvent.change(skillsInput, { target: { value: "React, Node.js" } });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-      const submitButton = screen.getByRole("button", {
-        name: /créer mon compte/i,
-      });
-      fireEvent.click(submitButton);
+    // Open modal
+    const createButton = screen.getAllByText(/✨ Create New Project/i);
+    await user.click(createButton[0]);
 
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("/api/userCreate"),
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Fill form
+    const nameInput = screen.getByPlaceholderText("Enter project name");
+    const descriptionInput = screen.getByPlaceholderText(
+      "Describe the project...",
+    );
+
+    await user.type(nameInput, "New Test Project");
+    await user.type(descriptionInput, "This is a test project description");
+
+    // Submit
+    const submitButton = screen.getAllByText("✨ Create Project");
+    await user.click(submitButton[0]);
+
+    await waitFor(
+      () => {
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining("create/new/project"),
           expect.objectContaining({
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: expect.any(String),
+            headers: expect.objectContaining({
+              Authorization: "Bearer mock-token",
+            }),
           }),
         );
-      });
-    });
+      },
+      { timeout: 3000 },
+    );
+  });
 
-    it("should show loading state during submission", async () => {
-      global.fetch.mockImplementationOnce(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => ({ status: true }),
-                }),
-              100,
-            ),
-          ),
-      );
-
-      const submitButton = screen.getByRole("button", {
-        name: /créer mon compte/i,
-      });
-      fireEvent.click(submitButton);
-
-      expect(screen.getByText("Création...")).toBeInTheDocument();
-      expect(submitButton).toBeDisabled();
-
-      await waitFor(
-        () => {
-          expect(mockNavigate).toHaveBeenCalled();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should navigate to login on successful registration", async () => {
-      jest.useFakeTimers();
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: true }),
-      });
-
-      const submitButton = screen.getByRole("button", {
-        name: /créer mon compte/i,
-      });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
-      });
-
-      jest.advanceTimersByTime(1500);
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith("/login", {
-          state: { message: "Compte créé avec succès !" },
+  // Test 6: Opens create skill modal
+  test("6. Opens create skill modal when button is clicked", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
         });
-      });
-
-      jest.useRealTimers();
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should show error message on failed registration", async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: false, message: "Email déjà utilisé" }),
-      });
+    render(<Projects />);
+    const user = userEvent.setup();
 
-      const submitButton = screen.getByRole("button", {
-        name: /créer mon compte/i,
-      });
-      fireEvent.click(submitButton);
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-      await waitFor(() => {
-        expect(screen.getByText("Email déjà utilisé")).toBeInTheDocument();
-      });
-    });
+    const createSkillButton = screen.getAllByText(/✨ Create New Skill/i);
+    await user.click(createSkillButton[0]);
 
-    it("should handle network error", async () => {
-      global.fetch.mockRejectedValueOnce(new Error("Network error"));
-
-      const submitButton = screen.getByRole("button", {
-        name: /créer mon compte/i,
-      });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Erreur réseau")).toBeInTheDocument();
-      });
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Create New Skill")[0]).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText("Enter skill name"),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("Progress Bar", () => {
-    it("should show 100% progress on step 3", () => {
-      const { container } = renderRegister();
-
-      fireEvent.change(screen.getByPlaceholderText("Votre prénom"), {
-        target: { value: "John" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("Votre nom"), {
-        target: { value: "Doe" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
-
-      fireEvent.change(screen.getByPlaceholderText("exemple@email.com"), {
-        target: { value: "test@example.com" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("6 caractères minimum"), {
-        target: { value: "password123" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
-
-      const progressBar = container.querySelector(".progress");
-      expect(progressBar).toHaveStyle({ width: "100%" });
+  // Test 7: Creates a new skill
+  test("7. Creates a new skill successfully", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills/create") && options?.method === "POST") {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              message: "Skill created successfully",
+            }),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
+
+    render(<Projects />);
+    const user = userEvent.setup();
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Open modal
+    const createButton = screen.getAllByText(/✨ Create New Skill/i);
+    await user.click(createButton[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Create New Skill")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Fill form
+    const nameInput = screen.getByPlaceholderText("Enter skill name");
+    const descriptionInput = screen.getByPlaceholderText(
+      "Describe the skill...",
+    );
+    const techInput = screen.getByPlaceholderText(/React, JavaScript/i);
+
+    await user.type(nameInput, "New Skill");
+    await user.type(descriptionInput, "Test skill description");
+    await user.type(techInput, "React, TypeScript");
+
+    // Submit
+    const submitButton = screen.getAllByText("✨ Create Skill");
+    await user.click(submitButton[0]);
+
+    await waitFor(
+      () => {
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining("skills/create"),
+          expect.objectContaining({
+            method: "POST",
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("Navigation Links", () => {
-    it("should navigate to login when clicking Se connecter link", () => {
-      renderRegister();
-
-      const loginButton = screen.getByRole("button", { name: /se connecter/i });
-      fireEvent.click(loginButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith("/login");
+  // Test 8: Opens edit project modal
+  test("8. Opens edit project modal when edit button is clicked", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
+
+    render(<Projects />);
+    const user = userEvent.setup();
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Find and click edit button
+    const editButtons = screen.getAllByTitle("Edit project");
+    await user.click(editButtons[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Edit Project")[0]).toBeInTheDocument();
+        expect(screen.getByDisplayValue("Project Alpha")).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("useReducer State Management", () => {
-    it("should update multiple fields correctly", () => {
-      renderRegister();
-
-      const firstNameInput = screen.getByPlaceholderText("Votre prénom");
-      const lastNameInput = screen.getByPlaceholderText("Votre nom");
-
-      fireEvent.change(firstNameInput, { target: { value: "John" } });
-      fireEvent.change(lastNameInput, { target: { value: "Doe" } });
-
-      expect(firstNameInput.value).toBe("John");
-      expect(lastNameInput.value).toBe("Doe");
+  // Test 9: Deletes a project
+  test("9. Deletes a project successfully", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      if (url.includes("delete/project") && options?.method === "DELETE") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should maintain state across step navigation", () => {
-      renderRegister();
+    render(<Projects />);
+    const user = userEvent.setup();
 
-      // Step 1
-      fireEvent.change(screen.getByPlaceholderText("Votre prénom"), {
-        target: { value: "John" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("Votre nom"), {
-        target: { value: "Doe" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-      // Step 2
-      fireEvent.change(screen.getByPlaceholderText("exemple@email.com"), {
-        target: { value: "test@example.com" },
-      });
+    // Find and click delete button
+    const deleteButtons = screen.getAllByTitle("Delete project");
+    await user.click(deleteButtons[0]);
 
-      // Back to step 1
-      const backButton = screen.getByRole("button", { name: /retour/i });
-      fireEvent.click(backButton);
-
-      // Check data is preserved
-      expect(screen.getByPlaceholderText("Votre prénom").value).toBe("John");
-      expect(screen.getByPlaceholderText("Votre nom").value).toBe("Doe");
-    });
+    await waitFor(
+      () => {
+        expect(window.confirm).toHaveBeenCalled();
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining("delete/project/1"),
+          expect.objectContaining({
+            method: "DELETE",
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("Error Handling", () => {
-    it("should clear specific field error when user types", () => {
-      renderRegister();
-
-      const continueButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(continueButton);
-
-      expect(screen.getByText("Champ requis")).toBeInTheDocument();
-
-      const firstNameInput = screen.getByPlaceholderText("Votre prénom");
-      fireEvent.change(firstNameInput, { target: { value: "John" } });
-
-      expect(screen.queryByText("Champ requis")).not.toBeInTheDocument();
-      expect(screen.getAllByText("Champ requis").length).toBeGreaterThan(0);
+  // Test 10: Deletes a skill
+  test("10. Deletes a skill successfully", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills/delete") && options?.method === "DELETE") {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({ success: true, message: "Skill deleted" }),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
-    it("should not submit if step 3 validation fails", () => {
-      renderRegister();
+    render(<Projects />);
+    const user = userEvent.setup();
 
-      // This should not happen in normal flow, but testing edge case
-      const submitButton = screen.getByRole("button", { name: /continuer/i });
-      fireEvent.click(submitButton);
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
+    // Find and click delete button
+    const deleteButtons = screen.getAllByTitle("Delete skill");
+    await user.click(deleteButtons[0]);
+
+    await waitFor(
+      () => {
+        expect(window.confirm).toHaveBeenCalled();
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining("skills/delete/1"),
+          expect.objectContaining({
+            method: "DELETE",
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 
-  describe("Accessibility", () => {
-    it("should have submit button accessible", () => {
-      renderRegister();
-
-      // Navigate to step 3
-      fireEvent.change(screen.getByPlaceholderText("Votre prénom"), {
-        target: { value: "John" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("Votre nom"), {
-        target: { value: "Doe" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
-
-      fireEvent.change(screen.getByPlaceholderText("exemple@email.com"), {
-        target: { value: "test@example.com" },
-      });
-      fireEvent.change(screen.getByPlaceholderText("6 caractères minimum"), {
-        target: { value: "password123" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
-
-      const submitButton = screen.getByRole("button", {
-        name: /créer mon compte/i,
-      });
-      expect(submitButton).toHaveAttribute("type", "submit");
+  // Test 11: Updates a project
+  test("11. Updates a project successfully", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      if (url.includes("modify/project") && options?.method === "PUT") {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({ success: true, message: "Project updated" }),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
+
+    render(<Projects />);
+    const user = userEvent.setup();
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Open edit modal
+    const editButtons = screen.getAllByTitle("Edit project");
+    await user.click(editButtons[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Edit Project")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Modify name
+    const nameInput = screen.getByDisplayValue("Project Alpha");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Updated Project Alpha");
+
+    // Submit
+    const updateButton = screen.getAllByText("💾 Update Project");
+    await user.click(updateButton[0]);
+
+    await waitFor(
+      () => {
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining("modify/project/1"),
+          expect.objectContaining({
+            method: "PUT",
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  // Test 12: Updates a skill
+  test("12. Updates a skill successfully", async () => {
+    fetch.mockImplementation((url, options) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills/update") && options?.method === "PUT") {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({ success: true, message: "Skill updated" }),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    render(<Projects />);
+    const user = userEvent.setup();
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Open edit modal
+    const editButtons = screen.getAllByTitle("Edit skill");
+    await user.click(editButtons[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Edit Skill")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Modify name
+    const nameInput = screen.getByDisplayValue("Frontend Development");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Updated Frontend");
+
+    // Submit
+    const updateButton = screen.getAllByText("💾 Update Skill");
+    await user.click(updateButton[0]);
+
+    await waitFor(
+      () => {
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining("skills/update/1"),
+          expect.objectContaining({
+            method: "PUT",
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  // Test 13: Shows empty states
+  test("13. Shows empty states when no projects or skills exist", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    render(<Projects />);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("No projects available")).toHaveLength(1);
+        expect(screen.getAllByText("No skills available")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  // Test 14: Closes modal when clicking outside
+  test("14. Closes modal when clicking on overlay", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    render(<Projects />);
+    const user = userEvent.setup();
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Open modal
+    const createButton = screen.getAllByText(/✨ Create New Project/i);
+    await user.click(createButton[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Click on overlay
+    const overlay = document.querySelector(".modalOverlay");
+    await user.click(overlay);
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByText("Create New Project"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  // Test 15: Validates required fields
+  test("15. Shows validation message for required fields", async () => {
+    fetch.mockImplementation((url) => {
+      if (url.includes("allprojects")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockProjects),
+        });
+      }
+      if (url.includes("skills")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSkills),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    render(<Projects />);
+    const user = userEvent.setup();
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Open modal
+    const createButton = screen.getAllByText(/✨ Create New Project/i);
+    await user.click(createButton[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Try to submit without filling required fields
+    const submitButton = screen.getAllByText("✨ Create Project");
+    await user.click(submitButton[0]);
+
+    await waitFor(
+      () => {
+        expect(screen.getAllByText(/name and description are required/i)[0]).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 });
