@@ -1,4 +1,4 @@
-import { onLCP, onFID, onCLS, onFCP } from "web-vitals";
+import { onLCP, onFID, onCLS } from "web-vitals";
 
 const API = import.meta.env.VITE_API_URL;
 

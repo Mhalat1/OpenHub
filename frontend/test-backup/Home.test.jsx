@@ -1,4 +1,3 @@
-process.env.VITE_API_URL = "http://localhost:3000";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";

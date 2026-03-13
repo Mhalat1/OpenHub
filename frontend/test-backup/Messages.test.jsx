@@ -1,4 +1,3 @@
-process.env.VITE_API_URL = "http://localhost:3000";
 // src/JEST/Messages.test.jsx
 import "@testing-library/jest-dom";
 import {

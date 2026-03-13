@@ -8,7 +8,6 @@ export const performLogin = async (
   email = "user@user",
   password = "useruser",
 ) => {
-  console.log(`🔐 Début du login automatique pour: ${email}`);
 
   // Crée un token mock
   const mockToken = `jwt-token-${Date.now()}`;
@@ -45,8 +44,6 @@ export const performLogin = async (
     { timeout: 3000 },
   );
 
-  console.log(`✅ Login automatique réussi pour: ${email}`);
-  console.log(`📦 Token généré: ${mockToken}`);
 
   return {
     token: mockToken,

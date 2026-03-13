@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import styles from "../style/Home.module.css";
-
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Home = () => {
@@ -348,12 +347,13 @@ const Home = () => {
     }
   };
 
+
   useEffect(() => {
-    fetchData();
-    fetchAvailableSkills();
-    fetchAllProjects();
-    fetchUserProjects();
-  }, []);
+  fetchData();
+  fetchAvailableSkills();
+  fetchAllProjects();
+  fetchUserProjects();
+}, [fetchData, fetchAvailableSkills, fetchAllProjects, fetchUserProjects]);
 
   if (loading)
     return (
