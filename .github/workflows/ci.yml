@@ -7,30 +7,52 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  test-frontend:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend 
-    
+        working-directory: ./frontend
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json  
-          
+          cache-dependency-path: ./frontend/package-lock.json
+
       - name: Install dependencies
-        run: npm ci 
-        
+        run: npm ci
+
       - name: Lint
         run: npm run lint
-        
-      - name: Tests
-        run: npm test
-        
+
+      - name: Jest
+        run: npm run test:jest
+
       - name: Build
         run: npm run build
+
+  test-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo, pdo_mysql
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Phpunit
+        run: php vendor/bin/phpunit tests
