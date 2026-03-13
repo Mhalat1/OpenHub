@@ -83,7 +83,7 @@ jobs:
           openssl genrsa -passout pass:ci_jwt_passphrase -out config/jwt/private.pem 2048
           openssl rsa -in config/jwt/private.pem -passin pass:ci_jwt_passphrase -pubout -out config/jwt/public.pem
 
-      - name: Wait for MySQL
+      - name: Wait for MySQL new
         run: |
           for i in {1..30}; do
             mysqladmin ping -h 127.0.0.1 -u root -proot --silent && break
