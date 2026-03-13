@@ -37,6 +37,9 @@ jobs:
 
   test-backend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
 
     steps:
       - uses: actions/checkout@v4
@@ -55,10 +58,9 @@ jobs:
           echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" >> .env
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction --no-scripts -v
-
-      - name: Debug - list vendor/bin
-        run: ls vendor/bin/ || echo "vendor/bin introuvable → composer install a échoué"
+        run: |
+          rm -rf vendor/
+          composer install --prefer-dist --no-progress --no-interaction --no-scripts
 
       - name: Phpunit
         run: php vendor/bin/phpunit tests
