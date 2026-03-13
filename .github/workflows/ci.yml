@@ -65,7 +65,6 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           coverage: xdebug
 
-
       - name: Create .env.test.local for CI
         run: |
           cat > .env.test.local << 'DOTENV'
@@ -92,6 +91,9 @@ jobs:
             echo "Attente MySQL... ($i/30)"
             sleep 2
           done
+
+      - name: Create test database
+        run: php bin/console doctrine:database:create --env=test
 
       - name: Create database schema
         run: php bin/console doctrine:schema:create --env=test
