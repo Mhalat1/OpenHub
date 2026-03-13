@@ -404,7 +404,7 @@ describe("Messages Component", () => {
       { timeout: 3000 },
     );
 
-    const deleteButtons = screen.getByText ("🗑");
+    const deleteButtons = screen.getAllByText ("🗑");
     fireEvent.click(deleteButtons[0]);
 
     expect(global.confirm).toHaveBeenCalledWith("Delete this conversation?");
@@ -701,7 +701,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const deleteMsgButtons = screen.getByText ("🗑");
+      const deleteMsgButtons = screen.getAllByText ("🗑");
       // Le premier bouton est pour la conversation, le second pour le message
       fireEvent.click(deleteMsgButtons[1]);
 
@@ -746,7 +746,7 @@ describe("Messages Component", () => {
         { timeout: 3000 },
       );
 
-      const deleteMsgButtons = screen.getByText ("🗑");
+      const deleteMsgButtons = screen.getAllByText ("🗑");
       fireEvent.click(deleteMsgButtons[1]);
 
       expect(global.confirm).toHaveBeenCalledWith("Delete this message?");
