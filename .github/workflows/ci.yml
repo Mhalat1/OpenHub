@@ -41,20 +41,6 @@ jobs:
       run:
         working-directory: ./backend
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: openhub_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -62,19 +48,22 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, pdo, pdo_mysql
+          extensions: mbstring, pdo, pdo_sqlite
           coverage: xdebug
 
       - name: Create .env for CI
         run: |
           echo "APP_ENV=test" > .env
           echo "APP_SECRET=ci_secret_for_tests" >> .env
-          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test" >> .env
+          echo "DATABASE_URL=sqlite:///:memory:" >> .env
 
       - name: Install Composer dependencies
         run: |
           rm -rf vendor/
           composer install --prefer-dist --no-progress --no-interaction --no-scripts
+
+      - name: Create database schema
+        run: php bin/console doctrine:schema:create --env=test
 
       - name: Phpunit
         run: php vendor/bin/phpunit tests
