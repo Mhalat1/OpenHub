@@ -65,12 +65,14 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           coverage: xdebug
 
+
       - name: Create .env.test.local for CI
         run: |
           cat > .env.test.local << 'DOTENV'
           DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test?serverVersion=8.0.32&charset=utf8mb4
           JWT_PASSPHRASE=ci_jwt_passphrase
           DOTENV
+          cat > .env
 
       - name: Install Composer dependencies
         run: |
