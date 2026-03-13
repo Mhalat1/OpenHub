@@ -46,7 +46,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: openhub_test
+          MYSQL_DATABASE: openhub
         ports:
           - 3306:3306
         options: >-
@@ -69,7 +69,7 @@ jobs:
         run: |
           printf 'APP_ENV=test\n' > .env
           printf 'APP_SECRET=ci_secret_for_tests\n' >> .env
-          printf 'DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test?serverVersion=8.0.32&charset=utf8mb4\n' >> .env
+          printf 'DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub?serverVersion=8.0.32&charset=utf8mb4\n' >> .env
           printf 'JWT_PASSPHRASE=ci_jwt_passphrase\n' >> .env
           printf 'JWT_PRIVATE_KEY=%%kernel.project_dir%%/config/jwt/private.pem\n' >> .env
           printf 'JWT_PUBLIC_KEY=%%kernel.project_dir%%/config/jwt/public.pem\n' >> .env
@@ -79,7 +79,7 @@ jobs:
           printf 'STRIPE_SECRET_KEY=sk_test_mock\n' >> .env
           printf 'PAPERTRAIL_TOKEN=https://mock\n' >> .env
           printf 'PAPERTRAIL_URL=mock\n' >> .env
-          printf 'DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub_test?serverVersion=8.0.32&charset=utf8mb4\n' > .env.test.local
+          printf 'DATABASE_URL=mysql://root:root@127.0.0.1:3306/openhub?serverVersion=8.0.32&charset=utf8mb4\n' > .env.test.local
           printf 'JWT_PASSPHRASE=ci_jwt_passphrase\n' >> .env.test.local
           cat .env.test.local
 
