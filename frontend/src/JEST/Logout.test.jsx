@@ -50,7 +50,7 @@ describe("LogoutButton Component", () => {
   describe("Rendering", () => {
     it("should render the logout card with title", () => {
       render(<LogoutButton />);
-      expect(screen.getByText ("See you soon 👋"))[0].toBeInTheDocument();
+      expect(screen.getByText("See you soon 👋")).toBeInTheDocument();
     });
 
     it("should render both action buttons", () => {
