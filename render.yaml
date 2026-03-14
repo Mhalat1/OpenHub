@@ -2,30 +2,21 @@ services:
 
   - type: web
     name: openhub-frontend
-    env: static
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: ./frontend/dist
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    buildArgs:
+      - key: VITE_API_URL
+        value: https://openhub-backend.onrender.com
     envVars:
       - key: VITE_API_URL
         value: https://openhub-backend.onrender.com
       - key: REACT_APP_API_URL
         value: https://openhub-backend.onrender.com
 
-
-
   - type: web
     name: openhub-backend
-    env: php
-    buildCommand: |
-      cd backend &&
-      composer install --no-interaction --no-dev --optimize-autoloader &&
-      mkdir -p config/jwt &&
-      openssl genrsa -passout env:JWT_PASSPHRASE -out config/jwt/private.pem 2048 &&
-      openssl rsa -in config/jwt/private.pem -passin env:JWT_PASSPHRASE -pubout -out config/jwt/public.pem
-    startCommand: |
-      cd backend &&
-      php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration &&
-      php -S 0.0.0.0:$PORT -t public
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: APP_ENV
         value: production
@@ -37,12 +28,6 @@ services:
         sync: false
       - key: CORS_ALLOW_ORIGIN
         value: https://openhub-frontend.onrender.com
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: PAPERTRAIL_TOKEN
-        sync: false
-      - key: PAPERTRAIL_URL
-        sync: false
       - key: TRUSTED_PROXIES
         value: REMOTE_ADDR
       - key: APACHE_DOCUMENT_ROOT
@@ -53,8 +38,10 @@ services:
         value: openhub-backend
       - key: OTEL_TRACES_EXPORTER
         value: otlp
-
-
+      - key: PAPERTRAIL_TOKEN
+        sync: false
+      - key: PAPERTRAIL_URL
+        sync: false
 
   - type: web
     name: openhub-prometheus
