@@ -24,6 +24,10 @@ services:
         sync: false
       - key: JWT_PASSPHRASE
         sync: false
+      - key: JWT_PRIVATE_KEY
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
       - key: CORS_ALLOW_ORIGIN
         value: https://openhub-frontend.onrender.com
       - key: TRUSTED_PROXIES
@@ -39,7 +43,8 @@ services:
       - key: PAPERTRAIL_TOKEN
         sync: false
       - key: PAPERTRAIL_URL
-        sync: false
+        value: https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs
+
 
   - type: web
     name: openhub-prometheus
