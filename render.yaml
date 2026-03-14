@@ -57,3 +57,5 @@ services:
     envVars:
       - key: BACKEND_URL
         value: https://openhub-backend.onrender.com
+      - key: GRAFANA_TOKEN 
+        sync: false
