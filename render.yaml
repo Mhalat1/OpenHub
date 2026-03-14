@@ -2,6 +2,7 @@ services:
   - type: web
     name: openhub-frontend
     env: docker
+    plan: free
     dockerfilePath: ./frontend/Dockerfile
     envVars:
       - key: VITE_API_URL
@@ -12,6 +13,7 @@ services:
   - type: web
     name: openhub-backend
     env: docker
+    plan: free
     dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: APP_ENV
@@ -42,6 +44,7 @@ services:
   - type: web
     name: openhub-prometheus
     env: docker
+    plan: free
     dockerfilePath: ./prometheus/Dockerfile
     envVars:
       - key: BACKEND_URL
