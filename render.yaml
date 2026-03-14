@@ -4,6 +4,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
     envVars:
       - key: VITE_API_URL
         value: https://openhub-backend.onrender.com
@@ -15,6 +16,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: APP_ENV
         value: production
@@ -51,6 +53,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./prometheus/Dockerfile
+    dockerContext: ./prometheus
     envVars:
       - key: BACKEND_URL
         value: https://openhub-backend.onrender.com
