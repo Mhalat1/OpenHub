@@ -1,7 +1,6 @@
 FROM node:18 AS build
 
-# Déclarez l'argument
-ARG VITE_API_URL
+ENV VITE_API_URL=https://openhub-backend.onrender.com
 
 WORKDIR /app
 COPY package*.json ./

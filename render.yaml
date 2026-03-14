@@ -3,8 +3,6 @@ services:
     name: openhub-frontend
     env: docker
     dockerfilePath: ./frontend/Dockerfile
-    buildArgs:
-      VITE_API_URL: https://openhub-backend.onrender.com
     envVars:
       - key: VITE_API_URL
         value: https://openhub-backend.onrender.com
