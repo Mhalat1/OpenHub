@@ -21,7 +21,7 @@
         <env name="KERNEL_CLASS" value="App\Kernel"/>
         
         <!-- Database -->
-        <env name="DATABASE_URL" value="mysql://root:@127.0.0.1:3310/openhub_local?serverVersion=8.0.32&amp;charset=utf8mb4"/>
+        <env name="DATABASE_URL" value="mysql://root:@127.0.0.1:3306/openhub?serverVersion=8.0.32&amp;charset=utf8mb4"/>
         
         <!-- Stripe Keys (add these) -->
         <env name="STRIPE_PRIVATE_KEY" value="sk_test_mockkeyfortesting"/>
