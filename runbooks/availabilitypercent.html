@@ -8,6 +8,30 @@
 
 </head>
 <body>
+    <nav class="runbook-nav">
+  <div class="runbook-nav__inner">
+    <a href="index.html" class="runbook-nav__home">📚 Tous les runbooks</a>
+    <div class="runbook-nav__divider"></div>
+    <div class="runbook-nav__links">
+      <a href="availabilitypercent.html" class="runbook-nav__link runbook-nav__link--critical runbook-nav__link--active">🚨 Dispo</a>
+      <a href="backend-down.html" class="runbook-nav__link runbook-nav__link--critical">💀 Backend Down</a>
+      <a href="http-5xx.html" class="runbook-nav__link runbook-nav__link--critical">🔥 5xx</a>
+      <a href="bounce.html" class="runbook-nav__link runbook-nav__link--critical">🔄 Bounce</a>
+      <a href="cpuload.html" class="runbook-nav__link runbook-nav__link--warning">⚡ CPU</a>
+      <a href="memory-php.html" class="runbook-nav__link runbook-nav__link--warning">💾 Mémoire</a>
+      <a href="slow-responses.html" class="runbook-nav__link runbook-nav__link--warning">🐢 Lenteurs</a>
+      <a href="http4xx.html" class="runbook-nav__link runbook-nav__link--warning">🚫 4xx</a>
+      <a href="backendrerun.html" class="runbook-nav__link runbook-nav__link--info">🔄 Redém.</a>
+      <a href="js_errors_total.html" class="runbook-nav__link runbook-nav__link--info">🟨 JS Errors</a>
+      <a href="cls_ratio.html" class="runbook-nav__link runbook-nav__link--info">📏 CLS</a>
+      <a href="fid-high.html" class="runbook-nav__link runbook-nav__link--info">👆 FID</a>
+      <a href="page_views_total.html" class="runbook-nav__link runbook-nav__link--info">👁️ Pages vues</a>
+      <a href="php_info.html" class="runbook-nav__link runbook-nav__link--info">ℹ️ PHP Info</a>
+    </div>
+  </div>
+</nav>
+
+
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -348,41 +372,8 @@ Valeur constatée: 87% (seuil < 95%)
 Actions requises:
 - Vérifier les logs
 - Diagnostiquer la cause
-- Résoudre l'incident
-
-Runbook: https://open_hub/runbook/availabilitypercent</pre>
-            </div>
-            
-            <!-- Section: Liens utiles -->
-            <div class="section">
-                <h2>🔗 6. Liens utiles</h2>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
-                        <strong>📊 Grafana</strong><br>
-                        Dashboard disponibilité
-                    </a>
-                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
-                        <strong>📝 Logs (Loki)</strong><br>
-                        Logs application
-                    </a>
-                    <a href="https://dashboard.render.com" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
-                        <strong>🚀 Render Dashboard</strong><br>
-                        https://dashboard.render.com
-                    </a>
-                    <a href="https://status.render.com" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
-                        <strong>📈 Render Status</strong><br>
-                        https://status.render.com
-                    </a>
-                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
-                        <strong>💾 Base de données</strong><br>
-                        Métriques DB
-                    </a>
-                    <a href="#" target="_blank" style="text-decoration: none; padding: 15px; background: #f5f5f5; border-radius: 8px; color: #333; display: block;">
-                        <strong>📚 Documentation API</strong><br>
-                        Endpoints health
-                    </a>
-                </div>
+- Résoudre l'Incident
+</pre>
             </div>
             
             <!-- Section: Checklist post-incident -->
