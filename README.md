@@ -5,7 +5,7 @@ cela modifie le README.md avec les valeur a jour !!
 
 # 🚀 Installation de backend
 
-> **Dernière mise à jour :** 2026-03-10
+> **Dernière mise à jour :** 2026-03-18
 > **Projet :** backend
 > **Symfony :** 7.3
 > **PHP nécessaire :** 8.2+
@@ -31,6 +31,3 @@ composer install
 php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 symfony server:start
-
-
-![CI/CD](https://github.com/Mhalat1/open_hub/actions/workflows/ci.yml/badge.svg)
