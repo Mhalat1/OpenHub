@@ -29,8 +29,8 @@
         <env name="STRIPE_SECRET_KEY" value="sk_test_mockkeyfortesting"/>
         
         <!-- Papertrail (add these) -->
-        <env name="PAPERTRAIL_TOKEN" value="https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs"/>
-        <env name="PAPERTRAIL_URL" value="hVEc15AdNgNV65kzNCpehWxuI49gLMWcTonnuGEDAuKTTc6m-lMLLRKjxK5Mx6A8z5bhsRw"/>
+        <env name="PAPERTRAIL_URL" value="https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs"/>
+        <env name="PAPERTRAIL_TOKEN" value="hVEc15AdNgNV65kzNCpehWxuI49gLMWcTonnuGEDAuKTTc6m-lMLLRKjxK5Mx6A8z5bhsRw"/>
         
         <!-- JWT (add this) -->
         <env name="JWT_PASSPHRASE" value="Thinkpad@2022"/>
