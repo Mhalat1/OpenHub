@@ -27,18 +27,15 @@ RUN mkdir -p var/cache var/log && \
     chmod -R 755 /opt/render/project/src/backend && \
     chmod -R 775 /opt/render/project/src/backend/var
 
-# --- Phase 6 : Configuration Apache ---
-ENV APACHE_DOCUMENT_ROOT=/opt/render/project/src/backend/public
-
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/sites-available/*.conf && \
-    sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
-RUN echo '<Directory /opt/render/project/src/backend/public>\n\
-    AllowOverride All\n\
-    Require all granted\n\
-</Directory>' >> /etc/apache2/apache2.conf
+# --- Phase 6 : Configuration Apache explicite ---
+RUN printf '<VirtualHost *:80>\n\
+    DocumentRoot /opt/render/project/src/backend/public\n\
+    <Directory /opt/render/project/src/backend/public>\n\
+        AllowOverride All\n\
+        Require all granted\n\
+        Options -Indexes +FollowSymLinks\n\
+    </Directory>\n\
+</VirtualHost>\n' > /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 80
 CMD ["apache2-foreground"]
