@@ -105,11 +105,6 @@ body {
 .runbook-nav__link--warning:hover  { background: rgba(255,152,0,0.2);  border-color: rgba(255,152,0,0.35); }
 .runbook-nav__link--info:hover     { background: rgba(25,118,210,0.2); border-color: rgba(25,118,210,0.35); }
 
-.runbook-nav__link--active {
-    background: rgba(255,255,255,0.15);
-    border-color: rgba(255,255,255,0.3);
-    color: #fff;
-}
 
 .header.critical { background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); }
 .header.warning { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
