@@ -18,7 +18,7 @@
         <div class="info-box">
             <strong>🚨 ALERTE:</strong> PHP est down - Instance backend hors ligne<br>
             <strong>Impact:</strong> Application totalement inaccessible<br>
-            <strong>Instance:</strong> openhub-backend.onrender.com
+            <strong>Instance:</strong> open_hub-backend.onrender.com
         </div>
         
         <div class="warning">
@@ -32,8 +32,8 @@
             <div class="step">
                 <h3>🔍 Vérifier si l'instance répond</h3>
                 <pre># Tester l'endpoint health
-curl -I https://openhub-backend.onrender.com/health
-curl -I https://openhub-backend.onrender.com/
+curl -I https://open_hub-backend.onrender.com/health
+curl -I https://open_hub-backend.onrender.com/
 
 # Vérifier le code HTTP (doit être 200)
 # Si 502/503/504 → Application crashée
@@ -43,7 +43,7 @@ curl -I https://openhub-backend.onrender.com/
             <div class="step">
                 <h3>📊 Vérifier Render Dashboard</h3>
                 <pre>1. Aller sur https://dashboard.render.com
-2. Naviguer vers "openhub-backend"
+2. Naviguer vers "open_hub-backend"
 3. Vérifier le statut du service:
    - 🔴 Down → Redémarrer immédiatement
    - 🟡 Degraded → Vérifier logs
@@ -68,7 +68,7 @@ Chercher: "Fatal error", "Exception", "Killed", "Out of memory"
             <h2>🔄 2. Redémarrage d'urgence</h2>
             
             <h3>Via Render Dashboard:</h3>
-            <pre>1. Services → openhub-backend
+            <pre>1. Services → open_hub-backend
 2. Cliquer sur les "..." (3 points)
 3. Sélectionner "Restart"
 4. Confirmer le redémarrage
@@ -76,13 +76,13 @@ Chercher: "Fatal error", "Exception", "Killed", "Out of memory"
 6. Rafraîchir et vérifier le statut</pre>
             
             <h3>Via Render CLI (si configuré):</h3>
-            <pre>render restart --service openhub-backend
-render ps --service openhub-backend  # Vérifier statut</pre>
+            <pre>render restart --service open_hub-backend
+render ps --service open_hub-backend  # Vérifier statut</pre>
             
             <h3>Vérification post-redémarrage:</h3>
             <pre># Vérifier que l'API répond
-curl https://openhub-backend.onrender.com/health
-curl https://openhub-backend.onrender.com/api/v1/health
+curl https://open_hub-backend.onrender.com/health
+curl https://open_hub-backend.onrender.com/api/v1/health
 
 # Vérifier les logs pour confirmer démarrage
 # Doit voir: "Server started", "Listening on port"</pre>
@@ -221,7 +221,7 @@ php -r "require 'vendor/autoload.php'; echo 'Autoload OK';"</pre>
             <h3>Template message Slack:</h3>
             <pre>✅ **INCIDENT RÉSOLU - BACKEND DOWN**
 
-Service: OpenHub Backend
+Service: open_hub Backend
 Durée: [X] minutes
 Cause: [cause identifiée]
 Action: [redémarrage/rollback/autre]
@@ -234,7 +234,7 @@ Merci de votre patience !</pre>
         
         <div class="footer">
             <p>
-                <strong>URL:</strong> https://openhub/runbook/backend-down<br>
+                <strong>URL:</strong> https://open_hub/runbook/backend-down<br>
                 <strong>Dernière mise à jour:</strong> 28/02/2026<br>
                 <strong>Maintenu par:</strong> Backend Team<br>
                 <strong>Version:</strong> 1.0

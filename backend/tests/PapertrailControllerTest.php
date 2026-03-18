@@ -78,9 +78,9 @@ class PapertrailControllerTest extends WebTestCase
 
         $data = json_decode($client->getResponse()->getContent(), true);
 
-        // Le champ 'log' doit commencer par "Test depuis OpenHub - "
+        // Le champ 'log' doit commencer par "Test depuis open_hub - "
         $this->assertStringStartsWith(
-            'Test depuis OpenHub - ',
+            'Test depuis open_hub - ',
             $data['log'],
             'Le champ log doit contenir le message envoyé à Papertrail'
         );
@@ -113,7 +113,7 @@ class PapertrailControllerTest extends WebTestCase
 
         $data = json_decode($client->getResponse()->getContent(), true);
 
-        // Extraire le timestamp du champ log "Test depuis OpenHub - YYYY-MM-DD HH:MM:SS"
+        // Extraire le timestamp du champ log "Test depuis open_hub - YYYY-MM-DD HH:MM:SS"
         preg_match('/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', $data['log'], $matches);
         $this->assertNotEmpty($matches, 'Un timestamp doit être présent dans le log');
 

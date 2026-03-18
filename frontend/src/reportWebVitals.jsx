@@ -1,5 +1,5 @@
 const API =
-  import.meta.env.VITE_API_URL || "https://openhub-backend.onrender.com";
+  import.meta.env.VITE_API_URL || "https://open_hub-backend.onrender.com";
 
 let jsErrors = 0;
 let sessionStart = Date.now();

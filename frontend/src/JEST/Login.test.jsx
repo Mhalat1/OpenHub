@@ -65,7 +65,7 @@ describe("Login Component", () => {
     it("should render the login form with all elements", () => {
       renderLogin();
 
-      expect(screen.getByText("Bienvenue sur OpenHub")).toBeInTheDocument();
+      expect(screen.getByText("Bienvenue sur open_hub")).toBeInTheDocument();
       expect(
         screen.getByText ("Rejoignez la communauté des développeurs passionnés"),
       ).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe("Login Component", () => {
     it("should render the logo", () => {
       renderLogin();
 
-      const logo = screen.getByAltText("OpenHub Logo");
+      const logo = screen.getByAltText("open_hub Logo");
       expect(logo).toBeInTheDocument();
       expect(logo).toHaveAttribute("src", "mocked-logo.png");
     });

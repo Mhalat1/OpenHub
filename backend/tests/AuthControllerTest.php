@@ -25,7 +25,7 @@ class AuthControllerTest extends WebTestCase
     // =========================================================================
 
     private function createRealUser(
-        string $email     = 'auth-test@openhub.com',
+        string $email     = 'auth-test@open_hub.com',
         string $password  = 'TestPass!123',
         string $firstName = 'Jean',
         string $lastName  = 'Dupont'
@@ -123,7 +123,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/login_check', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'    => 'auth-test@openhub.com',
+                'email'    => 'auth-test@open_hub.com',
                 'password' => 'TestPass!123',
             ])
         );
@@ -159,7 +159,7 @@ class AuthControllerTest extends WebTestCase
         $client->request(
             'POST', '/api/login_check', [], [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['email' => 'auth-test@openhub.com', 'password' => 'TestPass!123'])
+            json_encode(['email' => 'auth-test@open_hub.com', 'password' => 'TestPass!123'])
         );
 
         $token = json_decode($client->getResponse()->getContent(), true)['token'];
@@ -170,7 +170,7 @@ class AuthControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(Response::HTTP_OK);
         $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('auth-test@openhub.com', $data['email']);
+        $this->assertSame('auth-test@open_hub.com', $data['email']);
     }
 
     public function testLoginReturns401WhenUserNotFound(): void
@@ -181,7 +181,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/login_check', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'    => 'inexistant@openhub.com',
+                'email'    => 'inexistant@open_hub.com',
                 'password' => 'NimporteQuoi!',
             ])
         );
@@ -195,13 +195,13 @@ class AuthControllerTest extends WebTestCase
     public function testLoginReturns401WhenPasswordIsWrong(): void
     {
         $client = static::createClient();
-        $this->createRealUser('wrongpass@openhub.com', 'BonMotDePasse!123');
+        $this->createRealUser('wrongpass@open_hub.com', 'BonMotDePasse!123');
 
         $client->request(
             'POST', '/api/login_check', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'    => 'wrongpass@openhub.com',
+                'email'    => 'wrongpass@open_hub.com',
                 'password' => 'MauvaisMotDePasse!',
             ])
         );
@@ -216,7 +216,7 @@ class AuthControllerTest extends WebTestCase
             'Le statut doit être 200 (token généré) ou 401 (mdp vérifié)'
         );
 
-        $this->deleteUserByEmail('wrongpass@openhub.com');
+        $this->deleteUserByEmail('wrongpass@open_hub.com');
     }
 
     public function testLoginReturns400WhenEmailIsEmpty(): void
@@ -286,7 +286,7 @@ class AuthControllerTest extends WebTestCase
         $controller = $this->buildController();
 
         $response = $controller->login($this->makeJsonRequest([
-            'email'    => 'auth-test@openhub.com',
+            'email'    => 'auth-test@open_hub.com',
             'password' => 'TestPass!123',
         ]));
 
@@ -296,7 +296,7 @@ class AuthControllerTest extends WebTestCase
         $data = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('token', $data, 'login() doit retourner un token JWT');
         $this->assertArrayHasKey('user', $data, 'login() doit retourner les données utilisateur');
-        $this->assertSame('auth-test@openhub.com', $data['user']['email']);
+        $this->assertSame('auth-test@open_hub.com', $data['user']['email']);
         $this->assertSame($user->getFirstName(), $data['user']['firstName']);
         $this->assertSame($user->getLastName(), $data['user']['lastName']);
         $this->assertIsInt($data['user']['id']);
@@ -305,7 +305,7 @@ class AuthControllerTest extends WebTestCase
         $parts = explode('.', $data['token']);
         $this->assertCount(3, $parts, 'Le token retourné par login() doit être un JWT valide');
 
-        $this->deleteUserByEmail('auth-test@openhub.com');
+        $this->deleteUserByEmail('auth-test@open_hub.com');
     }
 
     /**
@@ -317,7 +317,7 @@ class AuthControllerTest extends WebTestCase
         $controller = $this->buildController();
 
         $response = $controller->login($this->makeJsonRequest([
-            'email'    => 'inexistant-direct@openhub.com',
+            'email'    => 'inexistant-direct@open_hub.com',
             'password' => 'NimporteQuoi!',
         ]));
 
@@ -365,7 +365,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterSuccessCreatesUserInDatabase(): void
     {
         $client = static::createClient();
-        $email  = 'register-test-' . uniqid() . '@openhub.com';
+        $email  = 'register-test-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -405,7 +405,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterThenLoginWithRealJwt(): void
     {
         $client = static::createClient();
-        $email  = 'register-login-' . uniqid() . '@openhub.com';
+        $email  = 'register-login-' . uniqid() . '@open_hub.com';
 
         // 1. S'inscrire
         $client->request(
@@ -450,13 +450,13 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterReturns409WhenEmailAlreadyInUse(): void
     {
         $client = static::createClient();
-        $this->createRealUser('duplicate@openhub.com');
+        $this->createRealUser('duplicate@open_hub.com');
 
         $client->request(
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'duplicate@openhub.com',
+                'email'     => 'duplicate@open_hub.com',
                 'password'  => 'AutreMotDePasse!123',
                 'firstName' => 'Autre',
                 'lastName'  => 'Personne',
@@ -468,7 +468,7 @@ class AuthControllerTest extends WebTestCase
         $this->assertFalse($data['status']);
         $this->assertSame('This email is already in use', $data['message']);
 
-        $this->deleteUserByEmail('duplicate@openhub.com');
+        $this->deleteUserByEmail('duplicate@open_hub.com');
     }
 
     public function testRegisterReturns400WhenEmailMissing(): void
@@ -498,7 +498,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'test@openhub.com',
+                'email'     => 'test@open_hub.com',
                 'firstName' => 'Alice',
                 'lastName'  => 'Durand',
             ])
@@ -517,7 +517,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'    => 'test@openhub.com',
+                'email'    => 'test@open_hub.com',
                 'password' => 'TestPass!123',
                 'lastName' => 'Durand',
             ])
@@ -536,7 +536,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'test@openhub.com',
+                'email'     => 'test@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => 'Alice',
             ])
@@ -577,7 +577,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@openhub.com',
+                'email'     => 'alice@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => 'A',
                 'lastName'  => 'Durand',
@@ -598,7 +598,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@openhub.com',
+                'email'     => 'alice@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => 'Alice123',
                 'lastName'  => 'Durand',
@@ -619,7 +619,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@openhub.com',
+                'email'     => 'alice@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => 'Alice',
                 'lastName'  => 'Dur@nd!',
@@ -640,7 +640,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'             => 'alice@openhub.com',
+                'email'             => 'alice@open_hub.com',
                 'password'          => 'TestPass!123',
                 'firstName'         => 'Alice',
                 'lastName'          => 'Durand',
@@ -662,7 +662,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'           => 'alice@openhub.com',
+                'email'           => 'alice@open_hub.com',
                 'password'        => 'TestPass!123',
                 'firstName'       => 'Alice',
                 'lastName'        => 'Durand',
@@ -679,7 +679,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterWithAvailabilityDatesStoresThemInDatabase(): void
     {
         $client = static::createClient();
-        $email  = 'avail-' . uniqid() . '@openhub.com';
+        $email  = 'avail-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -711,7 +711,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterPasswordIsReallyHashedInDatabase(): void
     {
         $client   = static::createClient();
-        $email    = 'hash-test-' . uniqid() . '@openhub.com';
+        $email    = 'hash-test-' . uniqid() . '@open_hub.com';
         $password = 'MonSuperMotDePasse!123';
 
         $client->request(
@@ -746,7 +746,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterUserHasRoleUser(): void
     {
         $client = static::createClient();
-        $email  = 'role-test-' . uniqid() . '@openhub.com';
+        $email  = 'role-test-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -783,7 +783,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@openhub.com',
+                'email'     => 'alice@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => 'Alice',
                 'lastName'  => 'D',
@@ -807,7 +807,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@openhub.com',
+                'email'     => 'alice@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => str_repeat('A', 101),
                 'lastName'  => 'Durand',
@@ -831,7 +831,7 @@ class AuthControllerTest extends WebTestCase
             'POST', '/api/register', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email'     => 'alice@openhub.com',
+                'email'     => 'alice@open_hub.com',
                 'password'  => 'TestPass!123',
                 'firstName' => 'Alice',
                 'lastName'  => str_repeat('B', 101),
@@ -875,7 +875,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterAcceptsNamesWithHyphenApostropheAndAccents(): void
     {
         $client = static::createClient();
-        $email  = 'special-name-' . uniqid() . '@openhub.com';
+        $email  = 'special-name-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -902,7 +902,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterAcceptsNamesAtMinimumLength(): void
     {
         $client = static::createClient();
-        $email  = 'min-name-' . uniqid() . '@openhub.com';
+        $email  = 'min-name-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -929,7 +929,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterWithoutAvailabilityDatesSucceeds(): void
     {
         $client = static::createClient();
-        $email  = 'no-avail-' . uniqid() . '@openhub.com';
+        $email  = 'no-avail-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -958,7 +958,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterWithOnlyAvailabilityStartSucceeds(): void
     {
         $client = static::createClient();
-        $email  = 'only-start-' . uniqid() . '@openhub.com';
+        $email  = 'only-start-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],
@@ -988,7 +988,7 @@ class AuthControllerTest extends WebTestCase
     public function testRegisterWithOnlyAvailabilityEndSucceeds(): void
     {
         $client = static::createClient();
-        $email  = 'only-end-' . uniqid() . '@openhub.com';
+        $email  = 'only-end-' . uniqid() . '@open_hub.com';
 
         $client->request(
             'POST', '/api/register', [], [],

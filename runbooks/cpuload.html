@@ -12,7 +12,7 @@
         <div class="alert-info">
             <strong>Alerte:</strong> Charge CPU moyenne élevée<br>
             <strong>Condition:</strong> load > 5 sur 1 minute<br>
-            <strong>Instance:</strong> openhub-backend.onrender.com
+            <strong>Instance:</strong> open_hub-backend.onrender.com
         </div>
         
         <div class="section">
@@ -25,7 +25,7 @@
             
             <h3>1. Identifier les processus gourmands</h3>
             <pre># Via Render Dashboard
-https://dashboard.render.com/web/openhub-backend/metrics
+https://dashboard.render.com/web/open_hub-backend/metrics
 
 # Top processus (si accès SSH)
 top -b -n 1 | head -20
@@ -113,7 +113,7 @@ $users = cache()->remember('active_users', 3600, function() {
 # Augmenter le plan temporairement</pre>
         </div>
         
-        <p style="text-align: center; margin-top: 30px;">URL: https://openhub/runbook/cpuload</p>
+        <p style="text-align: center; margin-top: 30px;">URL: https://open_hub/runbook/cpuload</p>
     </div>
 </body>
 </html>

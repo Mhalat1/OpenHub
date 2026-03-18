@@ -5,8 +5,8 @@ describe('DonatePage Component', () => {
 
   describe('Affichage de la page', () => {
     it('affiche le titre et le texte descriptif', () => {
-      cy.contains('💖 Soutenir le projet OpenHub').should('be.visible');
-      cy.contains('OpenHub est un projet open source maintenu avec passion').should('be.visible');
+      cy.contains('💖 Soutenir le projet open_hub').should('be.visible');
+      cy.contains('open_hub est un projet open source maintenu avec passion').should('be.visible');
       cy.contains('Vos dons permettent de couvrir les coûts').should('be.visible');
     });
 

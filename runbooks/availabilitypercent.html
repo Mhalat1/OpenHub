@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Runbook - Alerte Disponibilité OpenHub</title>
+    <title>Runbook - Alerte Disponibilité open_hub</title>
     <link rel="stylesheet" href="runbooks.css">
 
 </head>
@@ -13,7 +13,7 @@
         <div class="header">
             <h1>
                 <span>🚨</span>
-                Runbook: Alerte Disponibilité - OpenHub Backend
+                Runbook: Alerte Disponibilité - open_hub Backend
             </h1>
             <p>Ce runbook décrit les actions à prendre lorsque la disponibilité de l'application descend sous 95%</p>
             <div class="badge-container">
@@ -44,7 +44,7 @@
                     (Ces valeurs sont des exemples - référez-vous à votre alerte Grafana)
                 </div>
                 <hr style="margin: 15px 0; border: none; border-top: 1px solid #d32f2f;">
-                <div>Instance: openhub-backend.onrender.com</div>
+                <div>Instance: open_hub-backend.onrender.com</div>
                 <div>Seuil: 95%</div>
                 <div>Pending: 1 minute</div>
             </div>
@@ -72,7 +72,7 @@
                         </tr>
                         <tr>
                             <td>Instance:</td>
-                            <td><code>openhub-backend.onrender.com</code></td>
+                            <td><code>open_hub-backend.onrender.com</code></td>
                         </tr>
                         <tr>
                             <td>Pending period:</td>
@@ -119,11 +119,11 @@
                 <div class="step">
                     <h4>🔍 Étape 1: Vérifier l'état du service</h4>
                     <pre># Tester l'API directement
-curl -I https://openhub-backend.onrender.com/health
-curl -I https://openhub-backend.onrender.com/api/v1/health
+curl -I https://open_hub-backend.onrender.com/health
+curl -I https://open_hub-backend.onrender.com/api/v1/health
 
 # Vérifier le status HTTP (doit retourner 200)
-http_code=$(curl -s -o /dev/null -w "%{http_code}" https://openhub-backend.onrender.com/health)
+http_code=$(curl -s -o /dev/null -w "%{http_code}" https://open_hub-backend.onrender.com/health)
 echo "HTTP Status: $http_code"</pre>
                 </div>
                 
@@ -142,10 +142,10 @@ https://[votre-grafana]/d/backend-availability
                 <div class="step">
                     <h4>📝 Étape 3: Vérifier les logs</h4>
                     <pre># Via Render Dashboard
-https://dashboard.render.com/web/openhub-backend/logs
+https://dashboard.render.com/web/open_hub-backend/logs
 
 # Via CLI (si configuré)
-render logs --service openhub-backend --tail 100 | grep -i "error\|exception\|panic"
+render logs --service open_hub-backend --tail 100 | grep -i "error\|exception\|panic"
 
 # Rechercher les erreurs 5xx
 grep "HTTP/1.1\" 5[0-9][0-9]" /var/log/access.log</pre>
@@ -197,14 +197,14 @@ grep "HTTP/1.1\" 5[0-9][0-9]" /var/log/access.log</pre>
                 <h3>📦 Cas A: Redémarrage de l'application</h3>
                 <pre># Via Render Dashboard
 1. Aller sur https://dashboard.render.com
-2. Sélectionner "openhub-backend"
+2. Sélectionner "open_hub-backend"
 3. Cliquer sur "Manual Restart"
 4. Attendre 30 secondes
 5. Vérifier health endpoint
 
 # Via Render CLI (si configuré)
-render restart --service openhub-backend
-render ps --service openhub-backend  # Vérifier status</pre>
+render restart --service open_hub-backend
+render ps --service open_hub-backend  # Vérifier status</pre>
                 
                 <h3>💾 Cas B: Problème base de données</h3>
                 <pre># Vérifier connexion DB
@@ -316,21 +316,21 @@ render deploy --version [commit-hash]</pre>
                 <h3>Message Slack alerte:</h3>
                 <pre>🚨 **ALERTE DISPONIBILITÉ CRITIQUE** 🚨
 
-Service: OpenHub Backend
-Instance: openhub-backend.onrender.com
+Service: open_hub Backend
+Instance: open_hub-backend.onrender.com
 Valeur: 87% (seuil < 95%)
 Time: [date-heure]
 
 Impact: Application inaccessible ou dégradée
 Actions: Investigation en cours
-Runbook: https://openhub/runbook/availabilitypercent
+Runbook: https://open_hub/runbook/availabilitypercent
 
 @backend-team @on-call</pre>
                 
                 <h3>Message Slack résolution:</h3>
                 <pre>✅ **INCIDENT RÉSOLU** ✅
 
-Service: OpenHub Backend
+Service: open_hub Backend
 Durée: 15 minutes
 Cause: Crash PHP (out of memory)
 Action: Redémarrage + augmentation memory_limit
@@ -340,9 +340,9 @@ Dashboard: [lien]
 Post-mortem à suivre...</pre>
                 
                 <h3>Message email équipe:</h3>
-                <pre>Objet: [URGENT] Incident disponibilité OpenHub Backend
+                <pre>Objet: [URGENT] Incident disponibilité open_hub Backend
 
-L'application openhub-backend a rencontré des problèmes de disponibilité.
+L'application open_hub-backend a rencontré des problèmes de disponibilité.
 Valeur constatée: 87% (seuil < 95%)
 
 Actions requises:
@@ -350,7 +350,7 @@ Actions requises:
 - Diagnostiquer la cause
 - Résoudre l'incident
 
-Runbook: https://openhub/runbook/availabilitypercent</pre>
+Runbook: https://open_hub/runbook/availabilitypercent</pre>
             </div>
             
             <!-- Section: Liens utiles -->
@@ -417,7 +417,7 @@ Runbook: https://openhub/runbook/availabilitypercent</pre>
         <!-- Footer -->
         <div class="footer">
             <p>
-                <strong>Runbook URL:</strong> https://openhub/runbook/availabilitypercent<br>
+                <strong>Runbook URL:</strong> https://open_hub/runbook/availabilitypercent<br>
                 <strong>Dernière mise à jour:</strong> 28/02/2026<br>
                 <strong>Maintenu par:</strong> Backend Team<br>
                 <strong>Version:</strong> 1.0 <br> 

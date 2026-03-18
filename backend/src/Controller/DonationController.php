@@ -35,7 +35,7 @@ class DonationController extends AbstractController
                     'price_data' => [
                         'currency'     => 'eur',
                         'product_data' => [
-                            'name' => 'Don pour soutenir OpenHub ❤️',
+                            'name' => 'Don pour soutenir open_hub ❤️',
                         ],
                         'unit_amount'  => $amount,
                     ],

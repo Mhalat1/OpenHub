@@ -393,8 +393,8 @@ const Register = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <img src={logo} alt="OpenHub" className={styles.logo} />
-        <h1>Rejoindre OpenHub</h1>
+        <img src={logo} alt="open_hub" className={styles.logo} />
+        <h1>Rejoindre open_hub</h1>
         <p>Créez votre profil en 3 étapes</p>
       </div>
 

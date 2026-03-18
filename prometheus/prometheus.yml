@@ -8,15 +8,15 @@ remote_write:
       password: ${GRAFANA_TOKEN}
 
 scrape_configs:
-  - job_name: openhub_frontend
+  - job_name: open_hub_frontend
     static_configs:
-      - targets: ["openhub-backend-kc8m.onrender.com"]
+      - targets: ["open_hub-backend.onrender.com"]
     scheme: https
     metrics_path: /metrics/frontend
 
-  - job_name: openhub_backend
+  - job_name: open_hub_backend
     static_configs:
-      - targets: ["openhub-backend-kc8m.onrender.com"]
+      - targets: ["open_hub-backend.onrender.com"]
     scheme: https
     metrics_path: /metrics/backend
     scrape_interval: 30s

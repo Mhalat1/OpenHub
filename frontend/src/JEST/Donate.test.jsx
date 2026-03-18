@@ -27,9 +27,9 @@ describe("DonatePage", () => {
   test("affiche correctement le titre et la description", () => {
     render(<DonatePage />);
 
-    expect(screen.getByText (/Soutenir le projet OpenHub/i)).toBeInTheDocument();
+    expect(screen.getByText (/Soutenir le projet open_hub/i)).toBeInTheDocument();
     expect(
-      screen.getByText (/OpenHub est un projet open source/i),
+      screen.getByText (/open_hub est un projet open source/i),
     ).toBeInTheDocument();
   });
 
