@@ -59,7 +59,7 @@ class DefaultControllerTest extends WebTestCase
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
 
-        $this->assertEquals('open_hub Backend API is running', $data['message']);
+        $this->assertEquals('open-hub Backend API is running', $data['message']);
     }
 
     public function testIndexTimestampIsValid(): void

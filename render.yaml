@@ -1,18 +1,18 @@
 services:
   - type: web
-    name: open_hub-frontend
+    name: open-hub-frontend
     env: docker
     plan: free
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     envVars:
       - key: VITE_API_URL
-        value: https://open_hub-backend.onrender.com
+        value: https://open-hub-backend.onrender.com
       - key: REACT_APP_API_URL
-        value: https://open_hub-backend.onrender.com
+        value: https://open-hub-backend.onrender.com
 
   - type: web
-    name: open_hub-backend
+    name: open-hub-backend
     env: docker
     plan: free
     dockerfilePath: ./backend/Dockerfile
@@ -31,7 +31,7 @@ services:
       - key: JWT_PUBLIC_KEY
         sync: false
       - key: CORS_ALLOW_ORIGIN
-        value: https://open_hub-frontend.onrender.com
+        value: https://open-hub-frontend.onrender.com
       - key: TRUSTED_PROXIES
         value: REMOTE_ADDR
       - key: APACHE_DOCUMENT_ROOT
@@ -39,7 +39,7 @@ services:
       - key: OTEL_EXPORTER_OTLP_ENDPOINT
         value: https://ton-jaeger.onrender.com:4318
       - key: OTEL_SERVICE_NAME
-        value: open_hub-backend
+        value: open-hub-backend
       - key: OTEL_TRACES_EXPORTER
         value: otlp
       - key: PAPERTRAIL_TOKEN
@@ -49,13 +49,13 @@ services:
 
 
   - type: web
-    name: open_hub-prometheus
+    name: open-hub-prometheus
     env: docker
     plan: free
     dockerfilePath: ./prometheus/Dockerfile
     dockerContext: ./prometheus
     envVars:
       - key: BACKEND_URL
-        value: https://open_hub-backend.onrender.com
+        value: https://open-hub-backend.onrender.com
       - key: GRAFANA_TOKEN 
         sync: false

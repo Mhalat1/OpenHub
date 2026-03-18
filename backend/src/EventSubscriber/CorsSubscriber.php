@@ -53,7 +53,7 @@ class CorsSubscriber implements EventSubscriberInterface
             'http://127.0.0.1:5173',
             'http://localhost:8000',
             'https://www.mh-logiciel.fr',
-            'https://open_hub-front.onrender.com'
+            'https://open-hub-front.onrender.com'
         ];
 
         // Autorise l'origine si elle est dans la liste

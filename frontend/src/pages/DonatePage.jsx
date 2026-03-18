@@ -35,9 +35,9 @@ const DonatePage = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>💖 Soutenir le projet open_hub</h1>
+      <h1 style={styles.title}>💖 Soutenir le projet open-hub</h1>
       <p style={styles.text}>
-        open_hub est un projet open source maintenu avec passion. Vos dons
+        open-hub est un projet open source maintenu avec passion. Vos dons
         permettent de couvrir les coûts d’hébergement et de développement.
       </p>
 

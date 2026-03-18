@@ -46,7 +46,7 @@ class PapertrailService
             $context['trace_id'] = $this->traceIdGenerator->get();  // ← AJOUT
 
             $logLine = sprintf(
-                "<22>%s %s open_hub: [%s] %s %s\n",
+                "<22>%s %s open-hub: [%s] %s %s\n",
                 date('M d H:i:s'),
                 gethostname(),
                 $level,

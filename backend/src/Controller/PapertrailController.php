@@ -17,7 +17,7 @@ class PapertrailController extends AbstractController
     public function testPapertrail(): JsonResponse
     {
         try {
-            $testMessage = "Test depuis open_hub - " . date('Y-m-d H:i:s');
+            $testMessage = "Test depuis open-hub - " . date('Y-m-d H:i:s');
 
             $this->papertrailLogger->info($testMessage, [
                 'source'    => 'browser_test',

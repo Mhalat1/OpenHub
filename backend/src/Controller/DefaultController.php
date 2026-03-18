@@ -20,7 +20,7 @@ class DefaultController extends AbstractController
 
         return new JsonResponse([
             'status'    => 'OK',
-            'message'   => 'open_hub Backend API is running',
+            'message'   => 'open-hub Backend API is running',
             'timestamp' => time(),
             'endpoints' => [
                 'register' => '/api/userCreate',

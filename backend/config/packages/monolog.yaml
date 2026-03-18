@@ -1,5 +1,5 @@
 # config/packages/monolog.yaml
-# Configuration Monolog pour open_hub - compatible ELK Stack
+# Configuration Monolog pour open-hub - compatible ELK Stack
 
 when@prod:
   monolog:

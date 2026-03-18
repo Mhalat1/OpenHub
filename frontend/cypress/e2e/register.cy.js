@@ -16,9 +16,9 @@ describe('Register Component - Inscription en 3 étapes', () => {
 
   describe('1. Page Loading & Structure', () => {
     it('should display the register page correctly', () => {
-      cy.contains('Rejoindre open_hub').should('be.visible');
+      cy.contains('Rejoindre open-hub').should('be.visible');
       cy.contains('Créez votre profil en 3 étapes').should('be.visible');
-      cy.get('img[alt="open_hub"]').should('be.visible');
+      cy.get('img[alt="open-hub"]').should('be.visible');
     });
 
     it('should have login link', () => {

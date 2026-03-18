@@ -18,7 +18,7 @@
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
         <env name="KERNEL_CLASS" value="App\Kernel"/>
-        <env name="DATABASE_URL" value="mysql://root:@127.0.0.1:3306/open_hub?serverVersion=8.0.32&amp;charset=utf8mb4"/>
+        <env name="DATABASE_URL" value="mysql://root:@127.0.0.1:3306/open-hub?serverVersion=8.0.32&amp;charset=utf8mb4"/>
     </php>
 
     <testsuites>

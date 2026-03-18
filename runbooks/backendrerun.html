@@ -35,7 +35,7 @@
         <h1>🔄 Runbook: Redémarrage backend détecté</h1>
         
         <div class="alert-info">
-            <strong>Alerte:</strong> Redémarrage détecté sur open_hub-backend<br>
+            <strong>Alerte:</strong> Redémarrage détecté sur open-hub-backend<br>
             <strong>Type:</strong> Information - Monitoring
         </div>
         
@@ -61,7 +61,7 @@ grep "reload\|restart\|exit" /var/log/php-fpm.log -B5 -A5
 sudo journalctl -u php-fpm --since "5 minutes ago"
 
 # Logs Render
-https://dashboard.render.com/web/open_hub-backend/logs</pre>
+https://dashboard.render.com/web/open-hub-backend/logs</pre>
             
             <h3>2. Vérifier si c'était un crash</h3>
             <pre># Chercher des erreurs fatales avant le redémarrage
@@ -102,8 +102,8 @@ grep -i "fatal\|error\|exception\|segfault" /var/log/php.log -B10</pre>
             <div class="step">
                 <h3>Santé de l'application</h3>
                 <pre># Vérifier health endpoint
-curl -I https://open_hub-backend.onrender.com/health
-curl https://open_hub-backend.onrender.com/api/v1/health</pre>
+curl -I https://open-hub-backend.onrender.com/health
+curl https://open-hub-backend.onrender.com/api/v1/health</pre>
             </div>
             
             <div class="step">
@@ -134,7 +134,7 @@ curl https://open_hub-backend.onrender.com/api/v1/health</pre>
         </div>
         
         <div class="footer" style="text-align: center; margin-top: 30px; color: #666;">
-            <p><strong>URL:</strong> https://open_hub/runbook/backendrerun</p>
+            <p><strong>URL:</strong> https://open-hub/runbook/backendrerun</p>
         </div>
     </div>
 </body>

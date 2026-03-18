@@ -64,10 +64,10 @@ const Login = () => {
       {/* Section Branding */}
       <div className={styles.heroSection}>
         <div className={styles.logoContainer}>
-          <img src={logo} alt="open_hub Logo" className={styles.logo} />
+          <img src={logo} alt="open-hub Logo" className={styles.logo} />
         </div>
         <div className={styles.heroText}>
-          <h1>Bienvenue sur open_hub</h1>
+          <h1>Bienvenue sur open-hub</h1>
           <p>Rejoignez la communauté des développeurs passionnés</p>
           <div className={styles.features}>
             <div className={styles.featureItem}>
