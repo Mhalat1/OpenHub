@@ -12,11 +12,11 @@ scrape_configs:
     static_configs:
       - targets: ["open-hub-backend.onrender.com"]
     scheme: https
-    metrics_path: /metrics/frontend/collect
+    metrics_path: /metrics/frontend
 
   - job_name: open-hub_backend
     static_configs:
       - targets: ["open-hub-backend.onrender.com"]
     scheme: https
-    metrics_path: /metrics/backend/collect
+    metrics_path: /metrics/backend
     scrape_interval: 30s

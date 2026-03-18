@@ -57,7 +57,7 @@
                 <ul style="margin-top: 10px; margin-left: 20px;">
                     <li>Le message d'alerte dans Grafana</li>
                     <li>Le tableau de bord de disponibilité</li>
-                    <li>La notification Slack/email reçue</li>
+                    <li>La notification email reçue</li>
                 </ul>
             </div>
             
@@ -168,11 +168,7 @@ https://[votre-grafana]/d/backend-availability
                     <pre># Via Render Dashboard
 https://dashboard.render.com/web/open-hub-backend/logs
 
-# Via CLI (si configuré)
-render logs --service open-hub-backend --tail 100 | grep -i "error\|exception\|panic"
-
-# Rechercher les erreurs 5xx
-grep "HTTP/1.1\" 5[0-9][0-9]" /var/log/access.log</pre>
+# Rechercher les erreurs http-5xx</pre>
                 </div>
             </div>
             
@@ -224,37 +220,16 @@ grep "HTTP/1.1\" 5[0-9][0-9]" /var/log/access.log</pre>
 2. Sélectionner "open-hub-backend"
 3. Cliquer sur "Manual Restart"
 4. Attendre 30 secondes
-5. Vérifier health endpoint
-
-# Via Render CLI (si configuré)
-render restart --service open-hub-backend
-render ps --service open-hub-backend  # Vérifier status</pre>
-                
+5. Vérifier health 
                 <h3>💾 Cas B: Problème base de données</h3>
                 <pre># Vérifier connexion DB
-psql -h [db-host] -U [user] -d [db] -c "SELECT 1"
-
-# Vérifier connections actives
-psql -h [db-host] -U [user] -d [db] -c "SELECT count(*) FROM pg_stat_activity;"
-
-# Killer les requêtes longues
-psql -h [db-host] -U [user] -d [db] -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'active' AND now() - state_change > interval '5 minutes';"</pre>
-                
                 <h3>🔄 Cas C: Rollback de déploiement</h3>
                 <pre># Identifier la version stable
-git log --oneline -10
-# ou via Render Dashboard: Deployments → voir historique
-
+# via Render Dashboard: Deployments → voir historique
 # Effectuer rollback
-# Option 1: Via Render Dashboard
+# Via Render Dashboard
 Deploy → "Rollback" → Sélectionner version précédente
-
-# Option 2: Via Git
-git checkout [previous-stable-commit]
-git push -f origin main
-
-# Option 3: Via Render CLI
-render deploy --version [commit-hash]</pre>
+</pre>
                 
                 <h3>⚡ Cas D: Problème de ressources</h3>
                 <pre># Vérifier utilisation actuelle
@@ -279,31 +254,7 @@ render deploy --version [commit-hash]</pre>
                     <tr>
                         <td>On-call backend</td>
                         <td>Jean Dupont</td>
-                        <td>📱 06 12 34 56 78<br>💬 @jdupont (Slack)</td>
-                        <td>24/7</td>
-                    </tr>
-                    <tr>
-                        <td>Backup on-call</td>
-                        <td>Marie Martin</td>
-                        <td>📱 06 87 65 43 21<br>💬 @mmartin (Slack)</td>
-                        <td>24/7</td>
-                    </tr>
-                    <tr>
-                        <td>Tech Lead</td>
-                        <td>Pierre Durand</td>
-                        <td>📱 06 98 76 54 32<br>💬 @pdurand (Slack)</td>
-                        <td>9h-19h</td>
-                    </tr>
-                    <tr>
-                        <td>DevOps</td>
-                        <td>Sophie Bernard</td>
-                        <td>📱 06 45 67 89 01<br>💬 @sbernard (Slack)</td>
-                        <td>9h-19h</td>
-                    </tr>
-                    <tr>
-                        <td>Support Render</td>
-                        <td>-</td>
-                        <td>📧 support@render.com<br>🌐 https://status.render.com</td>
+                        <td>📱 06 12 34 56 78<br>💬 @jdupont </td>
                         <td>24/7</td>
                     </tr>
                 </table>
@@ -317,7 +268,7 @@ render deploy --version [commit-hash]</pre>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-time">T+15min</div>
-                        <div class="timeline-action">Alerter équipe Slack</div>
+                        <div class="timeline-action">Alerter équipe </div>
                         <div style="margin-top:10px;"><small>#backend-team</small></div>
                     </div>
                     <div class="timeline-item">
@@ -337,7 +288,7 @@ render deploy --version [commit-hash]</pre>
             <div class="section">
                 <h2>💬 5. Messages templates</h2>
                 
-                <h3>Message Slack alerte:</h3>
+                <h3>Message alerte:</h3>
                 <pre>🚨 **ALERTE DISPONIBILITÉ CRITIQUE** 🚨
 
 Service: open-hub Backend
@@ -351,7 +302,7 @@ Runbook: https://open-hub/runbook/availabilitypercent
 
 @backend-team @on-call</pre>
                 
-                <h3>Message Slack résolution:</h3>
+                <h3>Message résolution:</h3>
                 <pre>✅ **INCIDENT RÉSOLU** ✅
 
 Service: open-hub Backend
@@ -386,7 +337,6 @@ Actions requises:
                         <ul style="margin-left: 20px;">
                             <li>☐ Vérifier que l'alerte est revenue à "Normal" dans Grafana</li>
                             <li>☐ Documenter la cause racine</li>
-                            <li>☐ Communiquer la résolution à l'équipe sur Slack</li>
                             <li>☐ Vérifier les métriques post-incident</li>
                         </ul>
                     </div>
