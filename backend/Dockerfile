@@ -18,6 +18,8 @@ WORKDIR /opt/render/project/src/backend
 # --- Code ---
 COPY . .
 
+RUN rm -rf vendor/
+
 # --- Phase 4 : Composer production ---
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
