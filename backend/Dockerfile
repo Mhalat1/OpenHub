@@ -18,9 +18,6 @@ WORKDIR /opt/render/project/src/backend
 # --- Code ---
 COPY . .
 
-# --- Phase 4 : Composer production ---
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-
 # --- Phase 5 : Permissions ---
 RUN mkdir -p var/cache var/log && \
     chown -R www-data:www-data /opt/render/project/src/backend && \
