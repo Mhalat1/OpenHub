@@ -5,7 +5,7 @@ describe('Register Component - Inscription en 3 étapes', () => {
     cy.visit('/register');
     
     // Intercepter la requête d'inscription
-    cy.intercept('POST', `${API_URL}/api/userCreate`, {
+    cy.intercept('POST', `${API_URL}/api/register`, {
       statusCode: 200,
       body: { 
         status: true, 
@@ -218,7 +218,7 @@ describe('Register Component - Inscription en 3 étapes', () => {
     });
 
     it('should display error message when registration fails', () => {
-      cy.intercept('POST', `${API_URL}/api/userCreate`, {
+      cy.intercept('POST', `${API_URL}/api/register`, {
         statusCode: 400,
         body: { 
           status: false, 
@@ -234,7 +234,7 @@ describe('Register Component - Inscription en 3 étapes', () => {
     });
 
     it('should display network error when API is unreachable', () => {
-      cy.intercept('POST', `${API_URL}/api/userCreate`, {
+      cy.intercept('POST', `${API_URL}/api/register`, {
         forceNetworkError: true
       }).as('networkError');
 

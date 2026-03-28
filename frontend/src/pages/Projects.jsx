@@ -185,7 +185,6 @@ const Projects = () => {
     }
   };
 
-  // ===== SKILLS FUNCTIONS =====
   const fetchAvailableSkills = async () => {
     try {
       const token = localStorage.getItem("token");

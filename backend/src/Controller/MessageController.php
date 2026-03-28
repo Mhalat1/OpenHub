@@ -791,11 +791,15 @@ class MessageController extends AbstractController
         try {
             $conversations = $em->getRepository(Conversation::class)
                 ->createQueryBuilder('c')
+                //crée un constructeur de requête avec c comme alias pour Conversation.
                 ->innerJoin('c.users', 'u')
+                //fait une jointure avec la relation users de la conversation, en lui donnant l'alias u
                 ->where('u.id = :userId')
                 ->setParameter('userId', $user->getId())
+                //filtre pour ne garder que les conversations où l'utilisateur courant est membre
                 ->orderBy('c.lastMessageAt', 'DESC')
                 ->getQuery()
+                 //trie les résultats du plus récent au plus ancien selon la date du dernier message
                 ->getResult();
 
             $data = [];
@@ -1308,7 +1312,7 @@ class MessageController extends AbstractController
             // @codeCoverageIgnoreEnd
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Erreur système création conversation', [
+            $this->papertrailLogger->error('Erreur Conversation creation', [
                 'user_id' => $user->getId(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

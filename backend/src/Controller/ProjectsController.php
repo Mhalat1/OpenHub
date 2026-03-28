@@ -53,7 +53,15 @@ final class ProjectsController extends AbstractController
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
-        $projects = $user->getProject();
+        try {
+            $projects = $user->getProject();
+        } catch (\Exception $e) {
+            $this->papertrailLogger->error('❌ Failed to fetch user projects', [
+                'user_id' => $user->getId(),
+                'error'   => $e->getMessage(),
+            ]);
+            return new JsonResponse(['message' => 'Failed to fetch projects'], 500);
+        }
 
         $this->papertrailLogger->info('User projects fetched', [
             'user_id' => $user->getId(),
@@ -129,57 +137,73 @@ final class ProjectsController extends AbstractController
             'project_name' => $project->getName()
         ], 201);
     }
+#[Route('/api/create/new/project', name: 'app_remove_project', methods: ['POST'])]
+public function createProject(Request $request, Security $security): JsonResponse
+{
+    $user = $security->getUser();
 
-    #[Route('/api/create/new/project', name: 'app_remove_project', methods: ['POST'])]
-    public function createProject(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
+    if (!$user instanceof User) {
+        $this->papertrailLogger->warning('Unauthenticated access to create project');
+        return new JsonResponse(['message' => 'User not authenticated'], 401);
+    }
 
-        $name           = $data['name']           ?? null;
-        $description    = $data['description']    ?? null;
-        $requiredSkills = $data['requiredSkills'] ?? null;
+    $data = json_decode($request->getContent(), true);
 
-        if (!$name || !$description || !$requiredSkills || !isset($data['startDate']) || !isset($data['endDate'])) {
-            $this->papertrailLogger->warning('Create project - missing required fields', [
-                'has_name'           => !empty($name),
-                'has_description'    => !empty($description),
-                'has_requiredSkills' => !empty($requiredSkills),
-                'has_startDate'      => isset($data['startDate']),
-                'has_endDate'        => isset($data['endDate']),
-            ]);
-            return new JsonResponse(['message' => 'Missing required fields'], 400);
-        }
+    $name           = $data['name']           ?? null;
+    $description    = $data['description']    ?? null;
+    $requiredSkills = $data['requiredSkills'] ?? null;
 
-        try {
-            $startDate = new \DateTimeImmutable($data['startDate']);
-            $endDate   = new \DateTimeImmutable($data['endDate']);
-        } catch (\Exception $e) {
-            $this->papertrailLogger->warning('Create project - invalid date format', [
-                'error' => $e->getMessage(),
-            ]);
-            return new JsonResponse(['message' => 'Invalid date format'], 400);
-        }
+    if (!$name || !$description || !$requiredSkills || !isset($data['startDate']) || !isset($data['endDate'])) {
+        $this->papertrailLogger->warning('Create project - missing required fields', [
+            'has_name'           => !empty($name),
+            'has_description'    => !empty($description),
+            'has_requiredSkills' => !empty($requiredSkills),
+            'has_startDate'      => isset($data['startDate']),
+            'has_endDate'        => isset($data['endDate']),
+        ]);
+        return new JsonResponse(['message' => 'Missing required fields'], 400);
+    }
 
-        $project = new Project();
-        $project->setName($name);
-        $project->setDescription($description);
-        $project->setRequiredSkills($requiredSkills);
-        $project->setStartDate($startDate);
-        $project->setEndDate($endDate);
+    try {
+        $startDate = new \DateTimeImmutable($data['startDate']);
+        $endDate   = new \DateTimeImmutable($data['endDate']);
+    } catch (\Exception $e) {
+        $this->papertrailLogger->warning('Create project - invalid date format', [
+            'error' => $e->getMessage(),
+        ]);
+        return new JsonResponse(['message' => 'Invalid date format'], 400);
+    }
 
+    $project = new Project();
+    $project->setName($name);
+    $project->setDescription($description);
+    $project->setRequiredSkills($requiredSkills);
+    $project->setStartDate($startDate);
+    $project->setEndDate($endDate);
+    $project->setUser($user);
+
+    try {
         $this->manager->persist($project);
         $this->manager->flush();
-
-        $this->papertrailLogger->info('✅ Project created', [
-            'project_id'   => $project->getId(),
-            'project_name' => $project->getName(),
+    } catch (\Exception $e) {
+        $this->papertrailLogger->error('❌ Failed to save project to database', [
+            'error'        => $e->getMessage(),
+            'project_name' => $name,
+            'user_id'      => $user->getId(),
         ]);
-
-        return new JsonResponse([
-            'message'    => 'Project created successfully',
-            'project_id' => $project->getId()
-        ], 201);
+        return new JsonResponse(['message' => 'Failed to create project'], 500);
     }
+
+    $this->papertrailLogger->info('✅ Project created', [
+        'project_id'   => $project->getId(),
+        'project_name' => $project->getName(),
+    ]);
+
+    return new JsonResponse([
+        'message'    => 'Project created successfully',
+        'project_id' => $project->getId()
+    ], 201);
+}
 
     #[Route('/api/modify/project/{id}', name: 'app_modify_project', methods: ['PUT', 'PATCH'])]
     public function modifyProject(int $id, Request $request): JsonResponse

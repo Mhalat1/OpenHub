@@ -94,7 +94,7 @@ class DefaultControllerTest extends WebTestCase
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
 
-        $this->assertEquals('/api/userCreate', $data['endpoints']['register']);
+        $this->assertEquals('/api/register', $data['endpoints']['register']);
         $this->assertEquals('/api/login_check', $data['endpoints']['login']);
         $this->assertEquals('/health', $data['endpoints']['health']);
     }

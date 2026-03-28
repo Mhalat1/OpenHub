@@ -23,7 +23,7 @@ class DefaultController extends AbstractController
             'message'   => 'open-hub Backend API is running',
             'timestamp' => time(),
             'endpoints' => [
-                'register' => '/api/userCreate',
+                'register' => '/api/register',
                 'login'    => '/api/login_check',
                 'health'   => '/health'
             ]
