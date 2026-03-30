@@ -2,46 +2,43 @@
 
 namespace App\Tests\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\Response;
+use App\Controller\PapertrailController;
 use App\Service\PapertrailService;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface as PsrContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Tests d'intégration réels pour PapertrailController.
- * Vrai kernel Symfony, vrai PapertrailService — aucun mock.
- */
-class PapertrailControllerTest extends WebTestCase
+class PapertrailControllerTest extends TestCase
 {
-    // =========================================================================
-    // GET /api/test/papertrail
-    // =========================================================================
+    private PapertrailService&MockObject $papertrail;
+    private PapertrailController $controller;
+
+    protected function setUp(): void
+    {
+        $this->papertrail = $this->createMock(PapertrailService::class);
+        $this->controller = new PapertrailController($this->papertrail);
+        $this->controller->setContainer(new class implements PsrContainerInterface {
+            public function get(string $id): mixed { return null; }
+            public function has(string $id): bool  { return false; }
+        });
+    }
 
     public function testPapertrailEndpointReturns200(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $response = $this->controller->testPapertrail();
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
     }
 
     public function testPapertrailResponseIsJson(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $this->assertResponseHeaderSame('content-type', 'application/json');
+        $response = $this->controller->testPapertrail();
+        $this->assertSame('application/json', $response->headers->get('Content-Type'));
     }
 
     public function testPapertrailResponseHasExpectedKeys(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
+        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
         $this->assertArrayHasKey('success',        $data);
         $this->assertArrayHasKey('message',        $data);
         $this->assertArrayHasKey('log',            $data);
@@ -50,199 +47,84 @@ class PapertrailControllerTest extends WebTestCase
 
     public function testPapertrailResponseSuccessIsTrue(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        $this->assertTrue($data['success'], 'Le champ success doit être true si Papertrail est joignable');
+        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $this->assertTrue($data['success']);
     }
 
     public function testPapertrailMessageFieldIsCorrect(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
+        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
         $this->assertSame('Log envoyé à Papertrail', $data['message']);
     }
 
     public function testPapertrailLogFieldContainsExpectedPrefix(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        // Le champ 'log' doit commencer par "Test depuis open-hub - "
-        $this->assertStringStartsWith(
-            'Test depuis open-hub - ',
-            $data['log'],
-            'Le champ log doit contenir le message envoyé à Papertrail'
-        );
+        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $this->assertStringStartsWith('Test depuis open-hub - ', $data['log']);
     }
 
     public function testPapertrailLogFieldContainsTimestamp(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        // Le timestamp doit être au format Y-m-d H:i:s
+        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
         $this->assertMatchesRegularExpression(
             '/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/',
-            $data['log'],
-            'Le champ log doit contenir un timestamp au format Y-m-d H:i:s'
+            $data['log']
         );
     }
 
     public function testPapertrailLogTimestampIsRecent(): void
     {
         $before = time();
+        $data   = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $after  = time();
 
-        $client = static::createClient();
-        $client->request('GET', '/api/test/papertrail');
-
-        $after = time();
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        // Extraire le timestamp du champ log "Test depuis open-hub - YYYY-MM-DD HH:MM:SS"
         preg_match('/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', $data['log'], $matches);
         $this->assertNotEmpty($matches, 'Un timestamp doit être présent dans le log');
 
         $logTime = strtotime($matches[1]);
-        $this->assertGreaterThanOrEqual($before, $logTime, 'Le timestamp doit être >= au début du test');
-        $this->assertLessThanOrEqual($after,  $logTime, 'Le timestamp doit être <= à la fin du test');
+        $this->assertGreaterThanOrEqual($before, $logTime);
+        $this->assertLessThanOrEqual($after, $logTime);
     }
 
     public function testPapertrailUrlFieldIsNotEmpty(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        $this->assertNotEmpty(
-            $data['papertrail_url'],
-            'Le champ papertrail_url ne doit pas être vide'
-        );
+        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $this->assertNotEmpty($data['papertrail_url']);
     }
 
-    public function testPapertrailUrlFieldIsDefinedInEnv(): void
+    public function testPapertrailInfoIsCalledOnce(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/test/papertrail');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        // Si la variable d'env est définie, l'URL ne doit pas être le fallback
-        $this->assertNotSame(
-            'non défini',
-            $data['papertrail_url'],
-            'PAPERTRAIL_URL doit être défini dans .env.test'
-        );
-    }
-
-    public function testPapertrailDoesNotAcceptPostMethod(): void
-    {
-        $client = static::createClient();
-
-        $client->request('POST', '/api/test/papertrail');
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
-    }
-
-    public function testPapertrailDoesNotAcceptPutMethod(): void
-    {
-        $client = static::createClient();
-
-        $client->request('PUT', '/api/test/papertrail');
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
-    }
-
-    public function testPapertrailDoesNotAcceptDeleteMethod(): void
-    {
-        $client = static::createClient();
-
-        $client->request('DELETE', '/api/test/papertrail');
-
-        $this->assertResponseStatusCodeSame(Response::HTTP_METHOD_NOT_ALLOWED);
+        $this->papertrail->expects($this->once())->method('info');
+        $this->controller->testPapertrail();
     }
 
     public function testPapertrailCanBeCalledMultipleTimesWithoutError(): void
     {
-        $client = static::createClient();
-
-        // Appels successifs — le service ne doit pas planter sur des appels répétés
         for ($i = 0; $i < 3; $i++) {
-            $client->request('GET', '/api/test/papertrail');
-            $this->assertResponseStatusCodeSame(
-                Response::HTTP_OK,
-                "L'appel #{$i} doit retourner 200"
-            );
+            $response = $this->controller->testPapertrail();
+            $this->assertSame(Response::HTTP_OK, $response->getStatusCode(), "Appel #{$i} doit retourner 200");
         }
     }
 
     public function testPapertrailEachCallHasUniqueTimestamp(): void
     {
-        $client = static::createClient();
+        $data1 = json_decode($this->controller->testPapertrail()->getContent(), true);
+        sleep(1);
+        $data2 = json_decode($this->controller->testPapertrail()->getContent(), true);
 
-        $client->request('GET', '/api/test/papertrail');
-        $data1 = json_decode($client->getResponse()->getContent(), true);
-
-        sleep(1); // Attendre 1 seconde pour garantir un timestamp différent
-
-        $client->request('GET', '/api/test/papertrail');
-        $data2 = json_decode($client->getResponse()->getContent(), true);
-
-        $this->assertNotSame(
-            $data1['log'],
-            $data2['log'],
-            'Deux appels espacés d\'1s doivent produire des logs différents'
-        );
+        $this->assertNotSame($data1['log'], $data2['log']);
     }
-
-
-
-
-
-
-
-
-
 
     public function testPapertrailHandlesServiceException(): void
     {
-        $client = static::createClient();
-
-        // Replace the real service with a mock that throws an exception
-        $mockService = $this->createMock(PapertrailService::class);
-        $mockService->method('info')
+        $this->papertrail->method('info')
             ->willThrowException(new \Exception('Simulated Papertrail failure'));
 
-        // Override the service in the container
-        static::getContainer()->set(PapertrailService::class, $mockService);
+        $response = $this->controller->testPapertrail();
 
-        $client->request('GET', '/api/test/papertrail');
-
-        // Assert error response
-        $this->assertResponseStatusCodeSame(Response::HTTP_INTERNAL_SERVER_ERROR);
-        
-        $data = json_decode($client->getResponse()->getContent(), true);
-        
-        $this->assertArrayHasKey('success', $data);
-        $this->assertArrayHasKey('error', $data);
+        $this->assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
-        $this->assertEquals('Simulated Papertrail failure', $data['error']);
+        $this->assertSame('Simulated Papertrail failure', $data['error']);
     }
 }

@@ -17,28 +17,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
-    #[ORM\Column(length: 180)]
-    private ?string $email = null;
+    #[ORM\Column(length: 50)]
+    private string $email;
 
-    #[ORM\Column]
+
+    #[ORM\Column(length: 25)]
     private array $roles = [];
 
+    #[ORM\Column(length: 255)]
+    private string $password;
+
+
+    #[ORM\Column(length: 25)]
+    private string $firstName;
+
+    #[ORM\Column(length: 25)]
+    private string $lastName;
+
     #[ORM\Column]
-    private ?string $password = null;
+    private DateTimeImmutable $availabilityStart;
 
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $firstName = null;
-
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $lastName = null;
-
-    #[ORM\Column(nullable: true)]
-    private ?DateTimeImmutable $availabilityStart = null;
-
-    #[ORM\Column(nullable: true)]
-    private ?DateTimeImmutable $availabilityEnd = null;
+    #[ORM\Column]
+    private DateTimeImmutable $availabilityEnd;
 
     #[ORM\ManyToMany(targetEntity: Skills::class)]
     private Collection $skills;

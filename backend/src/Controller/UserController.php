@@ -32,7 +32,7 @@ final class UserController extends AbstractController
         $this->userService    = $userService;
     }
 
-    #[Route('/api/register', name: 'user_create', methods: ['POST'])]
+    #[Route('/api/userCreate', name: 'user_create', methods: ['POST'])]
     public function userCreate(Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse
     {
         $data = json_decode($request->getContent(), true);

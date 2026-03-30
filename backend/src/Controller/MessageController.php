@@ -111,13 +111,6 @@ class MessageController extends AbstractController
         if (!preg_match('/^[\p{L}\p{N}\s\.,;:!?\'\"-()\/\n]+$/uD', $value)) {
             return false;
         }
-        // @codeCoverageIgnoreStart
-        // ⚠️ BLOQUE les caractères dangereux pour CSV : = + - @ \t \0
-        $firstChar = mb_substr($value, 0, 1);
-        if (in_array($firstChar, ['=', '+', '-', '@', "\t", "\0"], true)) {
-            return false; // ← Rejette si commence par un caractère dangereux
-        }
-        // @codeCoverageIgnoreEnd
 
         //✅ BLOQUE les patterns dangereux (XSS, SQL injection)
         $dangerousPatterns = [
@@ -157,7 +150,6 @@ class MessageController extends AbstractController
         }
 
         // ✅ RÈGLE MÉTIER : Pas de chiffres dans les noms
-        // @codeCoverageIgnoreStart
         if (preg_match('/\d/', $name)) {
             return false;
         }
@@ -169,7 +161,6 @@ class MessageController extends AbstractController
                 return false;
             }
         }
-        // @codeCoverageIgnoreEnd
 
         // ✅ RÈGLE MÉTIER : Pas plus de 2 espaces/tirets/apostrophes consécutifs
         if (preg_match('/[\s\'\-]{3,}/', $name)) {
@@ -340,13 +331,13 @@ class MessageController extends AbstractController
             // TODO : Implémenter un système d'audit des suppressions
 
             return ['valid' => true, 'error' => null];
-        } catch (\Exception $e) { // @codeCoverageIgnoreStart
+        } catch (\Exception $e) {   
             $this->papertrailLogger->warning('Rate limit check failed', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
             return ['valid' => true, 'error' => null];
-        } // @codeCoverageIgnoreEnd
+        }   
     }
 
     private function validateConversationParticipants(User $creator, array $userIds, EntityManagerInterface $em): array
@@ -944,7 +935,7 @@ class MessageController extends AbstractController
         }
 
         $offset = ($page - 1) * $limit;
-        // @codeCoverageIgnoreStart
+          
 
         // ✅ AJOUT : Vérifier l'offset maximum absolu
         if ($offset > BusinessLimits::PAGINATION_MAX_OFFSET) {
@@ -958,7 +949,7 @@ class MessageController extends AbstractController
                 )
             ], 400);
         }
-        // @codeCoverageIgnoreEnd
+          
 
         // Récupérer les messages depuis la base de données
         $messages = $messageRepo->findBy(
@@ -1079,7 +1070,7 @@ class MessageController extends AbstractController
 
         // --- TEST DE DIAGNOSTIC ULTIME ---
         error_log('>>> DIAG: createConversation STARTED');
-        // @codeCoverageIgnoreStart
+          
         if (!$this->papertrailLogger) {
             error_log('>>> DIAG: $papertrailLogger is NULL!');
         } else {
@@ -1091,7 +1082,7 @@ class MessageController extends AbstractController
                 error_log('>>> DIAG: EXCEPTION during log: ' . $e->getMessage());
             }
         }
-        // @codeCoverageIgnoreEnd
+          
         error_log('>>> DIAG: Test finished, continuing normal flow.');
         // --- FIN DU TEST ---
 
@@ -1175,7 +1166,7 @@ class MessageController extends AbstractController
             }
 
             $data = json_decode($rawContent, true, 10);
-            // @codeCoverageIgnoreStart
+              
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $this->papertrailLogger->warning('JSON invalide', [
                     'user_id' => $user->getId(),
@@ -1183,7 +1174,7 @@ class MessageController extends AbstractController
                 ]);
                 return new JsonResponse(['message' => 'Invalid JSON'], 400);
             }
-            // @codeCoverageIgnoreEnd
+              
 
 
             // Vérifier les champs interdits
@@ -1300,7 +1291,7 @@ class MessageController extends AbstractController
                 'users' => [], // À compléter si besoin
                 'userCount' => count($conversation->getUsers())
             ], 201);
-        } catch (\InvalidArgumentException $e) { // @codeCoverageIgnoreStart
+        } catch (\InvalidArgumentException $e) {   
             $this->papertrailLogger->error('Erreur de validation', [
                 'user_id' => $user->getId(),
                 'error' => $e->getMessage(),
@@ -1309,7 +1300,7 @@ class MessageController extends AbstractController
             $em->rollback();
             $em->clear();
             return new JsonResponse(['message' => $e->getMessage()], 400);
-            // @codeCoverageIgnoreEnd
+              
 
         } catch (\Exception $e) {
             $this->papertrailLogger->error('Erreur Conversation creation', [
@@ -1368,11 +1359,11 @@ class MessageController extends AbstractController
             if (strlen($rawContent) > 10000) { // 100KB max
                 return new JsonResponse(['message' => 'Request too large'], 413);
             }
-        // @codeCoverageIgnoreStart
+          
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return new JsonResponse(['message' => 'Invalid JSON: '], 400);
             }
-        // @codeCoverageIgnoreEnd
+          
             $data = json_decode($rawContent, true, 10); // Max 10 niveaux de profondeur
 
             // Vérifier qu'il n'y a pas de champs interdits
@@ -1393,11 +1384,11 @@ class MessageController extends AbstractController
 
             // ✅ ÉTAPE 3 : Décodage canonique (seulement si validation initiale OK)
             $data['content'] = $this->canonicalDecode($data['content']);
-            // @codeCoverageIgnoreStart
+              
                 if (isset($data['title'])) {
                    $data['title'] = $this->canonicalDecode($data['title']);
                 }
-            // @codeCoverageIgnoreEnd
+              
             // ✅ ÉTAPE 4 : Validation stricte APRÈS décodage
             if (!$this->validateMessageContent($data['content'])) {
                 return new JsonResponse([
@@ -1452,7 +1443,6 @@ class MessageController extends AbstractController
                 'authorId' => $message->getAuthor()->getId(),
             ], 201);
 
-            // @codeCoverageIgnore
             $em->clear();
         } catch (\Exception $e) {
             $em->rollback();
@@ -1504,13 +1494,13 @@ class MessageController extends AbstractController
 
             // ✅ AJOUT : Rate limiting sur la suppression
             $rateLimitCheck = $this->validateConversationDeleteRateLimit($user, $em);
-            // @codeCoverageIgnoreStart
+              
             if (!$rateLimitCheck['valid']) {
                 return new JsonResponse([
                     'message' => $rateLimitCheck['error']
                 ], 429);
             }
-            // @codeCoverageIgnoreEnd
+              
 
             // ✅ RÈGLE MÉTIER : Vérifier l'autorisation
             if ($conversation->getCreatedBy()->getId() !== $user->getId()) {
@@ -1540,7 +1530,7 @@ class MessageController extends AbstractController
                 $em->remove($message);
             }
 
-            // @codeCoverageIgnoreStart
+              
             // ✅ RÈGLE MÉTIER : Limiter le nombre de messages supprimables (protection DoS)
             if (count($messages) > 10000) {
                 return new JsonResponse([
@@ -1551,7 +1541,7 @@ class MessageController extends AbstractController
             foreach ($messages as $message) {
                 $em->remove($message);
             }
-            // @codeCoverageIgnoreEnd
+              
 
             $em->remove($conversation);
             $em->flush();
@@ -1567,7 +1557,7 @@ class MessageController extends AbstractController
                 'message' => 'Error deleting conversation',
                 'error' => $e->getMessage()
             ], 500);
-            // @codeCoverageIgnore
+            // @   
             $em->clear();
         }
     }
@@ -1605,7 +1595,7 @@ class MessageController extends AbstractController
             }
 
 
-            // @codeCoverageIgnoreStart
+              
             // ✅ AJOUT : Validation TYPES - Vérifier l'instance
             if (!$message instanceof Message) {
                 $this->papertrailLogger->warning('Invalid message type', [
@@ -1619,7 +1609,7 @@ class MessageController extends AbstractController
             if ($message->getAuthor()->getId() !== $user->getId()) {
                 return new JsonResponse(['message' => 'You are not authorized to delete this message'], 403);
             }
-            // @codeCoverageIgnoreEnd
+              
 
             // ✅ AJOUT : Validation FORMAT - Vérifier l'intégrité avant suppression
             $content = $message->getContent();
@@ -1631,7 +1621,7 @@ class MessageController extends AbstractController
 
             // ✅ AJOUT : Validation FORMAT - Vérifier l'auteur
             $author = $message->getAuthor();
-            // @codeCoverageIgnoreStart
+              
             if (!$author instanceof User) {
                 $this->papertrailLogger->warning('Message has invalid author', [
                     'message_id' => $id,
@@ -1639,7 +1629,7 @@ class MessageController extends AbstractController
 
                 return new JsonResponse(['message' => 'Invalid message author'], 500);
             }
-            // @codeCoverageIgnoreEnd
+              
 
             // ✅ AJOUT : Validation MÉTIER - Vérifier que la conversation existe
             $conversation = $message->getConversation();
@@ -1668,7 +1658,7 @@ class MessageController extends AbstractController
                 'message' => 'Error deleting message',
                 'error' => $e->getMessage()
             ], 500);
-            // @codeCoverageIgnore
+            // @   
             $em->clear();
         }
     }

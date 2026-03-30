@@ -24,7 +24,7 @@ class FrontendMetricsController
     }
 
     // React appelle cet endpoint avec { lcp, fid, cls, page_load_time, js_errors, page_views, bounce }
-    #[Route('/metrics/frontend/collect', name: 'frontend_metrics_collect', methods: ['POST'])]
+    #[Route('/metrics/frontend/collect', name: 'frontend_metrics_collect', methods: ['POST', 'OPTIONS'])]
     public function collect(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -33,9 +33,9 @@ class FrontendMetricsController
             return new JsonResponse(['error' => 'Invalid JSON'], 400);
         }
 
-        // Métriques "dernière valeur connue" — on écrase à chaque fois
-        // Source : librairie web-vitals (Google) côté React
+        // ajoute la derniere valeur et ecrase celle d'avant
         if (isset($data['lcp']))
+            // cree un fichier separee pour cette metrique
             file_put_contents($this->tmpDir . '/fm_lcp.txt', $data['lcp'], LOCK_EX);
 
         if (isset($data['fid']))

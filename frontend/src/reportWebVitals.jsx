@@ -10,7 +10,7 @@ window.addEventListener("error", () => {
 
 function sendToBackend(data) {
   fetch(`${API}/metrics/frontend/collect`, {
-    method: "POST",
+    method: ['POST', 'OPTIONS'],
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   }).catch(() => {});

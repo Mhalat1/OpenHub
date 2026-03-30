@@ -17,13 +17,13 @@ class Conversation
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $title = null;
+    #[ORM\Column(length: 25)]
+    private string $title;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $description = null;
+    #[ORM\Column(length: 255)]
+    private string $description;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -50,11 +50,9 @@ class Conversation
 
     
 
-    /**
-     * Créateur de la conversation
-     */
+
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: true)]
+    #[ORM\JoinColumn(nullable: false)]
     private ?User $createdBy = null;
 
     public function __construct()

@@ -22,61 +22,24 @@ class AuthController extends AbstractController
         private PapertrailService $papertrailLogger,
     ) {}
 
-    #[Route('/api/login_check', name: 'api_login_check', methods: ['POST'])]
-    public function login(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-        $email    = $data['email']    ?? '';
-        $password = $data['password'] ?? '';
-
-        $this->papertrailLogger->info('Login attempt', [
-            'email' => $email,
-        ]);
-
-        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
-
-        if (!$user) {
-            $this->papertrailLogger->warning('User not found during login', [
-                'email' => $email,
-            ]);
-            return $this->json([
-                'message' => 'Invalid credentials',
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $this->papertrailLogger->info('TEST LOG FROM AUTH - please appear');
-        $this->papertrailLogger->error('Invalid password attempt - ERROR LEVEL', [
-            'user_id' => $user->getId(),
-            'email'   => $email,
-        ]);
-
-        $token = $this->jwtManager->create($user);
-
-        $this->papertrailLogger->info('Token generated - Login successful', [
-            'user_id' => $user->getId(),
-            'email'   => $user->getEmail(),
-        ]);
-
-        return $this->json([
-            'token' => $token,
-            'user'  => [
-                'id'        => $user->getId(),
-                'email'     => $user->getEmail(),
-                'firstName' => $user->getFirstName(),
-                'lastName'  => $user->getLastName(),
-            ]
-        ]);
-    }
-
-    #[Route('/api/register', name: 'api_register', methods: ['POST'])]
+    #[Route('/api/register', name: 'api_register', methods: ['POST', 'OPTIONS'])]
     public function register(Request $request): JsonResponse
     {
-        $data      = json_decode($request->getContent(), true);
-        $email     = $data['email']             ?? '';
-        $password  = $data['password']          ?? '';
-        $firstName = $data['firstName']         ?? '';
-        $lastName  = $data['lastName']          ?? '';
+        // Gestion preflight CORS (OPTIONS)
+        if ($request->getMethod() === 'OPTIONS') {
+            $response = new JsonResponse(null, Response::HTTP_OK);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            return $response;
+        }
+        
+        // === TRAITEMENT DE LA REQUÊTE POST ===
+        $data = json_decode($request->getContent(), true);
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+        $firstName = $data['firstName'] ?? '';
+        $lastName = $data['lastName'] ?? '';
 
         $this->papertrailLogger->info('Registration attempt', [
             'email' => $email,
@@ -88,10 +51,12 @@ class AuthController extends AbstractController
                 'email'      => $email,
                 'first_name' => $firstName,
             ]);
-            return $this->json([
+            $response = $this->json([
                 'status'  => false,
                 'message' => 'Invalid first name format'
             ], Response::HTTP_BAD_REQUEST);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            return $response;
         }
 
         if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $lastName) || mb_strlen($lastName) < 2 || mb_strlen($lastName) > 100) {
@@ -99,10 +64,12 @@ class AuthController extends AbstractController
                 'email'     => $email,
                 'last_name' => $lastName,
             ]);
-            return $this->json([
+            $response = $this->json([
                 'status'  => false,
                 'message' => 'Invalid last name format'
             ], Response::HTTP_BAD_REQUEST);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            return $response;
         }
 
         $availabilityStart = $data['availabilityStart'] ?? null;
@@ -115,10 +82,12 @@ class AuthController extends AbstractController
                 'has_first_name' => !empty($firstName),
                 'has_last_name'  => !empty($lastName),
             ]);
-            return $this->json([
+            $response = $this->json([
                 'status'  => false,
                 'message' => 'Email, password, first name and last name are required'
             ], Response::HTTP_BAD_REQUEST);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            return $response;
         }
 
         // Validation stricte du format email
@@ -126,44 +95,29 @@ class AuthController extends AbstractController
             $this->papertrailLogger->warning('Invalid email format on registration', [
                 'email' => $email,
             ]);
-            return $this->json([
+            $response = $this->json([
                 'status'  => false,
                 'message' => 'Invalid email format. Use format: name@domain.xxx (ex: jean@example.com)'
             ], Response::HTTP_BAD_REQUEST);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            return $response;
         }
 
-        // Validation supplémentaire du domaine.
-        // Note : le bloc !str_contains est du code défensif redondant — FILTER_VALIDATE_EMAIL
-        // de PHP 8.x exige déjà un point dans le domaine, donc cette branche est
-        // inatteignable en pratique. Elle est conservée pour la sécurité en profondeur
-        // mais exclue de la couverture de code pour cette raison.
         $parts = explode('@', $email);
         if (count($parts) === 2) {
-            $domain = $parts[1];
-            // @codeCoverageIgnoreStart
-            if (!str_contains($domain, '.')) {
-                $this->papertrailLogger->warning('Email domain missing dot on registration', [
-                    'email'  => $email,
-                    'domain' => $domain,
-                ]);
-                return $this->json([
-                    'status'  => false,
-                    'message' => 'Invalid email format. Domain must contain a dot (ex: gmail.com)'
-                ], Response::HTTP_BAD_REQUEST);
-            }
-            // @codeCoverageIgnoreEnd
-
-            $tldParts = explode('.', $domain);
+            $tldParts = explode('.', $parts[1]);
             $tld = end($tldParts);
             if (strlen($tld) < 2) {
                 $this->papertrailLogger->warning('Email TLD too short on registration', [
                     'email' => $email,
                     'tld'   => $tld,
                 ]);
-                return $this->json([
+                $response = $this->json([
                     'status'  => false,
                     'message' => 'Invalid email format. Extension must be at least 2 characters (ex: .com, .fr)'
                 ], Response::HTTP_BAD_REQUEST);
+                $response->headers->set('Access-Control-Allow-Origin', '*');
+                return $response;
             }
         }
 
@@ -172,10 +126,12 @@ class AuthController extends AbstractController
             $this->papertrailLogger->warning('Registration attempt with already existing email', [
                 'email' => $email,
             ]);
-            return $this->json([
+            $response = $this->json([
                 'status'  => false,
                 'message' => 'This email is already in use'
             ], Response::HTTP_CONFLICT);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            return $response;
         }
 
         $user = new User();
@@ -187,6 +143,7 @@ class AuthController extends AbstractController
         $hashedPassword = $this->passwordHasher->hashPassword($user, $password);
         $user->setPassword($hashedPassword);
 
+        // Initialiser les dates OBLIGATOIREMENT
         if ($availabilityStart) {
             try {
                 $user->setAvailabilityStart(new \DateTimeImmutable($availabilityStart));
@@ -196,11 +153,15 @@ class AuthController extends AbstractController
                     'value' => $availabilityStart,
                     'error' => $e->getMessage(),
                 ]);
-                return $this->json([
+                $response = $this->json([
                     'status'  => false,
                     'message' => 'Invalid availability start date format'
                 ], Response::HTTP_BAD_REQUEST);
+                $response->headers->set('Access-Control-Allow-Origin', '*');
+                return $response;
             }
+        } else {
+            $user->setAvailabilityStart(new \DateTimeImmutable('2025-01-01'));
         }
 
         if ($availabilityEnd) {
@@ -212,11 +173,15 @@ class AuthController extends AbstractController
                     'value' => $availabilityEnd,
                     'error' => $e->getMessage(),
                 ]);
-                return $this->json([
+                $response = $this->json([
                     'status'  => false,
                     'message' => 'Invalid availability end date format'
                 ], Response::HTTP_BAD_REQUEST);
+                $response->headers->set('Access-Control-Allow-Origin', '*');
+                return $response;
             }
+        } else {
+            $user->setAvailabilityEnd(new \DateTimeImmutable('2025-12-31'));
         }
 
         $this->entityManager->persist($user);
@@ -227,7 +192,7 @@ class AuthController extends AbstractController
             'email'   => $user->getEmail(),
         ]);
 
-        return $this->json([
+        $response = $this->json([
             'status'  => true,
             'message' => 'User created successfully',
             'user'    => [
@@ -235,10 +200,13 @@ class AuthController extends AbstractController
                 'email'             => $user->getEmail(),
                 'firstName'         => $user->getFirstName(),
                 'lastName'          => $user->getLastName(),
-                'availabilityStart' => $user->getAvailabilityStart()?->format('Y-m-d'),
-                'availabilityEnd'   => $user->getAvailabilityEnd()?->format('Y-m-d'),
+                'availabilityStart' => $user->getAvailabilityStart()->format('Y-m-d'),
+                'availabilityEnd'   => $user->getAvailabilityEnd()->format('Y-m-d'),
                 'skills'            => $user->getSkills() ?? [],
             ]
         ], Response::HTTP_CREATED);
+        
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        return $response;
     }
 }

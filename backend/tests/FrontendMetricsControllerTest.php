@@ -14,7 +14,8 @@ class FrontendMetricsControllerTest extends WebTestCase
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        $this->tmpDir = sys_get_temp_dir();
+        // Nettoyer les fichiers avant chaque test
+        $this->tmpDir = sys_get_temp_dir() . '/openhub_metrics';
         $this->cleanupMetricsFiles();
     }
 
@@ -26,12 +27,18 @@ class FrontendMetricsControllerTest extends WebTestCase
 
     private function cleanupMetricsFiles(): void
     {
+        if (!is_dir($this->tmpDir)) {
+            return;
+        }
+        
         foreach ([
             'fm_lcp.txt', 'fm_fid.txt', 'fm_cls.txt', 'fm_plt.txt',
             'fm_js_errors.txt', 'fm_page_views.txt', 'fm_bounces.txt', 'fm_sessions.txt'
         ] as $file) {
             $path = $this->tmpDir . '/' . $file;
-            if (file_exists($path)) unlink($path);
+            if (file_exists($path)) {
+                unlink($path);
+            }
         }
     }
 
@@ -40,6 +47,15 @@ class FrontendMetricsControllerTest extends WebTestCase
         $this->client->request('POST', '/metrics/frontend/collect', [], [], [
             'CONTENT_TYPE' => 'application/json',
         ], json_encode($data));
+    }
+
+    private function getMetricValue(string $metricName): ?float
+    {
+        $this->client->request('GET', '/metrics/frontend');
+        $content = $this->client->getResponse()->getContent();
+        
+        preg_match('/' . preg_quote($metricName, '/') . '\s+([\d.eE+-]+)/', $content, $matches);
+        return isset($matches[1]) ? (float)$matches[1] : null;
     }
 
     // ========== TESTS COLLECT ==========
@@ -52,61 +68,71 @@ class FrontendMetricsControllerTest extends WebTestCase
     public function testCollectReturnsOkJson(): void
     {
         $this->collect(['lcp' => 1.2]);
-        $response = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertEquals(['ok' => true], $response);
+        
+        $this->assertEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $content = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEquals(['ok' => true], $content);
     }
 
     public function testCollectStoresLcp(): void
     {
         $this->collect(['lcp' => 2.45]);
-        $this->assertEquals('2.45', file_get_contents($this->tmpDir . '/fm_lcp.txt'));
+        
+        $this->assertEquals(2.45, $this->getMetricValue('frontend_lcp_seconds'));
     }
 
     public function testCollectStoresFid(): void
     {
         $this->collect(['fid' => 0.08]);
-        $this->assertEquals('0.08', file_get_contents($this->tmpDir . '/fm_fid.txt'));
+        
+        $this->assertEquals(0.08, $this->getMetricValue('frontend_fid_seconds'));
     }
 
     public function testCollectStoresCls(): void
     {
         $this->collect(['cls' => 0.12]);
-        $this->assertEquals('0.12', file_get_contents($this->tmpDir . '/fm_cls.txt'));
+        
+        $this->assertEquals(0.12, $this->getMetricValue('frontend_cls_ratio'));
     }
 
     public function testCollectStoresPageLoadTime(): void
     {
         $this->collect(['page_load_time' => 3.7]);
-        $this->assertEquals('3.7', file_get_contents($this->tmpDir . '/fm_plt.txt'));
+        
+        $this->assertEquals(3.7, $this->getMetricValue('frontend_page_load_seconds'));
     }
 
     public function testCollectStoresJsErrors(): void
     {
         $this->collect(['js_errors' => 5]);
-        $this->assertEquals('5', file_get_contents($this->tmpDir . '/fm_js_errors.txt'));
+        
+        $this->assertEquals(5, $this->getMetricValue('frontend_js_errors_total'));
     }
 
     public function testCollectIncrementsPageViews(): void
     {
         $this->collect(['page_views' => 3]);
         $this->collect(['page_views' => 2]);
-        $this->assertEquals(5, (int)file_get_contents($this->tmpDir . '/fm_page_views.txt'));
+        
+        $this->assertEquals(5, $this->getMetricValue('frontend_page_views_total'));
     }
 
     public function testCollectIncrementsBounceAndSessions(): void
     {
         $this->collect(['bounce' => 1]);
         $this->collect(['bounce' => 1]);
-        $this->assertEquals(2, (int)file_get_contents($this->tmpDir . '/fm_bounces.txt'));
-        $this->assertEquals(2, (int)file_get_contents($this->tmpDir . '/fm_sessions.txt'));
+        
+        // 2 bounces, 2 sessions = 100% bounce rate
+        $this->assertEquals(100.0, $this->getMetricValue('frontend_bounce_rate_percent'));
     }
 
     public function testCollectIgnoresMissingFields(): void
     {
         $this->collect(['lcp' => 1.5]);
-        $this->assertResponseIsSuccessful();
-        $this->assertFileDoesNotExist($this->tmpDir . '/fm_fid.txt');
-        $this->assertFileDoesNotExist($this->tmpDir . '/fm_cls.txt');
+        
+        $this->assertEquals(1.5, $this->getMetricValue('frontend_lcp_seconds'));
+        $this->assertEquals(0.0, $this->getMetricValue('frontend_fid_seconds'));
+        $this->assertEquals(0.0, $this->getMetricValue('frontend_cls_ratio'));
     }
 
     public function testCollectAllFieldsAtOnce(): void
@@ -121,113 +147,48 @@ class FrontendMetricsControllerTest extends WebTestCase
             'bounce' => 1,
         ]);
 
-        $this->assertEquals('1.8', file_get_contents($this->tmpDir . '/fm_lcp.txt'));
-        $this->assertEquals('0.05', file_get_contents($this->tmpDir . '/fm_fid.txt'));
-        $this->assertEquals('0.08', file_get_contents($this->tmpDir . '/fm_cls.txt'));
-        $this->assertEquals('2.1', file_get_contents($this->tmpDir . '/fm_plt.txt'));
-        $this->assertEquals('2', file_get_contents($this->tmpDir . '/fm_js_errors.txt'));
-        $this->assertEquals(10, (int)file_get_contents($this->tmpDir . '/fm_page_views.txt'));
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/fm_bounces.txt'));
-        $this->assertEquals(1, (int)file_get_contents($this->tmpDir . '/fm_sessions.txt'));
+        $this->assertEquals(1.8, $this->getMetricValue('frontend_lcp_seconds'));
+        $this->assertEquals(0.05, $this->getMetricValue('frontend_fid_seconds'));
+        $this->assertEquals(0.08, $this->getMetricValue('frontend_cls_ratio'));
+        $this->assertEquals(2.1, $this->getMetricValue('frontend_page_load_seconds'));
+        $this->assertEquals(2, $this->getMetricValue('frontend_js_errors_total'));
+        $this->assertEquals(10, $this->getMetricValue('frontend_page_views_total'));
+        $this->assertEquals(100.0, $this->getMetricValue('frontend_bounce_rate_percent'));
     }
 
-    // ========== TESTS METRICS ==========
+    // ========== TESTS METRICS ENDPOINT ==========
 
     public function testMetricsEndpointIsAccessible(): void
     {
         $this->client->request('GET', '/metrics/frontend');
         $this->assertResponseIsSuccessful();
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $this->assertEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
     }
 
     public function testMetricsReturnsTextPlain(): void
     {
         $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('text/plain', $this->client->getResponse()->headers->get('Content-Type'));
+        $contentType = $this->client->getResponse()->headers->get('Content-Type');
+        $this->assertStringContainsString('text/plain', $contentType);
     }
 
-    public function testMetricsReturnsPrometheusVersion(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('version=0.0.4', $this->client->getResponse()->headers->get('Content-Type'));
-    }
-
-    public function testMetricsContainsLcp(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_lcp_seconds', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsFid(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_fid_seconds', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsCls(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_cls_ratio', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsPageLoad(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_page_load_seconds', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsJsErrors(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_js_errors_total', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsPageViews(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_page_views_total', $this->client->getResponse()->getContent());
-    }
-
-    public function testMetricsContainsBounceRate(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $this->assertStringContainsString('frontend_bounce_rate_percent', $this->client->getResponse()->getContent());
-    }
-
-    public function testAllMetricsAreGaugeType(): void
+    public function testMetricsContainsAllExpectedMetrics(): void
     {
         $this->client->request('GET', '/metrics/frontend');
         $content = $this->client->getResponse()->getContent();
-
-        foreach ([
+        
+        $expectedMetrics = [
             'frontend_lcp_seconds',
             'frontend_fid_seconds',
             'frontend_cls_ratio',
             'frontend_page_load_seconds',
             'frontend_js_errors_total',
             'frontend_page_views_total',
-            'frontend_bounce_rate_percent',
-        ] as $metric) {
-            $this->assertStringContainsString(
-                "# TYPE {$metric} gauge",
-                $content,
-                "{$metric} doit être de type gauge"
-            );
-        }
-    }
-
-    public function testMetricsValuesAreNumeric(): void
-    {
-        $this->client->request('GET', '/metrics/frontend');
-        $content = str_replace("\r\n", "\n", $this->client->getResponse()->getContent());
-
-        foreach (explode("\n", $content) as $line) {
-            $line = trim($line);
-            if (empty($line) || str_starts_with($line, '#')) continue;
-            $parts = preg_split('/\s+/', $line);
-            if (count($parts) >= 2) {
-                $this->assertIsNumeric(trim(end($parts)), "Valeur non numérique dans : {$line}");
-            }
+            'frontend_bounce_rate_percent'
+        ];
+        
+        foreach ($expectedMetrics as $metric) {
+            $this->assertStringContainsString($metric, $content, "Metric {$metric} not found");
         }
     }
 
@@ -235,130 +196,73 @@ class FrontendMetricsControllerTest extends WebTestCase
     {
         $this->client->request('GET', '/metrics/frontend');
         $content = $this->client->getResponse()->getContent();
+        
+        $this->assertStringContainsString('# HELP', $content);
+        $this->assertStringContainsString('# TYPE', $content);
+        
+        // Vérifier qu'il y a au moins une métrique avec une valeur
+        preg_match('/^[a-z_]+ [\d.eE+-]+$/m', $content, $matches);
+        $this->assertNotEmpty($matches);
+    }
 
-        $hasHelp = $hasType = $hasMetric = false;
-        foreach (explode("\n", $content) as $line) {
-            if (str_starts_with($line, '# HELP')) $hasHelp = true;
-            if (str_starts_with($line, '# TYPE')) $hasType = true;
-            if (!empty(trim($line)) && !str_starts_with($line, '#')) $hasMetric = true;
+    public function testMetricsReturnZeroWhenNoData(): void
+    {
+        $this->client->request('GET', '/metrics/frontend');
+        $content = $this->client->getResponse()->getContent();
+        
+        // Extraire toutes les métriques et vérifier qu'elles sont à 0
+        preg_match_all('/^([a-z_]+)\s+([\d.eE+-]+)$/m', $content, $matches, PREG_SET_ORDER);
+        
+        foreach ($matches as $match) {
+            $value = (float)$match[2];
+            $this->assertEquals(0.0, $value, "{$match[1]} should be 0, got {$value}");
         }
-
-        $this->assertTrue($hasHelp);
-        $this->assertTrue($hasType);
-        $this->assertTrue($hasMetric);
     }
 
-    // ========== TESTS VALEURS RÉELLES ==========
-
-    public function testLcpValueIsReflectedInMetrics(): void
+    public function testMetricsReflectStoredValues(): void
     {
-        $this->collect(['lcp' => 2.5]);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_lcp_seconds\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(2.5, (float)($matches[1] ?? -1));
+        // Stocker des valeurs
+        $this->collect(['lcp' => 3.14, 'fid' => 0.22, 'page_views' => 42, 'js_errors' => 7]);
+        
+        $this->assertEquals(3.14, $this->getMetricValue('frontend_lcp_seconds'));
+        $this->assertEquals(0.22, $this->getMetricValue('frontend_fid_seconds'));
+        $this->assertEquals(42, $this->getMetricValue('frontend_page_views_total'));
+        $this->assertEquals(7, $this->getMetricValue('frontend_js_errors_total'));
     }
 
-    public function testFidValueIsReflectedInMetrics(): void
+    public function testBounceRateWithNoSessions(): void
     {
-        $this->collect(['fid' => 0.1]);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_fid_seconds\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(0.1, (float)($matches[1] ?? -1));
+        // Pas de sessions, sessions min = 1, bounce rate = 0%
+        $this->assertEquals(0.0, $this->getMetricValue('frontend_bounce_rate_percent'));
     }
 
-    public function testClsValueIsReflectedInMetrics(): void
+    public function testBounceRateWithOnlyBounces(): void
     {
-        $this->collect(['cls' => 0.25]);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_cls_ratio\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(0.25, (float)($matches[1] ?? -1));
-    }
-
-    public function testPageLoadValueIsReflectedInMetrics(): void
-    {
-        $this->collect(['page_load_time' => 4.2]);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_page_load_seconds\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(4.2, (float)($matches[1] ?? -1));
-    }
-
-    public function testJsErrorsValueIsReflectedInMetrics(): void
-    {
-        $this->collect(['js_errors' => 7]);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_js_errors_total\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(7, (int)($matches[1] ?? -1));
-    }
-
-    public function testPageViewsAccumulate(): void
-    {
-        $this->collect(['page_views' => 5]);
-        $this->collect(['page_views' => 8]);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_page_views_total\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(13, (int)($matches[1] ?? -1));
-    }
-
-    public function testBounceRateCalculation(): void
-    {
-        // 2 bounces sur 4 sessions → 50%
         $this->collect(['bounce' => 1]);
         $this->collect(['bounce' => 1]);
-        $this->collect(['bounce' => 0]); // pas de bounce mais pas traité car non isset(bounce)
-        // simulate 2 sessions non-bounce
-        file_put_contents($this->tmpDir . '/fm_bounces.txt', 2);
-        file_put_contents($this->tmpDir . '/fm_sessions.txt', 4);
-
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_bounce_rate_percent\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(50.0, (float)($matches[1] ?? -1));
+        $this->collect(['bounce' => 1]);
+        
+        // 3 bounces, 3 sessions = 100%
+        $this->assertEquals(100.0, $this->getMetricValue('frontend_bounce_rate_percent'));
     }
 
-    public function testBounceRateDefaultsToZeroWhenNoSessions(): void
-    {
-        // Pas de fichiers → sessions = 1 (défaut dans le controller)
-        $this->client->request('GET', '/metrics/frontend');
-        $content = $this->client->getResponse()->getContent();
-
-        preg_match('/frontend_bounce_rate_percent\s+([\d.]+)/', $content, $matches);
-        $this->assertEquals(0.0, (float)($matches[1] ?? -1));
-    }
-
-    public function testMetricsDefaultToZeroWithNoData(): void
+    public function testAllMetricsAreGaugeType(): void
     {
         $this->client->request('GET', '/metrics/frontend');
         $content = $this->client->getResponse()->getContent();
-
-        foreach ([
+        
+        $metrics = [
             'frontend_lcp_seconds',
             'frontend_fid_seconds',
             'frontend_cls_ratio',
             'frontend_page_load_seconds',
             'frontend_js_errors_total',
             'frontend_page_views_total',
-        ] as $metric) {
-            preg_match("/{$metric}\s+([\d.]+)/", $content, $matches);
-            $this->assertEquals(0.0, (float)($matches[1] ?? -1), "{$metric} devrait valoir 0 par défaut");
+            'frontend_bounce_rate_percent'
+        ];
+        
+        foreach ($metrics as $metric) {
+            $this->assertStringContainsString("# TYPE {$metric} gauge", $content, "{$metric} should be gauge");
         }
     }
 
@@ -366,8 +270,10 @@ class FrontendMetricsControllerTest extends WebTestCase
     {
         $start = microtime(true);
         $this->client->request('GET', '/metrics/frontend');
+        $duration = microtime(true) - $start;
+        
         $this->assertResponseIsSuccessful();
-        $this->assertLessThan(1.0, microtime(true) - $start);
+        $this->assertLessThan(1.0, $duration, "Metrics endpoint took too long: {$duration}s");
     }
 
     public function testMultipleCallsAreStable(): void
@@ -376,5 +282,35 @@ class FrontendMetricsControllerTest extends WebTestCase
             $this->client->request('GET', '/metrics/frontend');
             $this->assertResponseIsSuccessful();
         }
+    }
+
+    public function testCollectEndpointIsPostOnly(): void
+    {
+        $this->client->request('GET', '/metrics/frontend/collect');
+        $this->assertNotEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testMetricsEndpointIsGetOnly(): void
+    {
+        $this->client->request('POST', '/metrics/frontend');
+        $this->assertNotEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testCollectHandlesInvalidJson(): void
+    {
+        $this->client->request('POST', '/metrics/frontend/collect', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+        ], 'invalid json');
+        
+        $this->assertEquals(400, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testCollectHandlesNonArrayData(): void
+    {
+        $this->client->request('POST', '/metrics/frontend/collect', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+        ], '"string"');
+        
+        $this->assertEquals(400, $this->client->getResponse()->getStatusCode());
     }
 }

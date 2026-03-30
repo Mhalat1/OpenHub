@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "../images/logo.png";
 import styles from "../style/register.module.css";
 
+// On garde API_URL pour d'autres usages éventuels, mais on utilise l'URL relative pour l'API
 const API_URL = import.meta.env.VITE_API_URL;
 
 const initialState = {
@@ -111,6 +112,7 @@ const Register = () => {
   const prevStep = () => {
     setCurrentStep((prev) => prev - 1);
   };
+  
   const validateStep = (step) => {
     const newErrors = {};
 
@@ -122,7 +124,6 @@ const Register = () => {
     }
 
     if (step === 2) {
-      // ✅ Utilisation de la nouvelle validation d'email
       const emailError = validateEmail(formState.email);
       if (emailError) newErrors.email = emailError;
     }
@@ -158,7 +159,7 @@ const Register = () => {
     const emailError = validateEmail(formState.email);
     if (emailError) {
       setErrors((prev) => ({ ...prev, email: emailError }));
-      setCurrentStep(2); // Retourner à l'étape 2
+      setCurrentStep(2);
       return;
     }
 
@@ -184,7 +185,8 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/register`, {
+      // UTILISEZ L'URL RELATIVE ! Pas besoin de API_URL
+      const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState),
@@ -202,7 +204,8 @@ const Register = () => {
         setErrors({ submit: data.message });
       }
     } catch (err) {
-      setErrors({ submit: "Erreur réseau" });
+      console.error("Erreur détaillée:", err);
+      setErrors({ submit: "Erreur réseau: " + err.message });
     } finally {
       setIsLoading(false);
     }

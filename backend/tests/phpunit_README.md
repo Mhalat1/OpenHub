@@ -1,8 +1,10 @@
 !!! important lancer bdd test avec wamp avant les test 
 
 commande pour lancer les tests :
-```bash
+#bash
 php bin/phpunit
+#powershell
+php vendor/bin/phpunit
 ```
 exemple test specifiauement 
 php bin/phpunit tests/DonationControllerTest.php

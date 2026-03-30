@@ -18,7 +18,7 @@ class BackendMetricsController
         $this->tmpDir = sys_get_temp_dir();
     }
 
-    // React ou ton frontend appelle cet endpoint pour incrémenter les compteurs
+    // React appelle cet endpoint pour incrémenter les compteurs
     #[Route('/metrics/backend/collect', name: 'backend_metrics_collect', methods: ['POST'])]
     public function collect(Request $request): JsonResponse
     {
@@ -108,7 +108,7 @@ class BackendMetricsController
         // Uptime réel — /proc/uptime n'existe que sur Linux, inatteignable sur Windows
         $uptime = 0;
         if (file_exists('/proc/uptime')) {
-            $uptime = (int)explode(' ', file_get_contents('/proc/uptime'))[0]; // @codeCoverageIgnore
+            $uptime = (int)explode(' ', file_get_contents('/proc/uptime'))[0]; 
         }
         $registry->getOrRegisterGauge('app', 'uptime_seconds', 'Uptime seconds')
             ->set($uptime);

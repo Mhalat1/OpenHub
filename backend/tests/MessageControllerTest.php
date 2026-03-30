@@ -863,57 +863,35 @@ class MessageControllerTest extends TestCase
         $this->assertSame(400, $response->getStatusCode());
         $this->assertStringContainsString('invalid user state', json_decode($response->getContent(), true)['message']);
     }
+public function testCreateConversationSuccessReturns201(): void
+{
+    $creator     = $this->createUser(1);
+    $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
+    $security    = $this->createSecurity($creator);
 
-    public function testCreateConversationSuccessReturns201(): void
-    {
-        $creator     = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $security    = $this->createSecurity($creator);
+    $userRepo = $this->createMock(EntityRepository::class);
+    $userRepo->method('findOneBy')->willReturn(null);
+    $userRepo->method('findBy')->willReturn([$participant]);
 
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findOneBy')->willReturn(null);
-        $userRepo->method('findBy')->willReturn([$participant]);
+    $convRepo = $this->createMock(EntityRepository::class);
+    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
 
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
+    $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
+    $em->expects($this->once())->method('beginTransaction');
+    $em->expects($this->once())->method('persist')->willReturnCallback(function ($entity) {
+        $prop = (new \ReflectionClass($entity))->getProperty('id');
+        $prop->setAccessible(true);
+        $prop->setValue($entity, 1);
+    });
+    $em->expects($this->once())->method('flush');
+    $em->expects($this->once())->method('commit');
 
-        $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-        $em->expects($this->once())->method('beginTransaction');
-        $em->expects($this->once())->method('persist');
-        $em->expects($this->once())->method('flush');
-        $em->expects($this->once())->method('commit');
+    $request  = $this->createJsonRequest(['title' => 'Ma conversation', 'conv_users' => [2]]);
+    $response = $this->controller->createConversation($request, $security, $em);
 
-        $request  = $this->createJsonRequest(['title' => 'Ma conversation', 'conv_users' => [2]]);
-        $response = $this->controller->createConversation($request, $security, $em);
-
-        $this->assertSame(201, $response->getStatusCode());
-        $this->assertSame('Ma conversation', json_decode($response->getContent(), true)['title']);
-    }
-
-    public function testCreateConversationWithDescriptionSucceeds(): void
-    {
-        $creator     = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $security    = $this->createSecurity($creator);
-
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findOneBy')->willReturn(null);
-        $userRepo->method('findBy')->willReturn([$participant]);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-        $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-        $em->method('beginTransaction');
-        $em->method('persist');
-        $em->method('flush');
-        $em->method('commit');
-
-        $request  = $this->createJsonRequest(['title' => 'My conv', 'description' => 'A nice description', 'conv_users' => [2]]);
-        $response = $this->controller->createConversation($request, $security, $em);
-
-        $this->assertSame(201, $response->getStatusCode());
-    }
+    $this->assertSame(201, $response->getStatusCode());
+    $this->assertSame('Ma conversation', json_decode($response->getContent(), true)['title']);
+}
 
     public function testCreateConversationDuplicateReturns409(): void
     {
@@ -938,23 +916,57 @@ class MessageControllerTest extends TestCase
         $this->assertSame('DUPLICATE_CONVERSATION', json_decode($response->getContent(), true)['error']);
     }
 
-    public function testCreateConversationNoParticipantsCreates201(): void
-    {
-        $creator  = $this->createUser(1);
-        $security = $this->createSecurity($creator);
+public function testCreateConversationNoParticipantsCreates201(): void
+{
+    $creator  = $this->createUser(1);
+    $security = $this->createSecurity($creator);
 
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
+    $convRepo = $this->createMock(EntityRepository::class);
+    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
 
-        $em = $this->buildEm([User::class => $this->stubUserRepository(null), Conversation::class => $convRepo]);
-        $em->method('beginTransaction');
-        $em->expects($this->once())->method('persist');
-        $em->expects($this->once())->method('flush');
-        $em->expects($this->once())->method('commit');
+    $em = $this->buildEm([User::class => $this->stubUserRepository(null), Conversation::class => $convRepo]);
+    $em->method('beginTransaction');
+    $em->expects($this->once())->method('persist')->willReturnCallback(function ($entity) {
+        $prop = (new \ReflectionClass($entity))->getProperty('id');
+        $prop->setAccessible(true);
+        $prop->setValue($entity, 1);
+    });
+    $em->expects($this->once())->method('flush');
+    $em->expects($this->once())->method('commit');
 
-        $response = $this->controller->createConversation($this->createJsonRequest(['title' => 'Solo', 'conv_users' => []]), $security, $em);
-        $this->assertSame(201, $response->getStatusCode());
-    }
+    $response = $this->controller->createConversation($this->createJsonRequest(['title' => 'Solo', 'conv_users' => []]), $security, $em);
+    $this->assertSame(201, $response->getStatusCode());
+}
+
+
+public function testCreateConversationWithDescriptionSucceeds(): void
+{
+    $creator     = $this->createUser(1);
+    $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
+    $security    = $this->createSecurity($creator);
+
+    $userRepo = $this->createMock(EntityRepository::class);
+    $userRepo->method('findOneBy')->willReturn(null);
+    $userRepo->method('findBy')->willReturn([$participant]);
+
+    $convRepo = $this->createMock(EntityRepository::class);
+    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
+
+    $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
+    $em->method('beginTransaction');
+    $em->method('persist')->willReturnCallback(function ($entity) {
+        $prop = (new \ReflectionClass($entity))->getProperty('id');
+        $prop->setAccessible(true);
+        $prop->setValue($entity, 1);
+    });
+    $em->method('flush');
+    $em->method('commit');
+
+    $request  = $this->createJsonRequest(['title' => 'My conv', 'description' => 'A nice description', 'conv_users' => [2]]);
+    $response = $this->controller->createConversation($request, $security, $em);
+
+    $this->assertSame(201, $response->getStatusCode());
+}
 
     public function testCreateConversationTooManyParticipantsReturns400(): void
     {
@@ -1140,32 +1152,36 @@ class MessageControllerTest extends TestCase
         $this->assertSame(429, $response->getStatusCode());
     }
 
-    public function testCreateMessageSuccessReturns201(): void
-    {
-        $user    = $this->createUser(1);
-        $conv    = $this->createConversation(10, 'Ma conv', '', $user, [$user]);
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
+public function testCreateMessageSuccessReturns201(): void
+{
+    $user    = $this->createUser(1);
+    $conv    = $this->createConversation(10, 'Ma conv', '', $user, [$user]);
+    $msgRepo = $this->createMock(EntityRepository::class);
+    $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
+    $convRepo = $this->createMock(EntityRepository::class);
+    $convRepo->method('find')->willReturn($conv);
 
-        $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-        $em->expects($this->once())->method('persist');
-        $em->expects($this->once())->method('flush');
+    $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
+    $em->expects($this->once())->method('persist')->willReturnCallback(function ($entity) {
+        $prop = (new \ReflectionClass($entity))->getProperty('id');
+        $prop->setAccessible(true);
+        $prop->setValue($entity, 100);
+    });
+    $em->expects($this->once())->method('flush');
 
-        $ctrl     = $this->createAcceptingController($em);
-        $response = $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
-            $this->createSecurity($user),
-            $em,
-            $this->createDummyFactory()
-        );
+    $ctrl     = $this->createAcceptingController($em);
+    $response = $ctrl->createMessage(
+        $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
+        $this->createSecurity($user),
+        $em,
+        $this->createDummyFactory()
+    );
 
-        $this->assertSame(201, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('id', $data);
-        $this->assertArrayHasKey('content', $data);
-    }
+    $this->assertSame(201, $response->getStatusCode());
+    $data = json_decode($response->getContent(), true);
+    $this->assertArrayHasKey('id', $data);
+    $this->assertArrayHasKey('content', $data);
+}
 
     public function testCreateMessageForbiddenExtraFieldsReturns500(): void
     {
@@ -2344,43 +2360,45 @@ class MessageControllerTest extends TestCase
     // ET la ligne $conversation->setDescription($data['description'] ?? '').
     // =========================================================================
 
-    public function testCreateConversationWithDescriptionFieldIs201(): void
-    {
-        $creator     = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $security    = $this->createSecurity($creator);
 
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findOneBy')->willReturn(null);
-        $userRepo->method('findBy')->willReturn([$participant]);
+public function testCreateConversationWithDescriptionFieldIs201(): void
+{
+    $creator     = $this->createUser(1);
+    $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
+    $security    = $this->createSecurity($creator);
 
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
+    $userRepo = $this->createMock(EntityRepository::class);
+    $userRepo->method('findOneBy')->willReturn(null);
+    $userRepo->method('findBy')->willReturn([$participant]);
 
-        $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-        $em->method('beginTransaction');
-        $em->method('persist');
-        $em->method('flush');
-        $em->method('commit');
+    $convRepo = $this->createMock(EntityRepository::class);
+    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
 
-        $request  = $this->createJsonRequest([
-            'title'       => 'My conversation',
-            'description' => 'A nice description here',
-            'conv_users'  => [2],
-        ]);
-        $response = $this->controller->createConversation($request, $security, $em);
+    $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
+    $em->method('beginTransaction');
+    $em->method('persist')->willReturnCallback(function ($entity) {
+        $prop = (new \ReflectionClass($entity))->getProperty('id');
+        $prop->setAccessible(true);
+        $prop->setValue($entity, 1);
+    });
+    $em->method('flush');
+    $em->method('commit');
 
-        $this->assertSame(201, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertSame('My conversation', $data['title']);
-    }
+    $request  = $this->createJsonRequest([
+        'title'       => 'My conversation',
+        'description' => 'A nice description here',
+        'conv_users'  => [2],
+    ]);
+    $response = $this->controller->createConversation($request, $security, $em);
 
+    $this->assertSame(201, $response->getStatusCode());
+    $data = json_decode($response->getContent(), true);
+    $this->assertSame('My conversation', $data['title']);
+}
 
     // =========================================================================
-    // NOUVEAU — deleteMessage : branche conversation invalide (getConversation null)
-    // Déjà dans le fichier mais répété ici pour s'assurer qu'il couvre bien
-    // le chemin COMPLET jusqu'au return 500 'Invalid message conversation'
-    // (après les @codeCoverageIgnore sur les blocs morts).
+    // deleteMessage : branche conversation invalide (getConversation null)
+    // (@codeCoverageIgnore). dans code controller
     // =========================================================================
 
     public function testDeleteMessageWithNullConversationReturns500WithMessage(): void
@@ -2502,9 +2520,8 @@ public function testGetMessagesLimitBelowMinIsClamped(): void
     $this->assertSame(200, $response->getStatusCode());
 }
 // =========================================================================
-// NOUVEAU — createMessage : ligne après le return (em->clear unreachable)
-// Cette ligne est marquée @codeCoverageIgnore dans le code source
-// On doit s'assurer que le cas d'exception est bien couvert
+// createMessage : ligne après le return (em->clear unreachable)
+// (@codeCoverageIgnore). dans code controller
 // =========================================================================
 
 public function testCreateMessagePersistExceptionTriggersRollbackAndReturns500(): void

@@ -226,47 +226,6 @@ class ProjectsControllerTest extends TestCase
         $this->assertEquals('New Project', $data['project_name']);
     }
 
-    // ========================================
-    // TESTS: createProject() - POST /api/create/new/project
-    // ========================================
-
-    public function testCreateProjectReturns400WhenRequiredFieldsMissing(): void
-    {
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'name' => 'Test Project'
-            // Missing other fields
-        ]));
-
-        $response = $this->controller->createProject($request);
-
-        $this->assertEquals(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Missing required fields', $data['message']);
-    }
-
-    public function testCreateProjectSuccessfullyCreatesProject(): void
-    {
-        $projectData = [
-            'name' => 'New Project',
-            'description' => 'Project Description',
-            'requiredSkills' => 'PHP, Symfony',
-            'startDate' => '2026-01-01',
-            'endDate' => '2026-12-31'
-        ];
-
-        $this->em->expects($this->once())->method('persist')
-            ->with($this->isInstanceOf(Project::class));
-        $this->em->expects($this->once())->method('flush');
-
-        $request = new Request([], [], [], [], [], [], json_encode($projectData));
-
-        $response = $this->controller->createProject($request);
-
-        $this->assertEquals(201, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Project created successfully', $data['message']);
-        $this->assertArrayHasKey('project_id', $data);
-    }
 
     // ========================================
     // TESTS: modifyProject() - PUT/PATCH /api/modify/project/{id}

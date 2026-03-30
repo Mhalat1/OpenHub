@@ -14,19 +14,19 @@ class Skills
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 50)]
-    private ?string $Name = null;
+    private string $Name;
 
     #[ORM\Column(length: 50)]
-    private ?string $Description = null;
+    private string $Description;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    private ?\DateTimeImmutable $Duree = null;
+    private \DateTimeImmutable $Duree;
 
-    #[ORM\Column(length: 255)]
-    private ?string $TechnoUtilisees = null;
+    #[ORM\Column(length: 50)]
+    private string $TechnoUtilisees;
 
 
     public function getId(): ?int

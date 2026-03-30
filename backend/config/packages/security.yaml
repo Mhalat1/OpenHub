@@ -1,18 +1,19 @@
-
 security:
     password_hashers:
         App\Entity\User:
-            cost: 4 # pour les tests, à augmenter en production !
             algorithm: auto
+
     providers:
         app_user_provider:
             entity:
                 class: App\Entity\User
                 property: email
+
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+
         login:
             pattern: ^/api/login_check
             stateless: true
@@ -23,20 +24,30 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
         api:
             pattern: ^/api
             stateless: true
             jwt: ~
-
+            entry_point: jwt
+            access_denied_handler: null
+            methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
     access_control:
-        - { path: ^/, requires_channel: https }
-        - { path: ^/metrics/frontend/collect, roles: PUBLIC_ACCESS }
-        - { path: ^/metrics/backend/collect, roles: PUBLIC_ACCESS }
+        # 🔥 CORS preflight MUST be FIRST
+        - { path: ^/api/.*$, roles: PUBLIC_ACCESS, methods: [OPTIONS] }
+
+        # Public routes
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+        - { path: ^/metrics/frontend/collect, roles: PUBLIC_ACCESS }
+        - { path: ^/metrics/backend/collect, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/donate, roles: PUBLIC_ACCESS }
+
+        # Protected routes
         - { path: ^/api/frontend-metrics, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/test, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/test/papertrail, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/api/login, roles: PUBLIC_ACCESS }
-        - { path: ^/api/donate, roles: PUBLIC_ACCESS }
+
+        # Default rule
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

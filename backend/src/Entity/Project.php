@@ -12,24 +12,24 @@ use Doctrine\ORM\Mapping as ORM;
 class Project
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue] 
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 25)]
-    private ?string $name = null;
+    private string $name;
 
     #[ORM\Column(length: 255)]
-    private ?string $description = null;
+    private string $description;
 
-    #[ORM\Column(length: 255)]
-    private ?string $requiredSkills = null;
+    #[ORM\Column(length: 25)]
+    private string $requiredSkills;
 
-    #[ORM\Column(length: 255)]
-    private ?DateTimeImmutable $startDate = null;
+    #[ORM\Column(length: 25)]
+    private DateTimeImmutable $startDate;
 
-    #[ORM\Column(length: 255)]
-    private ?DateTimeImmutable $endDate = null;
+    #[ORM\Column(length: 25)]
+    private DateTimeImmutable $endDate;
 
 
     // ---------------- Getters and Setters ---------------- //

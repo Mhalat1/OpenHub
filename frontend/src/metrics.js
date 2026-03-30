@@ -17,7 +17,7 @@ pageViews++;
 
 function sendMetrics(extra = {}) {
   fetch(`${API}/metrics/frontend/collect`, {
-    method: "POST",
+    method: ['POST', 'OPTIONS'],
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       page_load_time: performance.now() / 1000,
