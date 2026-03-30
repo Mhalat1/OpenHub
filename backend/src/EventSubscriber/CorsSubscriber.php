@@ -25,14 +25,12 @@ class CorsSubscriber implements EventSubscriberInterface
         }
 
         $request = $event->getRequest();
-        
-        // Gestion des requêtes OPTIONS (preflight)
+
         if ($request->getMethod() === 'OPTIONS') {
             $response = new Response();
-            $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Access-Control-Allow-Origin', 'https://open-hub-frontend.onrender.com');
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
             $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Max-Age', '3600');
             $response->setStatusCode(200);
             $event->setResponse($response);
@@ -47,15 +45,9 @@ class CorsSubscriber implements EventSubscriberInterface
         }
 
         $response = $event->getResponse();
-        
-        // Ajouter TOUJOURS les en-têtes CORS
-        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Access-Control-Allow-Origin', 'https://open-hub-frontend.onrender.com');
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
         $response->headers->set('Access-Control-Max-Age', '3600');
-        
-        // Log pour debug
-        error_log('CORS headers added to response');
     }
 }
