@@ -10,30 +10,45 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 class CorsSubscriber implements EventSubscriberInterface
 {
+    private array $allowed = [
+        'https://open-hub-frontend.onrender.com',
+        'http://localhost:5173',
+    ];
+
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', 9999],
+            KernelEvents::REQUEST  => ['onKernelRequest', 9999],
             KernelEvents::RESPONSE => ['onKernelResponse', 9999],
         ];
     }
 
-    public function onKernelRequest(RequestEvent $event): void
+    private function setCorsHeaders(Response $response, string $origin): void
     {
-        if (!$event->isMainRequest()) {
-            return;
+        $response->headers->remove('Access-Control-Allow-Origin');
+        $response->headers->remove('Access-Control-Allow-Methods');
+        $response->headers->remove('Access-Control-Allow-Headers');
+        $response->headers->remove('Access-Control-Max-Age');
+
+        if (in_array($origin, $this->allowed)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
         }
 
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+        $response->headers->set('Access-Control-Max-Age', '3600');
+    }
+
+    public function onKernelRequest(RequestEvent $event): void
+    {
+        if (!$event->isMainRequest()) return;
+
         $request = $event->getRequest();
-        
-        // Gestion des requêtes OPTIONS (preflight)
+        $origin  = $request->headers->get('Origin', '');
+
         if ($request->getMethod() === 'OPTIONS') {
             $response = new Response();
-            $response->headers->set('Access-Control-Allow-Origin', '*');
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            $response->headers->set('Access-Control-Max-Age', '3600');
+            $this->setCorsHeaders($response, $origin);
             $response->setStatusCode(200);
             $event->setResponse($response);
             return;
@@ -42,20 +57,9 @@ class CorsSubscriber implements EventSubscriberInterface
 
     public function onKernelResponse(ResponseEvent $event): void
     {
-        if (!$event->isMainRequest()) {
-            return;
-        }
+        if (!$event->isMainRequest()) return;
 
-        $response = $event->getResponse();
-        
-        // Ajouter TOUJOURS les en-têtes CORS
-        $response->headers->set('Access-Control-Allow-Origin', '*');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        $response->headers->set('Access-Control-Max-Age', '3600');
-        
-        // Log pour debug
-        error_log('CORS headers added to response');
+        $origin = $event->getRequest()->headers->get('Origin', '');
+        $this->setCorsHeaders($event->getResponse(), $origin);
     }
 }

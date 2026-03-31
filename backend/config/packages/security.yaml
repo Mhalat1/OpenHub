@@ -14,6 +14,11 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        cors:
+            pattern: ^/api
+            methods: [OPTIONS]
+            security: false
+
         login:
             pattern: ^/api/login_check
             stateless: true
@@ -32,11 +37,10 @@ security:
             entry_point: jwt
             access_denied_handler: null
             methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+
     access_control:
-        # 🔥 CORS preflight MUST be FIRST
         - { path: ^/api/.*$, roles: PUBLIC_ACCESS, methods: [OPTIONS] }
 
-        # Public routes
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/metrics/frontend/collect, roles: PUBLIC_ACCESS }
@@ -44,10 +48,8 @@ security:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/donate, roles: PUBLIC_ACCESS }
 
-        # Protected routes
         - { path: ^/api/frontend-metrics, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/test, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/test/papertrail, roles: IS_AUTHENTICATED_FULLY }
 
-        # Default rule
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

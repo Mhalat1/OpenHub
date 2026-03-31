@@ -29,14 +29,24 @@ const Login = () => {
       return;
     }
     try {
-      fetch('/api/login_check')
-      const response = await fetch('/api/login_check', {
+
+      const response = await fetch(`${API_URL}/api/login_check`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
+
+      // fonctionnait en local permet de passet par vite.config.js permet de bypass CORS
+      //fetch('/api/login_check')
+      //const response = await fetch('/api/login_check', {
+      //  method: "POST",
+      //  headers: {
+      //    "Content-Type": "application/json",
+      //  },
+      //  body: JSON.stringify({ email, password }),
+      //});
 
       const data = await response.json();
 
