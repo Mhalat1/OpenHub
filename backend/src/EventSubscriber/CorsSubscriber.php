@@ -19,7 +19,8 @@ class CorsSubscriber implements EventSubscriberInterface
     {
         return [
             KernelEvents::REQUEST  => ['onKernelRequest', 9999],
-            KernelEvents::RESPONSE => ['onKernelResponse', 9999],
+            KernelEvents::RESPONSE => ['onKernelResponse', -9999], // ← négatif = s'exécute en dernier
+             // pour ecraser les config header generees par lexit
         ];
     }
 
