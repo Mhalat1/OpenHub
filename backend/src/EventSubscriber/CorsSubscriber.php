@@ -15,14 +15,13 @@ class CorsSubscriber implements EventSubscriberInterface
         'http://localhost:5173',
     ];
 
-  #  public static function getSubscribedEvents(): array
-   # {
-   #     return [
-   #         KernelEvents::REQUEST  => ['onKernelRequest', 9999],
-   #         KernelEvents::RESPONSE => ['onKernelResponse', -9999], // ← négatif = s'exécute en dernier
-   #          // pour ecraser les config header generees par lexit
-   #     ];
-   # }
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            KernelEvents::REQUEST  => ['onKernelRequest', 9999],  // High priority, runs early
+            KernelEvents::RESPONSE => ['onKernelResponse', 9999],
+        ];
+    }
 
     #private function setCorsHeaders(Response $response, string $origin): void
     #{
