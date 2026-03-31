@@ -13,6 +13,10 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 
+////////////////////////
+// SERT A RIEN ???? ////
+////////////////////////
+
 class ApiTokenAuthenticator extends AbstractAuthenticator
 {
     public function supports(Request $request): ?bool
