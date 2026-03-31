@@ -38,7 +38,13 @@ RUN printf '<VirtualHost *:80>\n\
         Options -Indexes +FollowSymLinks\n\
     </Directory>\n\
     Header always unset "Access-Control-Allow-Origin"\n\
+    Header always unset "Access-Control-Allow-Headers"\n\
+    Header always unset "Access-Control-Allow-Methods"\n\
+    Header always unset "Access-Control-Allow-Credentials"\n\
+    Header always unset "Access-Control-Max-Age"\n\
 </VirtualHost>\n' > /etc/apache2/sites-available/000-default.conf
+
+
 
 EXPOSE 80
 CMD ["apache2-foreground"]
