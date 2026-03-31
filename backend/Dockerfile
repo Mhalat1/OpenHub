@@ -42,10 +42,6 @@ RUN printf '<VirtualHost *:80>\n\
     Header always unset "Access-Control-Allow-Methods"\n\
     Header always unset "Access-Control-Allow-Credentials"\n\
     Header always unset "Access-Control-Max-Age"\n\
-    Header always set "Access-Control-Allow-Origin" "https://open-hub-frontend.onrender.com"\n\
-    Header always set "Access-Control-Allow-Methods" "GET, POST, OPTIONS, PUT, DELETE, PATCH"\n\
-    Header always set "Access-Control-Allow-Headers" "Content-Type, Authorization, X-Requested-With, Accept, Origin"\n\
-    Header always set "Access-Control-Max-Age" "3600"\n\
 </VirtualHost>\n' > /etc/apache2/sites-available/000-default.conf
 
 
