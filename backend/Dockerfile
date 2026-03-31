@@ -37,6 +37,7 @@ RUN printf '<VirtualHost *:80>\n\
         Require all granted\n\
         Options -Indexes +FollowSymLinks\n\
     </Directory>\n\
+    Header always unset "Access-Control-Allow-Origin"\n\
 </VirtualHost>\n' > /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 80
