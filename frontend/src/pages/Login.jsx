@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-console.log('API_URL:', API_URL); // ← ajoute ça
+console.log("API_URL:", API_URL); // ← ajoute ça
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +31,6 @@ const Login = () => {
       return;
     }
     try {
-
       const response = await fetch(`${API_URL}/api/login_check`, {
         method: "POST",
         headers: {
@@ -39,7 +38,6 @@ const Login = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
 
       // fonctionnait en local permet de passet par vite.config.js permet de bypass CORS
       //fetch('/api/login_check')

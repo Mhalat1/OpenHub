@@ -8,7 +8,6 @@ export const performLogin = async (
   email = "user@user",
   password = "useruser",
 ) => {
-
   // Crée un token mock
   const mockToken = `jwt-token-${Date.now()}`;
 
@@ -43,7 +42,6 @@ export const performLogin = async (
     },
     { timeout: 3000 },
   );
-
 
   return {
     token: mockToken,

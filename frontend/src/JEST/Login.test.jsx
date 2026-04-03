@@ -10,14 +10,29 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
 
-const setup = () => render(<BrowserRouter><Login /></BrowserRouter>);
+const setup = () =>
+  render(
+    <BrowserRouter>
+      <Login />
+    </BrowserRouter>,
+  );
 const fillAndSubmit = (email, password) => {
-  if (email) fireEvent.change(screen.getByLabelText("Adresse email"), { target: { value: email } });
-  if (password) fireEvent.change(screen.getByLabelText("Mot de passe"), { target: { value: password } });
+  if (email)
+    fireEvent.change(screen.getByLabelText("Adresse email"), {
+      target: { value: email },
+    });
+  if (password)
+    fireEvent.change(screen.getByLabelText("Mot de passe"), {
+      target: { value: password },
+    });
   fireEvent.click(screen.getByRole("button", { name: /se connecter/i }));
 };
 
-beforeEach(() => { jest.clearAllMocks(); localStorage.clear(); global.fetch = jest.fn(); });
+beforeEach(() => {
+  jest.clearAllMocks();
+  localStorage.clear();
+  global.fetch = jest.fn();
+});
 afterEach(() => jest.restoreAllMocks());
 
 describe("Login Component", () => {
@@ -27,9 +42,15 @@ describe("Login Component", () => {
       expect(screen.getByText("Bienvenue sur open-hub")).toBeInTheDocument();
       expect(screen.getByLabelText("Adresse email")).toBeInTheDocument();
       expect(screen.getByLabelText("Mot de passe")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /se connecter/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /créer un compte/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /mot de passe oublié/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /se connecter/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /créer un compte/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /mot de passe oublié/i }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -49,7 +70,10 @@ describe("Login Component", () => {
 
   describe("Soumission", () => {
     it("connexion réussie → navigate vers /", async () => {
-      global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ token: "fake-token" }) });
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ token: "fake-token" }),
+      });
       setup();
       fillAndSubmit("test@example.com", "password123");
       await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
@@ -57,10 +81,15 @@ describe("Login Component", () => {
     });
 
     it("identifiants incorrects → affiche l'erreur", async () => {
-      global.fetch.mockResolvedValueOnce({ ok: false, json: async () => ({ message: "Identifiants incorrects" }) });
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: "Identifiants incorrects" }),
+      });
       setup();
       fillAndSubmit("test@example.com", "wrongpassword");
-      await waitFor(() => expect(screen.getByText("Identifiants incorrects")).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByText("Identifiants incorrects")).toBeInTheDocument(),
+      );
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
@@ -68,14 +97,20 @@ describe("Login Component", () => {
       global.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
       setup();
       fillAndSubmit("test@example.com", "password123");
-      await waitFor(() => expect(screen.getByText("Token manquant dans la réponse")).toBeInTheDocument());
+      await waitFor(() =>
+        expect(
+          screen.getByText("Token manquant dans la réponse"),
+        ).toBeInTheDocument(),
+      );
     });
 
     it("erreur réseau → affiche l'erreur", async () => {
       global.fetch.mockRejectedValueOnce(new Error("Network error"));
       setup();
       fillAndSubmit("test@example.com", "password123");
-      await waitFor(() => expect(screen.getByText("Network error")).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByText("Network error")).toBeInTheDocument(),
+      );
     });
   });
 

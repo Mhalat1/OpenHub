@@ -112,7 +112,7 @@ const Register = () => {
   const prevStep = () => {
     setCurrentStep((prev) => prev - 1);
   };
-  
+
   const validateStep = (step) => {
     const newErrors = {};
 

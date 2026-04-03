@@ -2,15 +2,27 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import LogoutButton from "../pages/Logout";
 
-const localStorageMock = { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn(), clear: jest.fn() };
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
 
 beforeAll(() => {
   delete window.location;
   window.location = { href: "http://localhost/" };
-  Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
+  Object.defineProperty(window, "localStorage", {
+    value: localStorageMock,
+    writable: true,
+  });
 });
 
-beforeEach(() => { jest.clearAllMocks(); jest.useFakeTimers(); window.location.href = "http://localhost/"; });
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.useFakeTimers();
+  window.location.href = "http://localhost/";
+});
 
 const setup = () => render(<LogoutButton />);
 const getBtn = (name) => screen.getByRole("button", { name });
@@ -37,7 +49,6 @@ describe("LogoutButton", () => {
     expect(localStorageMock.removeItem).toHaveBeenCalledWith("token");
     expect(jest.getTimerCount()).toBe(1);
   });
-
 
   it("return home : ne touche pas au token ni aux timers", () => {
     setup();

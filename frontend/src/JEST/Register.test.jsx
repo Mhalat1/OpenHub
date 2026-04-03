@@ -31,7 +31,7 @@ const renderRegister = () =>
   render(
     <MemoryRouter>
       <Register />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 // ─────────────────────────────────────
@@ -90,9 +90,6 @@ describe("Register - Step 1", () => {
 
     expect(screen.getAllByText("Champ requis").length).toBeGreaterThan(0);
   });
-
-
-
 });
 
 // ─────────────────────────────────────
@@ -130,8 +127,6 @@ describe("Register - Step 2", () => {
 // ─────────────────────────────────────
 
 describe("Register - Step 3", () => {
-
-
   test("password invalide bloque submit", async () => {
     renderRegister();
 
@@ -157,9 +152,7 @@ describe("Register - Step 3", () => {
     fireEvent.click(screen.getByText("Créer mon compte"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Mot de passe invalide")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Mot de passe invalide")).toBeInTheDocument();
     });
 
     expect(fetch).not.toHaveBeenCalled();

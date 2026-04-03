@@ -13,8 +13,12 @@ const getInput = () => screen.getByRole("spinbutton");
 describe("DonatePage", () => {
   test("affiche le titre et la description", () => {
     setup();
-    expect(screen.getByText(/Soutenir le projet open-hub/i)).toBeInTheDocument();
-    expect(screen.getByText(/open-hub est un projet open source/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Soutenir le projet open-hub/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/open-hub est un projet open source/i),
+    ).toBeInTheDocument();
   });
 
   test("montant par défaut à 5€", () => {
@@ -38,7 +42,9 @@ describe("DonatePage", () => {
     fetch.mockImplementationOnce(() => new Promise(() => {})); // ne résout jamais
     setup();
     fireEvent.click(getButton());
-    await waitFor(() => expect(screen.getByText(/Redirection.../i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Redirection.../i)).toBeInTheDocument(),
+    );
     expect(getButton()).toBeDisabled();
   });
 
@@ -47,7 +53,11 @@ describe("DonatePage", () => {
     setup();
     fireEvent.click(getButton());
     await waitFor(() =>
-      expect(screen.getByText(/Erreur lors de la création de la session de paiement/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          /Erreur lors de la création de la session de paiement/i,
+        ),
+      ).toBeInTheDocument(),
     );
     expect(getButton()).not.toBeDisabled();
   });
@@ -56,10 +66,17 @@ describe("DonatePage", () => {
     fetch.mockResolvedValueOnce({ ok: false, status: 500 });
     setup();
     fireEvent.click(getButton());
-    await waitFor(() => expect(screen.getByText(/Erreur/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Erreur/i)).toBeInTheDocument(),
+    );
 
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ url: "https://stripe.com/checkout" }) });
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: "https://stripe.com/checkout" }),
+    });
     fireEvent.click(getButton());
-    await waitFor(() => expect(screen.queryByText(/Erreur/i)).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText(/Erreur/i)).not.toBeInTheDocument(),
+    );
   });
 });

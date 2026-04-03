@@ -15,18 +15,57 @@ const mockUser = {
 };
 
 const mockSkills = [
-  { id: 1, name: "React", description: "Frontend library", technoUtilisees: "JavaScript", duree: "6 months" },
-  { id: 2, name: "Node.js", description: "Backend runtime", technoUtilisees: "JavaScript", duree: "8 months" },
-  { id: 3, name: "Python", description: "Programming language", technoUtilisees: "Python", duree: "12 months" },
+  {
+    id: 1,
+    name: "React",
+    description: "Frontend library",
+    technoUtilisees: "JavaScript",
+    duree: "6 months",
+  },
+  {
+    id: 2,
+    name: "Node.js",
+    description: "Backend runtime",
+    technoUtilisees: "JavaScript",
+    duree: "8 months",
+  },
+  {
+    id: 3,
+    name: "Python",
+    description: "Programming language",
+    technoUtilisees: "Python",
+    duree: "12 months",
+  },
 ];
 
 const mockProjects = [
-  { id: 1, name: "Project Alpha", description: "Alpha project", requiredSkills: "React, Node.js", startDate: "2024-01-01", endDate: "2024-06-30" },
-  { id: 2, name: "Project Beta", description: "Beta project", requiredSkills: "Python", startDate: "2024-02-01", endDate: "2024-08-31" },
+  {
+    id: 1,
+    name: "Project Alpha",
+    description: "Alpha project",
+    requiredSkills: "React, Node.js",
+    startDate: "2024-01-01",
+    endDate: "2024-06-30",
+  },
+  {
+    id: 2,
+    name: "Project Beta",
+    description: "Beta project",
+    requiredSkills: "Python",
+    startDate: "2024-02-01",
+    endDate: "2024-08-31",
+  },
 ];
 
 const mockUserProjects = [
-  { id: 1, name: "Project Alpha", description: "Alpha project", requiredSkills: "React, Node.js", startDate: "2024-01-01", endDate: "2024-06-30" },
+  {
+    id: 1,
+    name: "Project Alpha",
+    description: "Alpha project",
+    requiredSkills: "React, Node.js",
+    startDate: "2024-01-01",
+    endDate: "2024-06-30",
+  },
 ];
 
 const mockAvailableSkills = [
@@ -45,13 +84,13 @@ const renderWithRouter = (component) => {
 describe("Home Component - Complete Coverage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock localStorage
     Storage.prototype.getItem = jest.fn((key) => {
       if (key === "token") return "mock-token-123";
       return null;
     });
-    
+
     // Mock des appels API par défaut
     global.fetch.mockImplementation((url) => {
       if (url.includes("/api/getConnectedUser")) {
@@ -99,7 +138,7 @@ describe("Home Component - Complete Coverage", () => {
 
     test("affiche les informations utilisateur après chargement", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
         expect(screen.getByText(/john.doe@example.com/i)).toBeInTheDocument();
@@ -108,7 +147,7 @@ describe("Home Component - Complete Coverage", () => {
 
     test("affiche les dates de disponibilité formatées", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/01\/01\/2024/)).toBeInTheDocument();
         expect(screen.getByText(/31\/12\/2024/)).toBeInTheDocument();
@@ -116,8 +155,12 @@ describe("Home Component - Complete Coverage", () => {
     });
 
     test("affiche 'Not set' quand les dates de disponibilité sont null", async () => {
-      const userWithoutDates = { ...mockUser, availabilityStart: null, availabilityEnd: null };
-      
+      const userWithoutDates = {
+        ...mockUser,
+        availabilityStart: null,
+        availabilityEnd: null,
+      };
+
       global.fetch.mockImplementation((url) => {
         if (url.includes("/api/getConnectedUser")) {
           return Promise.resolve({
@@ -138,7 +181,7 @@ describe("Home Component - Complete Coverage", () => {
       });
 
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         const notSetElements = screen.getAllByText(/Not set/i);
         expect(notSetElements.length).toBeGreaterThanOrEqual(2);
@@ -160,9 +203,11 @@ describe("Home Component - Complete Coverage", () => {
       });
 
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/Error: User API error: 401/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Error: User API error: 401/i),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -170,7 +215,7 @@ describe("Home Component - Complete Coverage", () => {
   describe("Affichage des compétences", () => {
     test("affiche le nombre correct de compétences", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/My Skills \(3\)/i)).toBeInTheDocument();
       });
@@ -178,7 +223,7 @@ describe("Home Component - Complete Coverage", () => {
 
     test("affiche toutes les compétences de l'utilisateur", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText("React")).toBeInTheDocument();
         expect(screen.getByText("Node.js")).toBeInTheDocument();
@@ -190,7 +235,7 @@ describe("Home Component - Complete Coverage", () => {
   describe("Affichage des projets", () => {
     test("affiche le nombre correct de projets", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/My Projects \(1\)/i)).toBeInTheDocument();
       });
@@ -198,7 +243,7 @@ describe("Home Component - Complete Coverage", () => {
 
     test("affiche les projets de l'utilisateur", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         // Utiliser getAllByText et prendre le premier élément (le bouton)
         const projectElements = screen.getAllByText("Project Alpha");
@@ -212,22 +257,29 @@ describe("Home Component - Complete Coverage", () => {
   describe("Gestion des disponibilités", () => {
     test("affiche une erreur si la date de début est manquante", async () => {
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
       });
-      
-      const updateButton = screen.getByRole("button", { name: /Update Availability/i });
+
+      const updateButton = screen.getByRole("button", {
+        name: /Update Availability/i,
+      });
       fireEvent.click(updateButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/❌ Please enter start date/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/❌ Please enter start date/i),
+        ).toBeInTheDocument();
       });
     });
 
     test("met à jour les disponibilités avec succès", async () => {
       global.fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/user/availability") && options?.method === "POST") {
+        if (
+          url.includes("/api/user/availability") &&
+          options?.method === "POST"
+        ) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true }),
@@ -246,21 +298,25 @@ describe("Home Component - Complete Coverage", () => {
       });
 
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
       });
-      
+
       const startDateInput = document.querySelector('input[type="date"]');
       const endDateInput = document.querySelectorAll('input[type="date"]')[1];
-      const updateButton = screen.getByRole("button", { name: /Update Availability/i });
-      
+      const updateButton = screen.getByRole("button", {
+        name: /Update Availability/i,
+      });
+
       fireEvent.change(startDateInput, { target: { value: "2025-01-01" } });
       fireEvent.change(endDateInput, { target: { value: "2025-12-31" } });
       fireEvent.click(updateButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/✅ Availability updated successfully!/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/✅ Availability updated successfully!/i),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -268,16 +324,21 @@ describe("Home Component - Complete Coverage", () => {
   describe("Gestion des compétences", () => {
     test("ajoute une nouvelle compétence avec succès", async () => {
       global.fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/user/add/skills") && options?.method === "POST") {
+        if (
+          url.includes("/api/user/add/skills") &&
+          options?.method === "POST"
+        ) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve({ success: true, skill_name: "TypeScript" }),
+            json: () =>
+              Promise.resolve({ success: true, skill_name: "TypeScript" }),
           });
         }
         if (url.includes("/api/user/skills")) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve([...mockSkills, { id: 4, name: "TypeScript" }]),
+            json: () =>
+              Promise.resolve([...mockSkills, { id: 4, name: "TypeScript" }]),
           });
         }
         if (url.includes("/api/getConnectedUser")) {
@@ -293,22 +354,23 @@ describe("Home Component - Complete Coverage", () => {
       });
 
       renderWithRouter(<Home />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
       });
-      
+
       const selects = screen.getAllByRole("combobox");
       const skillSelect = selects[0];
       const addButton = screen.getByRole("button", { name: /\+ Add Skill/i });
-      
+
       fireEvent.change(skillSelect, { target: { value: "4" } });
       fireEvent.click(addButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/✅ TypeScript added successfully/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/✅ TypeScript added successfully/i),
+        ).toBeInTheDocument();
       });
     });
   });
-
 });
