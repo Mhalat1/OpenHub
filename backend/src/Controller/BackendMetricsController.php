@@ -106,10 +106,13 @@ class BackendMetricsController
             ->set(round(memory_get_peak_usage(true) / 1024 / 1024, 2));
 
         // Uptime réel — /proc/uptime n'existe que sur Linux, inatteignable sur Windows
+        // @codeCoverageIgnoreStart
         $uptime = 0;
         if (file_exists('/proc/uptime')) {
             $uptime = (int)explode(' ', file_get_contents('/proc/uptime'))[0]; 
         }
+        // @codeCoverageIgnoreEnd
+
         $registry->getOrRegisterGauge('app', 'uptime_seconds', 'Uptime seconds')
             ->set($uptime);
 

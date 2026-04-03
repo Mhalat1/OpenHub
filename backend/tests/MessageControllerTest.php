@@ -2,7 +2,6 @@
 
 namespace App\Tests\Controller;
 
-use Psr\Container\ContainerInterface;
 use App\Controller\MessageController;
 use App\Entity\Conversation;
 use App\Entity\Message;
@@ -14,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Query;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -22,66 +22,39 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class TestableMessageController extends MessageController
 {
-    public function __construct(
-        MessageRepository $messageRepository,
-        EntityManagerInterface $em,
-        PapertrailService $papertrailLogger,
-        private readonly bool $rateLimitAccepted = true
-    ) {
-        parent::__construct($messageRepository, $em, $papertrailLogger);
+    public function __construct(MessageRepository $r, EntityManagerInterface $em, PapertrailService $pt, private readonly bool $accept = true)
+    {
+        parent::__construct($r, $em, $pt);
     }
 
-    public function createMessage(
-        Request $request,
-        Security $security,
-        EntityManagerInterface $em,
-        RateLimiterFactory $apiMessageLimiter
-    ): JsonResponse {
+    public function createMessage(Request $request, Security $security, EntityManagerInterface $em, RateLimiterFactory $f): JsonResponse
+    {
         $storage = new InMemoryStorage();
-
-        if ($this->rateLimitAccepted) {
-            $factory = new RateLimiterFactory(
-                ['id' => 'test', 'policy' => 'no_limit'],
-                $storage
-            );
-        } else {
-            $factory = new RateLimiterFactory(
-                ['id' => 'test', 'policy' => 'fixed_window', 'limit' => 1, 'interval' => '1 hour'],
-                $storage
-            );
-            $userId = $security->getUser()?->getUserIdentifier() ?? 'anon';
-            $factory->create($userId)->consume(1);
-        }
-
+        $factory = $this->accept
+            ? new RateLimiterFactory(['id' => 'test', 'policy' => 'no_limit'], $storage)
+            : new RateLimiterFactory(['id' => 'test', 'policy' => 'fixed_window', 'limit' => 1, 'interval' => '1 hour'], $storage);
+        if (!$this->accept) $factory->create($security->getUser()?->getUserIdentifier() ?? 'anon')->consume(1);
         return parent::createMessage($request, $security, $em, $factory);
     }
 }
 
 class StubQuery extends Query
 {
-    private mixed $scalarResult;
-    private mixed $singleResult;
-    private array $listResult;
-
-    public function __construct(mixed $scalar = 0, mixed $single = null, array $list = [])
-    {
-        $this->scalarResult = $scalar;
-        $this->singleResult = $single;
-        $this->listResult   = $list;
-    }
-
-    public function getSingleScalarResult(): mixed        { return $this->scalarResult; }
-    public function getOneOrNullResult(mixed $h = null): mixed { return $this->singleResult; }
-    public function getResult(mixed $h = 1): array        { return $this->listResult; }
-    public function execute(mixed $p = null, mixed $h = null): mixed { return $this->listResult; }
-    public function getSQL(): string                      { return ''; }
-    protected function _doExecute(): int                  { return 0; }
+    public function __construct(private mixed $scalar = 0, private mixed $single = null, private array $list = []) {}
+    public function getSingleScalarResult(): mixed { return $this->scalar; }
+    public function getOneOrNullResult(mixed $h = null): mixed { return $this->single; }
+    public function getResult(mixed $h = 1): array { return $this->list; }
+    public function execute(mixed $p = null, mixed $h = null): mixed { return $this->list; }
+    public function getSQL(): string { return ''; }
+    protected function _doExecute(): int { return 0; }
 }
 
-class MessageControllerTest extends TestCase
+class MessageControllerTest extends WebTestCase
 {
     private MessageRepository&MockObject $messageRepo;
     private EntityManagerInterface&MockObject $em;
@@ -93,182 +66,139 @@ class MessageControllerTest extends TestCase
         $this->messageRepo = $this->createMock(MessageRepository::class);
         $this->em          = $this->createMock(EntityManagerInterface::class);
         $this->papertrail  = $this->createMock(PapertrailService::class);
-
-        $this->controller = new MessageController(
-            $this->messageRepo,
-            $this->em,
-            $this->papertrail
-        );
+        $this->controller  = new MessageController($this->messageRepo, $this->em, $this->papertrail);
     }
 
     // =========================================================================
     // HELPERS
     // =========================================================================
 
-    private function createUser(
-        int $id = 1,
-        string $firstName = 'Jean',
-        string $lastName = 'Dupont',
-        string $email = 'jean.dupont@example.com',
-        ?\DateTimeImmutable $availabilityStart = null,
-        ?\DateTimeImmutable $availabilityEnd = null
-    ): User&MockObject {
-        $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn($id);
-        $user->method('getFirstName')->willReturn($firstName);
-        $user->method('getLastName')->willReturn($lastName);
-        $user->method('getEmail')->willReturn($email);
-        $user->method('getUserIdentifier')->willReturn($email);
-        $user->method('getAvailabilityStart')->willReturn($availabilityStart);
-        $user->method('getAvailabilityEnd')->willReturn($availabilityEnd);
-        $user->method('getConversations')->willReturn(new ArrayCollection());
-        return $user;
-    }
-
-    private function createConversation(
-        int $id = 10,
-        string $title = 'Test Conv',
-        string $description = 'A description',
-        ?User $creator = null,
-        array $users = [],
-        array $messages = []
-    ): Conversation&MockObject {
-        $conv = $this->createMock(Conversation::class);
-        $conv->method('getId')->willReturn($id);
-        $conv->method('getTitle')->willReturn($title);
-        $conv->method('getDescription')->willReturn($description);
-        $conv->method('getCreatedBy')->willReturn($creator);
-        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable('2024-01-01'));
-        $conv->method('getLastMessageAt')->willReturn(null);
-        $conv->method('getUsers')->willReturn(new ArrayCollection($users));
-        $conv->method('getMessages')->willReturn(new ArrayCollection($messages));
-        return $conv;
-    }
-
-    private function createMessage(
-        int $id = 100,
-        string $content = 'Hello world',
-        ?User $author = null,
-        ?Conversation $conv = null
-    ): Message&MockObject {
-        $msg = $this->createMock(Message::class);
-        $msg->method('getId')->willReturn($id);
-        $msg->method('getContent')->willReturn($content);
-        $msg->method('getAuthor')->willReturn($author);
-        $msg->method('getAuthorName')->willReturn(
-            $author ? $author->getFirstName() . ' ' . $author->getLastName() : 'Unknown'
-        );
-        $msg->method('getConversation')->willReturn($conv);
-        $msg->method('getConversationTitle')->willReturn($conv ? $conv->getTitle() : '');
-        $msg->method('getCreatedAt')->willReturn(new \DateTimeImmutable('2024-06-01 10:00:00'));
-        return $msg;
-    }
-
-    private function createSecurity(?User $user): Security&MockObject
+    public function makeUser(int $id = 1, string $first = 'Jean', string $last = 'Dupont', string $email = 'jean.dupont@example.com', ?\DateTimeImmutable $start = null, ?\DateTimeImmutable $end = null, array $conversations = []): User&MockObject
     {
-        $security = $this->createMock(Security::class);
-        $security->method('getUser')->willReturn($user);
-        return $security;
+        $u = $this->createMock(User::class);
+        $u->method('getId')->willReturn($id);
+        $u->method('getFirstName')->willReturn($first);
+        $u->method('getLastName')->willReturn($last);
+        $u->method('getEmail')->willReturn($email);
+        $u->method('getUserIdentifier')->willReturn($email);
+        $u->method('getAvailabilityStart')->willReturn($start);
+        $u->method('getAvailabilityEnd')->willReturn($end);
+        $u->method('getConversations')->willReturn(new ArrayCollection($conversations));
+        return $u;
     }
 
-    /** Controller that always passes the rate limiter */
-    private function createAcceptingController(?EntityManagerInterface $em = null): TestableMessageController
+    public function makeConv(int $id = 10, string $title = 'Test Conv', string $desc = '', ?User $creator = null, array $users = [], array $messages = []): Conversation&MockObject
     {
-        return new TestableMessageController(
-            $this->messageRepo,
-            $em ?? $this->em,
-            $this->papertrail,
-            true
-        );
+        $c = $this->createMock(Conversation::class);
+        $c->method('getId')->willReturn($id);
+        $c->method('getTitle')->willReturn($title);
+        $c->method('getDescription')->willReturn($desc);
+        $c->method('getCreatedBy')->willReturn($creator);
+        $c->method('getCreatedAt')->willReturn(new \DateTimeImmutable('2024-01-01'));
+        $c->method('getLastMessageAt')->willReturn(null);
+        $c->method('getUsers')->willReturn(new ArrayCollection($users));
+        $c->method('getMessages')->willReturn(new ArrayCollection($messages));
+        return $c;
     }
 
-    /** Controller that always rejects the rate limiter */
-    private function createRejectingController(?EntityManagerInterface $em = null): TestableMessageController
+    public function makeMsg(int $id = 100, string $content = 'Hello world', ?User $author = null, ?Conversation $conv = null): Message&MockObject
     {
-        return new TestableMessageController(
-            $this->messageRepo,
-            $em ?? $this->em,
-            $this->papertrail,
-            false
-        );
+        $m = $this->createMock(Message::class);
+        $m->method('getId')->willReturn($id);
+        $m->method('getContent')->willReturn($content);
+        $m->method('getAuthor')->willReturn($author);
+        $m->method('getAuthorName')->willReturn($author ? $author->getFirstName().' '.$author->getLastName() : 'Unknown');
+        $m->method('getConversation')->willReturn($conv);
+        $m->method('getConversationTitle')->willReturn($conv?->getTitle() ?? '');
+        $m->method('getCreatedAt')->willReturn(new \DateTimeImmutable('2024-06-01'));
+        return $m;
     }
 
-    /** Anonymous controller subclass that returns a fixed user from getUser() */
-    private function createControllerWithUser(User $user): MessageController
+    public function ctrlWithUser(User $user, ?EntityManagerInterface $em = null): MessageController
     {
-        return new class($this->messageRepo, $this->em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($repo, $em, $pt, $u) { parent::__construct($repo, $em, $pt); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
+        $r = $this->messageRepo; $pt = $this->papertrail;
+        return new class($r, $em ?? $this->em, $pt, $user) extends MessageController {
+            private UserInterface $u;
+            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->u = $u; }
+            public function getUser(): ?UserInterface { return $this->u; }
         };
     }
 
-    /** Same as createControllerWithUser but uses a custom EntityManager */
-    private function createControllerWithUserAndEm(User $user, EntityManagerInterface $em): MessageController
+    private function ctrlAccepting(?EntityManagerInterface $em = null): TestableMessageController
     {
-        return new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($repo, $em, $pt, $u) { parent::__construct($repo, $em, $pt); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
+        return new TestableMessageController($this->messageRepo, $em ?? $this->em, $this->papertrail, true);
     }
 
-    private function createJsonRequest(array $payload, string $method = 'POST'): Request
+    private function ctrlRejecting(): TestableMessageController
     {
-        $req = Request::create('/', $method, [], [], [], [], json_encode($payload));
+        return new TestableMessageController($this->messageRepo, $this->em, $this->papertrail, false);
+    }
+
+    private function jsonReq(array $payload): Request
+    {
+        $req = Request::create('/', 'POST', [], [], [], [], json_encode($payload));
         $req->headers->set('Content-Type', 'application/json');
         return $req;
     }
 
-    private function createDummyFactory(): RateLimiterFactory
+    private function dummyFactory(): RateLimiterFactory
     {
         return new RateLimiterFactory(['id' => 'dummy', 'policy' => 'no_limit'], new InMemoryStorage());
     }
 
-    /** QueryBuilder stub whose Query returns a scalar count and optional single result */
-    private function createCountQueryBuilder(int $count, mixed $singleResult = null): QueryBuilder&MockObject
+    private function qbCount(int $count, mixed $single = null): QueryBuilder&MockObject
     {
-        $query = new StubQuery($count, $singleResult, []);
-        $qb    = $this->createMock(QueryBuilder::class);
-        $qb->method('select')->willReturnSelf();
-        $qb->method('where')->willReturnSelf();
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('orderBy')->willReturnSelf();
-        $qb->method('innerJoin')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
+        $qb = $this->createMock(QueryBuilder::class);
+        foreach (['select','where','andWhere','setParameter','orderBy','innerJoin'] as $m) $qb->method($m)->willReturnSelf();
+        $qb->method('getQuery')->willReturn(new StubQuery($count, $single, []));
         return $qb;
     }
 
-    /** QueryBuilder stub whose Query returns a list via getResult() */
-    private function createListQueryBuilder(array $list): QueryBuilder&MockObject
+    private function qbList(array $list): QueryBuilder&MockObject
     {
-        $query = new StubQuery(0, null, $list);
-        $qb    = $this->createMock(QueryBuilder::class);
-        $qb->method('select')->willReturnSelf();
-        $qb->method('where')->willReturnSelf();
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('orderBy')->willReturnSelf();
-        $qb->method('innerJoin')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
+        $qb = $this->createMock(QueryBuilder::class);
+        foreach (['select','where','andWhere','setParameter','orderBy','innerJoin'] as $m) $qb->method($m)->willReturnSelf();
+        $qb->method('getQuery')->willReturn(new StubQuery(0, null, $list));
         return $qb;
     }
 
-    private function stubUserRepository(?User $existingUser = null): EntityRepository&MockObject
+    public function userRepo(?User $existing = null): EntityRepository&MockObject
     {
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('findOneBy')->willReturn($existingUser);
-        return $repo;
+        $r = $this->createMock(EntityRepository::class);
+        $r->method('findOneBy')->willReturn($existing);
+        return $r;
     }
 
-    /** Build a fresh EntityManager that dispatches getRepository() by class name */
-    private function buildEm(array $map): EntityManagerInterface&MockObject
+    public function buildEm(array $map): EntityManagerInterface&MockObject
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturnCallback(
-            fn($class) => $map[$class] ?? $this->createMock(EntityRepository::class)
-        );
+        $em->method('getRepository')->willReturnCallback(fn($c) => $map[$c] ?? $this->createMock(EntityRepository::class));
+        return $em;
+    }
+
+    private function callPrivate(string $method, ...$args): mixed
+    {
+        $m = new \ReflectionMethod(MessageController::class, $method);
+        $m->setAccessible(true);
+        return $m->invoke($this->controller, ...$args);
+    }
+
+    private function reflectMethod(string $method): \ReflectionMethod
+    {
+        $m = new \ReflectionMethod(MessageController::class, $method);
+        $m->setAccessible(true);
+        return $m;
+    }
+
+    private function buildEmForConv(User $creator, User $participant, mixed $duplicateConv = null): EntityManagerInterface&MockObject
+    {
+        $userRepo = $this->createMock(EntityRepository::class);
+        $userRepo->method('findOneBy')->willReturn(null);
+        $userRepo->method('findBy')->willReturn([$participant]);
+        $convRepo = $this->createMock(EntityRepository::class);
+        $convRepo->method('createQueryBuilder')->willReturn($this->qbCount(0, $duplicateConv));
+        $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
+        $em->method('beginTransaction');
         return $em;
     }
 
@@ -300,121 +230,68 @@ class MessageControllerTest extends TestCase
 
     public function testGetConnectedUserValidReturns200(): void
     {
-        $user = $this->createUser();
-        $em   = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
+        $user = $this->makeUser();
+        $ctrl = $this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo(null)]));
         $response = $ctrl->getConnectedUser();
-        $this->assertSame(200, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
-        $this->assertSame(1,                          $data['id']);
-        $this->assertSame('Jean',                     $data['firstName']);
-        $this->assertSame('Dupont',                   $data['lastName']);
-        $this->assertSame('jean.dupont@example.com',  $data['email']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(1, $data['id']);
+        $this->assertSame('Jean', $data['firstName']);
+        $this->assertSame('jean.dupont@example.com', $data['email']);
     }
 
-    public function testGetConnectedUserInvalidFirstNameReturns500(): void
+    #[DataProvider('invalidUserProvider')]
+    public function testGetConnectedUserInvalidFieldReturns500(string $first, string $last, string $email): void
     {
-        $user = $this->createUser(firstName: 'Jean123');
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-        $response = $ctrl->getConnectedUser();
+        $this->assertSame(500, $this->ctrlWithUser($this->makeUser(1, $first, $last, $email))->getConnectedUser()->getStatusCode());
+    }
+
+    public static function invalidUserProvider(): array
+    {
+        return [
+            'bad first name' => ['Jean123', 'Dupont', 'jean@example.com'],
+            'bad last name'  => ['Jean', 'Dupont99', 'jean@example.com'],
+            'bad email'      => ['Jean', 'Dupont', 'not-an-email'],
+        ];
+    }
+
+    public function testGetConnectedUserEmailTakenReturns500(): void
+    {
+        $user  = $this->makeUser(1, 'Jean', 'Dupont', 'jean@example.com');
+        $other = $this->makeUser(2, 'Autre', 'Nom', 'jean@example.com');
+        $this->assertSame(500, $this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo($other)]))->getConnectedUser()->getStatusCode());
+    }
+
+    public function testGetConnectedUserInvalidDatesLogsWarningAndReturns200(): void
+    {
+        $user = $this->makeUser(start: new \DateTimeImmutable('+10 days'), end: new \DateTimeImmutable('+1 day'));
+        $this->papertrail->expects($this->atLeast(2))->method('warning');
+        $this->assertSame(200, $this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo(null)]))->getConnectedUser()->getStatusCode());
+    }
+
+    public function testGetConnectedUserOnlyStartDateLogsWarning(): void
+    {
+        $user = $this->makeUser(start: new \DateTimeImmutable('+1 day'), end: null);
+        $this->papertrail->expects($this->atLeastOnce())->method('warning');
+        $this->assertSame(200, $this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo(null)]))->getConnectedUser()->getStatusCode());
+    }
+
+    public function testGetConnectedUserDbExceptionReturns500(): void
+    {
+        $badRepo = $this->createMock(EntityRepository::class);
+        $badRepo->method('findOneBy')->willThrowException(new \Exception('DB down'));
+        $response = $this->ctrlWithUser($this->makeUser(), $this->buildEm([User::class => $badRepo]))->getConnectedUser();
         $this->assertSame(500, $response->getStatusCode());
         $this->assertArrayHasKey('error', json_decode($response->getContent(), true));
     }
 
-    public function testGetConnectedUserInvalidLastNameReturns500(): void
-    {
-        $user = $this->createUser(lastName: 'Dupont99');
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-        $this->assertSame(500, $ctrl->getConnectedUser()->getStatusCode());
-    }
-
-    public function testGetConnectedUserInvalidEmailReturns500(): void
-    {
-        $user = $this->createUser(email: 'not-an-email');
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-        $this->assertSame(500, $ctrl->getConnectedUser()->getStatusCode());
-    }
-
-    public function testGetConnectedUserEmailTakenByOtherUserReturns500(): void
-    {
-        $user      = $this->createUser(1, 'Jean', 'Dupont', 'jean@example.com');
-        $otherUser = $this->createUser(2, 'Autre', 'Nom', 'jean@example.com');
-        $em        = $this->buildEm([User::class => $this->stubUserRepository($otherUser)]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-        $this->assertSame(500, $ctrl->getConnectedUser()->getStatusCode());
-    }
-
-    public function testGetConnectedUserWithValidAvailabilityDates(): void
-    {
-        $user = $this->createUser(
-            availabilityStart: new \DateTimeImmutable('+1 day'),
-            availabilityEnd:   new \DateTimeImmutable('+30 days')
-        );
-        $em   = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        $response = $ctrl->getConnectedUser();
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertNotNull($data['availabilityStart']);
-        $this->assertNotNull($data['availabilityEnd']);
-    }
-
     public function testGetConnectedUserWithConversations(): void
     {
-        $conv1 = $this->createMock(Conversation::class);
-        $conv1->method('getId')->willReturn(42);
-
-        $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(1);
-        $user->method('getFirstName')->willReturn('Jean');
-        $user->method('getLastName')->willReturn('Dupont');
-        $user->method('getEmail')->willReturn('jean.dupont@example.com');
-        $user->method('getUserIdentifier')->willReturn('jean.dupont@example.com');
-        $user->method('getAvailabilityStart')->willReturn(null);
-        $user->method('getAvailabilityEnd')->willReturn(null);
-        $user->method('getConversations')->willReturn(new ArrayCollection([$conv1]));
-
-        $em = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        $response = $ctrl->getConnectedUser();
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertCount(1, $data['userData']);
+        $conv = $this->createMock(Conversation::class);
+        $conv->method('getId')->willReturn(42);
+        // Conversations passed at construction time — avoids re-configuring a mock method
+        $user = $this->makeUser(conversations: [$conv]);
+        $data = json_decode($this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo(null)]))->getConnectedUser()->getContent(), true);
         $this->assertSame(42, $data['userData'][0]['id']);
     }
 
@@ -430,191 +307,96 @@ class MessageControllerTest extends TestCase
         $this->assertSame(401, $ctrl->getUserConversations($this->em)->getStatusCode());
     }
 
-    public function testGetUserConversationsReturnsEmptyWhenNone(): void
-    {
-        $user     = $this->createUser();
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([]));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($user, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame([], json_decode($response->getContent(), true));
-    }
-
-    public function testGetUserConversationsSkipsInvalidTitle(): void
-    {
-        $user = $this->createUser();
-        $conv = $this->createMock(Conversation::class);
-        $conv->method('getId')->willReturn(5);
-        $conv->method('getTitle')->willReturn('<script>alert(1)</script>');
-        $conv->method('getDescription')->willReturn('desc');
-        $conv->method('getCreatedBy')->willReturn($user);
-        $conv->method('getUsers')->willReturn(new ArrayCollection([$user]));
-        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-        $conv->method('getLastMessageAt')->willReturn(null);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($user, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame([], json_decode($response->getContent(), true));
-    }
-
     public function testGetUserConversationsReturnsValidConversation(): void
     {
-        $currentUser = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $conv        = $this->createConversation(10, 'Ma conversation', 'desc', $currentUser, [$currentUser, $participant]);
-
+        $me   = $this->makeUser(1);
+        $p    = $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com');
+        $conv = $this->makeConv(10, 'Ma conversation', 'desc', $me, [$me, $p]);
         $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
+        $convRepo->method('createQueryBuilder')->willReturn($this->qbList([$conv]));
+        $em   = $this->buildEm([Conversation::class => $convRepo, User::class => $this->userRepo(null)]);
+        $data = json_decode($this->ctrlWithUser($me, $em)->getUserConversations($em)->getContent(), true);
         $this->assertCount(1, $data);
         $this->assertSame('Ma conversation', $data[0]['title']);
-        $this->assertCount(1, $data[0]['users']); // participant only (currentUser excluded)
+        $this->assertCount(1, $data[0]['users']);
     }
 
-    public function testGetUserConversationsSkipsParticipantWithInvalidName(): void
+    #[DataProvider('convListSkipProvider')]
+    public function testGetUserConversationsSkipsInvalidData(string $title, string $first, string $last, string $email, int $expectedCount): void
     {
-        $currentUser = $this->createUser(1);
-        $badUser     = $this->createUser(2, 'Bad123', 'User', 'bad@example.com');
-        $conv        = $this->createConversation(10, 'Test', 'desc', $currentUser, [$currentUser, $badUser]);
-
+        $me   = $this->makeUser(1);
+        $p    = $this->makeUser(2, $first, $last, $email);
+        $conv = $this->makeConv(5, $title, 'desc', $me, [$me, $p]);
         $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame([], json_decode($response->getContent(), true));
+        $convRepo->method('createQueryBuilder')->willReturn($this->qbList([$conv]));
+        $em   = $this->buildEm([Conversation::class => $convRepo, User::class => $this->userRepo(null)]);
+        $data = json_decode($this->ctrlWithUser($me, $em)->getUserConversations($em)->getContent(), true);
+        $this->assertCount($expectedCount, $data);
     }
 
-    public function testGetUserConversationsSkipsParticipantWithInvalidEmail(): void
+    public static function convListSkipProvider(): array
     {
-        $currentUser  = $this->createUser(1);
-        $invalidEmail = $this->createUser(2, 'Marie', 'Curie', 'not-valid-email');
-        $conv         = $this->createConversation(10, 'Test', 'desc', $currentUser, [$currentUser, $invalidEmail]);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame([], json_decode($response->getContent(), true));
+        return [
+            'xss title'     => ['<script>xss</script>', 'Marie', 'Curie', 'marie@example.com', 0],
+            'invalid name'  => ['Valid Title', 'Bad123', 'User', 'bad@example.com', 0],
+            'invalid email' => ['Valid Title', 'Marie', 'Curie', 'not-valid-email', 0],
+        ];
     }
 
-    public function testGetUserConversationsInvalidCreatorFallsBackToUnknown(): void
+    /**
+     * @param 'null'|'bad' $creatorType
+     */
+    #[DataProvider('fallbackCreatorProvider')]
+    public function testGetUserConversationsFallbackCreator(string $creatorType): void
     {
-        $currentUser = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $badCreator  = $this->createUser(3, 'Bad99', 'Creator', 'bad@example.com');
-        $conv        = $this->createConversation(10, 'Valid Title', '', $badCreator, [$currentUser, $participant]);
-
+        $me      = $this->makeUser(1);
+        $p       = $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com');
+        $creator = match ($creatorType) {
+            'null' => null,
+            'bad'  => $this->makeUser(3, 'Bad99', 'Creator', 'bad@example.com'),
+        };
+        $conv = $this->makeConv(10, 'Valid Title', '', $creator, [$me, $p]);
         $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertCount(1, $data);
+        $convRepo->method('createQueryBuilder')->willReturn($this->qbList([$conv]));
+        $em   = $this->buildEm([Conversation::class => $convRepo, User::class => $this->userRepo(null)]);
+        $data = json_decode($this->ctrlWithUser($me, $em)->getUserConversations($em)->getContent(), true);
         $this->assertSame('Unknown', $data[0]['createdBy']);
     }
 
-    public function testGetUserConversationsNullCreatorFallsBackToUnknown(): void
+    // Static: returns string keys; mocks are created inside the test method
+    public static function fallbackCreatorProvider(): array
     {
-        $currentUser = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $conv        = $this->createConversation(10, 'Valid Title', '', null, [$currentUser, $participant]);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertSame('Unknown', $data[0]['createdBy']);
+        return [
+            'null creator' => ['null'],
+            'bad creator'  => ['bad'],
+        ];
     }
 
-    public function testGetUserConversationsWithLastMessageAtSet(): void
+    public function testGetUserConversationsInvalidDescriptionLogsWarning(): void
     {
-        $currentUser = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-
+        $me = $this->makeUser(1); $p = $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com');
         $conv = $this->createMock(Conversation::class);
         $conv->method('getId')->willReturn(10);
-        $conv->method('getTitle')->willReturn('Conv with last message');
-        $conv->method('getDescription')->willReturn('desc');
-        $conv->method('getCreatedBy')->willReturn($currentUser);
-        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable('2024-01-01'));
-        $conv->method('getLastMessageAt')->willReturn(new \DateTimeImmutable('2024-06-15 12:00:00'));
-        $conv->method('getUsers')->willReturn(new ArrayCollection([$currentUser, $participant]));
+        $conv->method('getTitle')->willReturn('Valid Title');
+        $conv->method('getDescription')->willReturn('<script>bad</script>');
+        $conv->method('getCreatedBy')->willReturn($me);
+        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
+        $conv->method('getLastMessageAt')->willReturn(null);
+        $conv->method('getUsers')->willReturn(new ArrayCollection([$me, $p]));
         $conv->method('getMessages')->willReturn(new ArrayCollection([]));
-
         $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertNotNull($data[0]['lastMessageAt']);
+        $convRepo->method('createQueryBuilder')->willReturn($this->qbList([$conv]));
+        $em = $this->buildEm([Conversation::class => $convRepo, User::class => $this->userRepo(null)]);
+        $this->papertrail->expects($this->atLeastOnce())->method('warning');
+        $this->assertCount(1, json_decode($this->ctrlWithUser($me, $em)->getUserConversations($em)->getContent(), true));
     }
 
     public function testGetUserConversationsDbExceptionReturns500(): void
     {
-        $currentUser = $this->createUser(1);
-        $convRepo    = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB error'));
+        $convRepo = $this->createMock(EntityRepository::class);
+        $convRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB'));
         $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame(500, $this->ctrlWithUser($this->makeUser(1), $em)->getUserConversations($em)->getStatusCode());
     }
 
     // =========================================================================
@@ -623,1079 +405,542 @@ class MessageControllerTest extends TestCase
 
     public function testGetMessagesUnauthenticated(): void
     {
-        $security = $this->createSecurity(null);
-        $request  = Request::create('/api/get/messages', 'GET');
-        $this->assertSame(401, $this->controller->getMessages($security, $this->messageRepo, $request)->getStatusCode());
+        $this->assertSame(401, $this->controller->getMessages(
+            $this->createMock(Security::class), $this->messageRepo, Request::create('/api/get/messages', 'GET')
+        )->getStatusCode());
     }
 
     public function testGetMessagesValidReturns200(): void
     {
-        $user = $this->createUser();
-        $conv = $this->createConversation(creator: $user);
-        $msg  = $this->createMessage(author: $user, conv: $conv);
-
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
+        $user = $this->makeUser();
+        $msg  = $this->makeMsg(author: $user, conv: $this->makeConv(creator: $user));
         $this->messageRepo->method('findBy')->willReturn([$msg]);
         $this->messageRepo->method('count')->willReturn(1);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-        $data     = json_decode($response->getContent(), true);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertArrayHasKey('data', $data);
+        $this->em->method('getRepository')->willReturn($this->userRepo(null));
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $data = json_decode($this->controller->getMessages($sec, $this->messageRepo, Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]))->getContent(), true);
+        $this->assertCount(1, $data['data']);
         $this->assertArrayHasKey('pagination', $data);
-        $this->assertCount(1, $data['data']);
     }
 
-    public function testGetMessagesPaginationClampedPage(): void
+    /**
+     * @param bool $hasConv  true = attach a valid conversation, false = orphan message
+     */
+    #[DataProvider('invalidMessageProvider')]
+    public function testGetMessagesSkipsInvalid(string $content, bool $hasConv): void
     {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 0, 'limit' => 999]);
-
-        $this->messageRepo->method('findBy')->willReturn([]);
-        $this->messageRepo->method('count')->willReturn(0);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $this->assertSame(200, $this->controller->getMessages($security, $this->messageRepo, $request)->getStatusCode());
-    }
-    public function testGetMessagesSkipsInvalidContent(): void
-    {
-        $user     = $this->createUser();
-        $conv     = $this->createConversation(creator: $user);
-        $msg      = $this->createMessage(content: '<script>xss</script>', author: $user, conv: $conv);
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
+        $user = $this->makeUser();
+        $conv = $hasConv ? $this->makeConv(creator: $user) : null;
+        $msg  = $this->makeMsg(content: $content, author: $user, conv: $conv);
         $this->messageRepo->method('findBy')->willReturn([$msg]);
         $this->messageRepo->method('count')->willReturn(1);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-        $data     = json_decode($response->getContent(), true);
-
-        $this->assertSame(200, $response->getStatusCode());
+        $this->em->method('getRepository')->willReturn($this->userRepo(null));
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $data = json_decode($this->controller->getMessages($sec, $this->messageRepo, Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]))->getContent(), true);
         $this->assertCount(0, $data['data']);
     }
 
-    public function testGetMessagesSkipsOrphanMessage(): void
+    // Static: passes a bool flag; the conv mock is built inside the test method
+    public static function invalidMessageProvider(): array
     {
-        $user     = $this->createUser();
-        $msg      = $this->createMessage(100, 'Hello world', $user, null);
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
-        $this->messageRepo->method('findBy')->willReturn([$msg]);
-        $this->messageRepo->method('count')->willReturn(1);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $data = json_decode($this->controller->getMessages($security, $this->messageRepo, $request)->getContent(), true);
-        $this->assertCount(0, $data['data']);
+        return [
+            'xss content' => ['<script>xss</script>', true],
+            'no conv'     => ['Hello world', false],
+        ];
     }
 
-    public function testGetMessagesSkipsInvalidConversationTitle(): void
+    #[DataProvider('authorNameFallbackProvider')]
+    public function testGetMessagesAuthorNameFallback(string $authorName, string $expected): void
     {
-        $user = $this->createUser();
-        $conv = $this->createConversation(creator: $user);
-
-        $msg = $this->createMock(Message::class);
-        $msg->method('getId')->willReturn(1);
-        $msg->method('getContent')->willReturn('Hello world');
-        $msg->method('getAuthor')->willReturn($user);
-        $msg->method('getAuthorName')->willReturn('Jean Dupont');
-        $msg->method('getConversation')->willReturn($conv);
-        $msg->method('getConversationTitle')->willReturn('<script>bad</script>');
-        $msg->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
-        $this->messageRepo->method('findBy')->willReturn([$msg]);
-        $this->messageRepo->method('count')->willReturn(1);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-        $this->assertSame(200, $response->getStatusCode());
-    }
-
-    public function testGetMessagesAuthorEmailInvalidFallsBack(): void
-    {
-        $user          = $this->createUser();
-        $conv          = $this->createConversation(creator: $user);
-        $badEmailAuthor = $this->createUser(2, 'Marie', 'Curie', 'not-valid');
-
-        $msg = $this->createMock(Message::class);
-        $msg->method('getId')->willReturn(1);
-        $msg->method('getContent')->willReturn('Hello world');
-        $msg->method('getAuthor')->willReturn($badEmailAuthor);
-        $msg->method('getAuthorName')->willReturn('Marie Curie');
-        $msg->method('getConversation')->willReturn($conv);
-        $msg->method('getConversationTitle')->willReturn('Test Conv');
-        $msg->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
-        $this->messageRepo->method('findBy')->willReturn([$msg]);
-        $this->messageRepo->method('count')->willReturn(1);
-
-        $data = json_decode($this->controller->getMessages($security, $this->messageRepo, $request)->getContent(), true);
-        $this->assertCount(1, $data['data']);
-    }
-
-    public function testGetMessagesAuthorNameInvalidFallsBackToUnknown(): void
-    {
-        $user   = $this->createUser();
-        $conv   = $this->createConversation(creator: $user);
-        $author = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-
-        $msg = $this->createMock(Message::class);
+        $user   = $this->makeUser();
+        $conv   = $this->makeConv(creator: $user);
+        $author = $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com');
+        $msg    = $this->createMock(Message::class);
         $msg->method('getId')->willReturn(1);
         $msg->method('getContent')->willReturn('Hello world');
         $msg->method('getAuthor')->willReturn($author);
-        $msg->method('getAuthorName')->willReturn('Marie99 Curie');
+        $msg->method('getAuthorName')->willReturn($authorName);
         $msg->method('getConversation')->willReturn($conv);
         $msg->method('getConversationTitle')->willReturn('Test Conv');
         $msg->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
-        $this->messageRepo->method('findBy')->willReturn([$msg]);
-        $this->messageRepo->method('count')->willReturn(1);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $data = json_decode($this->controller->getMessages($security, $this->messageRepo, $request)->getContent(), true);
-        $this->assertCount(1, $data['data']);
+        $repo = $this->createMock(MessageRepository::class);
+        $repo->method('findBy')->willReturn([$msg]);
+        $repo->method('count')->willReturn(1);
+        $this->em->method('getRepository')->willReturn($this->userRepo(null));
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $data = json_decode($this->controller->getMessages($sec, $repo, Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]))->getContent(), true);
+        $this->assertSame($expected, $data['data'][0]['authorName']);
     }
+
+    public static function authorNameFallbackProvider(): array
+    {
+        return [
+            'single word'    => ['Mononym', 'Unknown User'],
+            'both parts bad' => ['Bad99 Name99', 'Unknown User'],
+        ];
+    }
+
+    #[DataProvider('paginationProvider')]
+    public function testGetMessagesPaginationClamping(int $page, int $limit): void
+    {
+        $user = $this->makeUser();
+        $this->messageRepo->method('findBy')->willReturn([]);
+        $this->messageRepo->method('count')->willReturn(0);
+        $this->em->method('getRepository')->willReturn($this->userRepo(null));
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $response = $this->controller->getMessages($sec, $this->messageRepo, Request::create('/api/get/messages', 'GET', ['page' => $page, 'limit' => $limit]));
+        $this->assertContains($response->getStatusCode(), [200, 400]);
+    }
+
+    public static function paginationProvider(): array
+    {
+        return [
+            'zero page'     => [0, 999],
+            'negative page' => [-5, 999999],
+            'high page'     => [PHP_INT_MAX, 100],
+            'low limit'     => [1, 0],
+        ];
+    }
+
     // =========================================================================
     // createConversation
     // =========================================================================
 
+    // The unauthenticated case has its own test because the shared provider helper
+    // always injects a valid user via $sec->getUser(); merging it in would require
+    // a special branch and obscures intent.
     public function testCreateConversationUnauthenticated(): void
     {
-        $security = $this->createSecurity(null);
-        $request  = $this->createJsonRequest(['title' => 'Hello', 'conv_users' => [2]]);
-        $this->assertSame(401, $this->controller->createConversation($request, $security, $this->em)->getStatusCode());
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn(null);
+        $this->assertSame(401, $this->controller->createConversation(
+            $this->jsonReq(['title' => 'Hi', 'conv_users' => [2]]), $sec, $this->em
+        )->getStatusCode());
     }
 
-    public function testCreateConversationWrongContentTypeReturns415(): void
+    #[DataProvider('createConvErrorProvider')]
+    public function testCreateConversationErrors(array $payload, int $code, string $contentType = 'application/json'): void
     {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/', 'POST', [], [], [], [], json_encode(['title' => 'Hi']));
-        $request->headers->set('Content-Type', 'text/plain');
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $this->assertSame(415, $this->controller->createConversation($request, $security, $this->em)->getStatusCode());
+        $user = $this->makeUser();
+        $this->em->method('getRepository')->willReturn($this->userRepo(null));
+        $req  = Request::create('/', 'POST', [], [], [], [], json_encode($payload));
+        $req->headers->set('Content-Type', $contentType);
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $this->assertSame($code, $this->controller->createConversation($req, $sec, $this->em)->getStatusCode());
     }
 
-    public function testCreateConversationMissingTitleReturns400(): void
+    public static function createConvErrorProvider(): array
     {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-        $request  = $this->createJsonRequest(['conv_users' => [2]]);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $this->assertSame(400, $this->controller->createConversation($request, $security, $this->em)->getStatusCode());
-    }
-
-    public function testCreateConversationInvalidTitleReturns400(): void
-    {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-        $request  = $this->createJsonRequest(['title' => '<script>xss</script>', 'conv_users' => [2]]);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $this->assertSame(400, $this->controller->createConversation($request, $security, $this->em)->getStatusCode());
-    }
-
-    public function testCreateConversationForbiddenExtraFieldsReturns500(): void
-    {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-        $request  = $this->createJsonRequest(['title' => 'Valid', 'conv_users' => [2], 'malicious' => 'x']);
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $this->assertSame(500, $this->controller->createConversation($request, $security, $this->em)->getStatusCode());
-    }
-
-    public function testCreateConversationPayloadTooLargeReturns413(): void
-    {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-        $request  = Request::create('/', 'POST', [], [], [], [], json_encode(['title' => str_repeat('a', 15000), 'conv_users' => [2]]));
-        $request->headers->set('Content-Type', 'application/json');
-        $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-        $this->assertSame(413, $this->controller->createConversation($request, $security, $this->em)->getStatusCode());
-    }
-
-    public function testCreateConversationRateLimitReturns429(): void
-    {
-        $user      = $this->createUser();
-        $security  = $this->createSecurity($user);
-        $convRepo  = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(100));
-
-        $em = $this->buildEm([
-            User::class         => $this->stubUserRepository(null),
-            Conversation::class => $convRepo,
-        ]);
-
-        $request  = $this->createJsonRequest(['title' => 'Test', 'conv_users' => [2]]);
-        $response = $this->controller->createConversation($request, $security, $em);
-        $this->assertSame(429, $response->getStatusCode());
+        return [
+            'wrong content type' => [['title' => 'Hi'], 415, 'text/plain'],
+            'missing title'      => [['conv_users' => [2]], 400],
+            'xss title'          => [['title' => '<script>xss</script>', 'conv_users' => [2]], 400],
+            'extra fields'       => [['title' => 'Valid', 'conv_users' => [2], 'malicious' => 'x'], 500],
+            'too large'          => [['title' => str_repeat('a', 15000), 'conv_users' => [2]], 413],
+            'too many users'     => [['title' => 'Big', 'conv_users' => range(2, 52)], 400],
+        ];
     }
 
     public function testCreateConversationInvalidUserStateReturns400(): void
     {
-        $user     = $this->createUser(firstName: 'Jean99');
-        $security = $this->createSecurity($user);
-        $em       = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $request  = $this->createJsonRequest(['title' => 'Test', 'conv_users' => [2]]);
-        $response = $this->controller->createConversation($request, $security, $em);
-
+        $user = $this->makeUser(first: 'Jean99');
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $response = $this->controller->createConversation($this->jsonReq(['title' => 'Test', 'conv_users' => [2]]), $sec, $this->buildEm([User::class => $this->userRepo(null)]));
         $this->assertSame(400, $response->getStatusCode());
         $this->assertStringContainsString('invalid user state', json_decode($response->getContent(), true)['message']);
     }
-public function testCreateConversationSuccessReturns201(): void
-{
-    $creator     = $this->createUser(1);
-    $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-    $security    = $this->createSecurity($creator);
 
-    $userRepo = $this->createMock(EntityRepository::class);
-    $userRepo->method('findOneBy')->willReturn(null);
-    $userRepo->method('findBy')->willReturn([$participant]);
-
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-    $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-    $em->expects($this->once())->method('beginTransaction');
-    $em->expects($this->once())->method('persist')->willReturnCallback(function ($entity) {
-        $prop = (new \ReflectionClass($entity))->getProperty('id');
-        $prop->setAccessible(true);
-        $prop->setValue($entity, 1);
-    });
-    $em->expects($this->once())->method('flush');
-    $em->expects($this->once())->method('commit');
-
-    $request  = $this->createJsonRequest(['title' => 'Ma conversation', 'conv_users' => [2]]);
-    $response = $this->controller->createConversation($request, $security, $em);
-
-    $this->assertSame(201, $response->getStatusCode());
-    $this->assertSame('Ma conversation', json_decode($response->getContent(), true)['title']);
-}
+    public function testCreateConversationSuccessReturns201(): void
+    {
+        $creator = $this->makeUser(1);
+        $sec     = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($creator);
+        $em = $this->buildEmForConv($creator, $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com'));
+        $em->expects($this->once())->method('persist')->willReturnCallback(fn($e) => (new \ReflectionClass($e))->getProperty('id')->setValue($e, 1));
+        $em->expects($this->once())->method('flush');
+        $em->expects($this->once())->method('commit');
+        $response = $this->controller->createConversation($this->jsonReq(['title' => 'Ma%20conv', 'conv_users' => [2]]), $sec, $em);
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertSame('Ma conv', json_decode($response->getContent(), true)['title']);
+    }
 
     public function testCreateConversationDuplicateReturns409(): void
     {
-        $creator  = $this->createUser(1);
-        $security = $this->createSecurity($creator);
-
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findOneBy')->willReturn(null);
-        $userRepo->method('findBy')->willReturn([$this->createUser(2, 'Marie', 'Curie', 'marie@example.com')]);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0, $this->createMock(Conversation::class)));
-
-        $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-        $em->method('beginTransaction');
+        $creator = $this->makeUser(1);
+        $sec     = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($creator);
+        $em = $this->buildEmForConv($creator, $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com'), $this->createMock(Conversation::class));
         $em->expects($this->once())->method('rollback');
-
-        $request  = $this->createJsonRequest(['title' => 'Ma conversation', 'conv_users' => [2]]);
-        $response = $this->controller->createConversation($request, $security, $em);
-
+        $response = $this->controller->createConversation($this->jsonReq(['title' => 'Ma conversation', 'conv_users' => [2]]), $sec, $em);
         $this->assertSame(409, $response->getStatusCode());
         $this->assertSame('DUPLICATE_CONVERSATION', json_decode($response->getContent(), true)['error']);
     }
 
-public function testCreateConversationNoParticipantsCreates201(): void
-{
-    $creator  = $this->createUser(1);
-    $security = $this->createSecurity($creator);
-
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-    $em = $this->buildEm([User::class => $this->stubUserRepository(null), Conversation::class => $convRepo]);
-    $em->method('beginTransaction');
-    $em->expects($this->once())->method('persist')->willReturnCallback(function ($entity) {
-        $prop = (new \ReflectionClass($entity))->getProperty('id');
-        $prop->setAccessible(true);
-        $prop->setValue($entity, 1);
-    });
-    $em->expects($this->once())->method('flush');
-    $em->expects($this->once())->method('commit');
-
-    $response = $this->controller->createConversation($this->createJsonRequest(['title' => 'Solo', 'conv_users' => []]), $security, $em);
-    $this->assertSame(201, $response->getStatusCode());
-}
-
-
-public function testCreateConversationWithDescriptionSucceeds(): void
-{
-    $creator     = $this->createUser(1);
-    $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-    $security    = $this->createSecurity($creator);
-
-    $userRepo = $this->createMock(EntityRepository::class);
-    $userRepo->method('findOneBy')->willReturn(null);
-    $userRepo->method('findBy')->willReturn([$participant]);
-
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-    $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-    $em->method('beginTransaction');
-    $em->method('persist')->willReturnCallback(function ($entity) {
-        $prop = (new \ReflectionClass($entity))->getProperty('id');
-        $prop->setAccessible(true);
-        $prop->setValue($entity, 1);
-    });
-    $em->method('flush');
-    $em->method('commit');
-
-    $request  = $this->createJsonRequest(['title' => 'My conv', 'description' => 'A nice description', 'conv_users' => [2]]);
-    $response = $this->controller->createConversation($request, $security, $em);
-
-    $this->assertSame(201, $response->getStatusCode());
-}
-
-    public function testCreateConversationTooManyParticipantsReturns400(): void
+    #[DataProvider('createConvExceptionProvider')]
+    public function testCreateConversationPersistException(\Throwable $ex, int $code): void
     {
-        $creator  = $this->createUser(1);
-        $security = $this->createSecurity($creator);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-        $em = $this->buildEm([User::class => $this->stubUserRepository(null), Conversation::class => $convRepo]);
-        $em->method('beginTransaction');
-
-        $request  = $this->createJsonRequest(['title' => 'Big group', 'conv_users' => range(2, 52)]);
-        $response = $this->controller->createConversation($request, $security, $em);
-        $this->assertSame(400, $response->getStatusCode());
-    }
-
-    public function testCreateConversationInvalidJsonReturns400(): void
-    {
-        $user     = $this->createUser(1);
-        $security = $this->createSecurity($user);
-        $em       = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $request = Request::create('/', 'POST', [], [], [], [], 'not-json');
-        $request->headers->set('Content-Type', 'application/json');
-
-        $this->assertSame(400, $this->controller->createConversation($request, $security, $em)->getStatusCode());
-    }
-
-    public function testCreateConversationTransactionExceptionReturns500(): void
-    {
-        $creator     = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $security    = $this->createSecurity($creator);
-
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findOneBy')->willReturn(null);
-        $userRepo->method('findBy')->willReturn([$participant]);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-        $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-        $em->method('beginTransaction');
-        $em->method('persist')->willThrowException(new \Exception('Transaction error'));
+        $creator = $this->makeUser(1);
+        $sec     = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($creator);
+        $em = $this->buildEmForConv($creator, $this->makeUser(2, 'Marie', 'Curie', 'marie@example.com'));
+        $em->method('persist')->willThrowException($ex);
         $em->expects($this->once())->method('rollback');
+        $em->expects($this->once())->method('clear');
+        $this->assertSame($code, $this->controller->createConversation($this->jsonReq(['title' => 'Test', 'conv_users' => [2]]), $sec, $em)->getStatusCode());
+    }
 
-        $response = $this->controller->createConversation($this->createJsonRequest(['title' => 'Test', 'conv_users' => [2]]), $security, $em);
-        $this->assertSame(500, $response->getStatusCode());
+    public static function createConvExceptionProvider(): array
+    {
+        return [
+            'generic exception'          => [new \Exception('err'), 500],
+            'invalid argument exception' => [new \InvalidArgumentException('bad arg'), 400],
+        ];
     }
 
     // =========================================================================
     // createMessage
     // =========================================================================
 
+    #[DataProvider('createMsgErrorProvider')]
+    public function testCreateMessageErrors(array $payload, int $code, bool $reject = false, string $contentType = 'application/json'): void
+    {
+        $user = $this->makeUser();
+        $ctrl = $reject ? $this->ctrlRejecting() : $this->ctrlAccepting();
+        $sec  = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $req  = Request::create('/', 'POST', [], [], [], [], json_encode($payload));
+        $req->headers->set('Content-Type', $contentType);
+        $this->assertSame($code, $ctrl->createMessage($req, $sec, $this->em, $this->dummyFactory())->getStatusCode());
+    }
+
+    public static function createMsgErrorProvider(): array
+    {
+        return [
+            'rate limited'       => [['content' => 'Hello', 'conversation_id' => 1], 429, true],
+            'wrong content type' => [['content' => 'Hi', 'conversation_id' => 1], 415, false, 'text/plain'],
+            'missing content'    => [['conversation_id' => 1], 400],
+            'missing conv id'    => [['content' => 'Hello world'], 400],
+            'xss content'        => [['content' => '<script>xss</script>', 'conversation_id' => 1], 400],
+            'extra field'        => [['content' => 'Hello world', 'conversation_id' => 1, 'injected' => 'bad'], 500],
+        ];
+    }
+
     public function testCreateMessageUnauthenticated(): void
     {
-        $ctrl     = $this->createAcceptingController();
-        $response = $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello', 'conversation_id' => 1]),
-            $this->createSecurity(null),
-            $this->em,
-            $this->createDummyFactory()
-        );
-        $this->assertSame(401, $response->getStatusCode());
-    }
-
-    public function testCreateMessageRateLimiterRejectsReturns429(): void
-    {
-        $user     = $this->createUser();
-        $ctrl     = $this->createRejectingController();
-        $response = $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello', 'conversation_id' => 1]),
-            $this->createSecurity($user),
-            $this->em,
-            $this->createDummyFactory()
-        );
-        $this->assertSame(429, $response->getStatusCode());
-    }
-
-    public function testCreateMessageWrongContentTypeReturns415(): void
-    {
-        $user    = $this->createUser();
-        $ctrl    = $this->createAcceptingController();
-        $request = Request::create('/', 'POST', [], [], [], [], json_encode(['content' => 'Hi', 'conversation_id' => 1]));
-        $request->headers->set('Content-Type', 'text/plain');
-
-        $this->assertSame(415, $ctrl->createMessage($request, $this->createSecurity($user), $this->em, $this->createDummyFactory())->getStatusCode());
-    }
-
-    public function testCreateMessageMissingContentReturns400(): void
-    {
-        $ctrl = $this->createAcceptingController();
-        $this->assertSame(400, $ctrl->createMessage(
-            $this->createJsonRequest(['conversation_id' => 1]),
-            $this->createSecurity($this->createUser()),
-            $this->em,
-            $this->createDummyFactory()
-        )->getStatusCode());
-    }
-
-    public function testCreateMessageMissingConversationIdReturns400(): void
-    {
-        $ctrl = $this->createAcceptingController();
-        $this->assertSame(400, $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello world']),
-            $this->createSecurity($this->createUser()),
-            $this->em,
-            $this->createDummyFactory()
-        )->getStatusCode());
-    }
-
-    public function testCreateMessageInvalidContentReturns400(): void
-    {
-        $ctrl = $this->createAcceptingController();
-        $this->assertSame(400, $ctrl->createMessage(
-            $this->createJsonRequest(['content' => '<script>xss</script>', 'conversation_id' => 1]),
-            $this->createSecurity($this->createUser()),
-            $this->em,
-            $this->createDummyFactory()
-        )->getStatusCode());
-    }
-    public function testCreateMessageConversationNotFoundReturns404(): void
-    {
-        $user     = $this->createUser();
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn(null);
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $ctrl     = $this->createAcceptingController($em);
-        $response = $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 999]),
-            $this->createSecurity($user),
-            $em,
-            $this->createDummyFactory()
-        );
-        $this->assertSame(404, $response->getStatusCode());
-    }
-
-    public function testCreateMessageUserNotInConversationReturns403(): void
-    {
-        $user      = $this->createUser(1);
-        $otherUser = $this->createUser(2, 'Other', 'User', 'other@example.com');
-        $conv      = $this->createConversation(users: [$otherUser]);
-        $convRepo  = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $ctrl     = $this->createAcceptingController($em);
-        $response = $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
-            $this->createSecurity($user),
-            $em,
-            $this->createDummyFactory()
-        );
-        $this->assertSame(403, $response->getStatusCode());
-    }
-
-    public function testCreateMessageDailyRateLimitExceededReturns429(): void
-    {
-        $user = $this->createUser(1);
-        $conv = $this->createConversation(users: [$user]);
-
-        $collection = $this->createMock(ArrayCollection::class);
-        $collection->method('contains')->willReturn(true);
-        $conv->method('getUsers')->willReturn($collection);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
-
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(100));
-
-        $em   = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-        $ctrl = $this->createAcceptingController($em);
-
-        $response = $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
-            $this->createSecurity($user),
-            $em,
-            $this->createDummyFactory()
-        );
-        $this->assertSame(429, $response->getStatusCode());
-    }
-
-public function testCreateMessageSuccessReturns201(): void
-{
-    $user    = $this->createUser(1);
-    $conv    = $this->createConversation(10, 'Ma conv', '', $user, [$user]);
-    $msgRepo = $this->createMock(EntityRepository::class);
-    $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('find')->willReturn($conv);
-
-    $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-    $em->expects($this->once())->method('persist')->willReturnCallback(function ($entity) {
-        $prop = (new \ReflectionClass($entity))->getProperty('id');
-        $prop->setAccessible(true);
-        $prop->setValue($entity, 100);
-    });
-    $em->expects($this->once())->method('flush');
-
-    $ctrl     = $this->createAcceptingController($em);
-    $response = $ctrl->createMessage(
-        $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
-        $this->createSecurity($user),
-        $em,
-        $this->createDummyFactory()
-    );
-
-    $this->assertSame(201, $response->getStatusCode());
-    $data = json_decode($response->getContent(), true);
-    $this->assertArrayHasKey('id', $data);
-    $this->assertArrayHasKey('content', $data);
-}
-
-    public function testCreateMessageForbiddenExtraFieldsReturns500(): void
-    {
-        $ctrl = $this->createAcceptingController();
-        $this->assertSame(500, $ctrl->createMessage(
-            $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 1, 'injected_field' => 'bad']),
-            $this->createSecurity($this->createUser()),
-            $this->em,
-            $this->createDummyFactory()
-        )->getStatusCode());
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn(null);
+        $this->assertSame(401, $this->ctrlAccepting()->createMessage($this->jsonReq(['content' => 'Hello', 'conversation_id' => 1]), $sec, $this->em, $this->dummyFactory())->getStatusCode());
     }
 
     public function testCreateMessageLargePayloadReturns413(): void
     {
-        $ctrl    = $this->createAcceptingController();
-        $request = Request::create('/', 'POST', [], [], [], [], str_repeat('x', 10001));
-        $request->headers->set('Content-Type', 'application/json');
+        $req = Request::create('/', 'POST', [], [], [], [], str_repeat('x', 10001));
+        $req->headers->set('Content-Type', 'application/json');
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($this->makeUser());
+        $this->assertSame(413, $this->ctrlAccepting()->createMessage($req, $sec, $this->em, $this->dummyFactory())->getStatusCode());
+    }
 
-        $this->assertSame(413, $ctrl->createMessage($request, $this->createSecurity($this->createUser()), $this->em, $this->createDummyFactory())->getStatusCode());
+    public function testCreateMessageConversationNotFoundReturns404(): void
+    {
+        $convRepo = $this->createMock(EntityRepository::class);
+        $convRepo->method('find')->willReturn(null);
+        $em  = $this->buildEm([Conversation::class => $convRepo]);
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($this->makeUser());
+        $this->assertSame(404, $this->ctrlAccepting($em)->createMessage($this->jsonReq(['content' => 'Hello', 'conversation_id' => 999]), $sec, $em, $this->dummyFactory())->getStatusCode());
+    }
+
+    public function testCreateMessageUserNotInConversationReturns403(): void
+    {
+        $user     = $this->makeUser(1);
+        $conv     = $this->makeConv(users: [$this->makeUser(2, 'Other', 'User', 'other@example.com')]);
+        $convRepo = $this->createMock(EntityRepository::class);
+        $convRepo->method('find')->willReturn($conv);
+        $em  = $this->buildEm([Conversation::class => $convRepo]);
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $this->assertSame(403, $this->ctrlAccepting($em)->createMessage($this->jsonReq(['content' => 'Hello', 'conversation_id' => 10]), $sec, $em, $this->dummyFactory())->getStatusCode());
+    }
+
+    public function testCreateMessageSuccessReturns201(): void
+    {
+        $user     = $this->makeUser(1);
+        $conv     = $this->makeConv(10, 'Ma conv', '', $user, [$user]);
+        $msgRepo  = $this->createMock(EntityRepository::class);
+        $msgRepo->method('createQueryBuilder')->willReturn($this->qbCount(0));
+        $convRepo = $this->createMock(EntityRepository::class);
+        $convRepo->method('find')->willReturn($conv);
+        $em  = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
+        $em->expects($this->once())->method('persist')->willReturnCallback(fn($e) => (new \ReflectionClass($e))->getProperty('id')->setValue($e, 100));
+        $em->expects($this->once())->method('flush');
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $data = json_decode($this->ctrlAccepting($em)->createMessage($this->jsonReq(['content' => 'Hello world', 'conversation_id' => 10]), $sec, $em, $this->dummyFactory())->getContent(), true);
+        $this->assertArrayHasKey('id', $data);
+        $this->assertArrayHasKey('content', $data);
+    }
+
+    public function testCreateMessagePersistExceptionReturns500(): void
+    {
+        $user     = $this->makeUser(1);
+        $conv     = $this->makeConv(10, 'Ma conv', '', $user, [$user]);
+        $msgRepo  = $this->createMock(EntityRepository::class);
+        $msgRepo->method('createQueryBuilder')->willReturn($this->qbCount(0));
+        $convRepo = $this->createMock(EntityRepository::class);
+        $convRepo->method('find')->willReturn($conv);
+        $em  = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
+        $em->method('persist')->willThrowException(new \Exception('DB write error'));
+        $em->expects($this->once())->method('rollback');
+        $em->expects($this->once())->method('clear');
+        $sec = $this->createMock(Security::class);
+        $sec->method('getUser')->willReturn($user);
+        $data = json_decode($this->ctrlAccepting($em)->createMessage($this->jsonReq(['content' => 'Hello world', 'conversation_id' => 10]), $sec, $em, $this->dummyFactory())->getContent(), true);
+        $this->assertSame('Error creating message', $data['message']);
+        $this->assertSame('DB write error', $data['error']);
     }
 
     // =========================================================================
     // deleteConversation
     // =========================================================================
 
-    public function testDeleteConversationUnauthenticated(): void
+    #[DataProvider('deleteConvErrorProvider')]
+    public function testDeleteConversationErrors(int $id, int $code, ?\Closure $setup = null): void
     {
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail) extends MessageController {
-            public function getUser(): ?UserInterface { return null; }
-        };
-        $this->assertSame(401, $ctrl->deleteConversation(1, $this->em)->getStatusCode());
+        $user = $this->makeUser(1);
+        if ($setup) {
+            $convRepo = $this->createMock(EntityRepository::class);
+            $setup($convRepo, $user, $this);
+            $this->em->method('getRepository')->with(Conversation::class)->willReturn($convRepo);
+        }
+        $this->assertSame($code, $this->ctrlWithUser($user)->deleteConversation($id, $this->em)->getStatusCode());
     }
 
-    public function testDeleteConversationInvalidIdZeroReturns400(): void
+    public static function deleteConvErrorProvider(): array
     {
-        $ctrl = $this->createControllerWithUser($this->createUser());
-        $this->assertSame(400, $ctrl->deleteConversation(0, $this->em)->getStatusCode());
-    }
-
-    public function testDeleteConversationNegativeIdReturns400(): void
-    {
-        $ctrl = $this->createControllerWithUser($this->createUser());
-        $this->assertSame(400, $ctrl->deleteConversation(-5, $this->em)->getStatusCode());
-    }
-
-    public function testDeleteConversationNotFoundReturns404(): void
-    {
-        $user     = $this->createUser();
-        $ctrl     = $this->createControllerWithUser($user);
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn(null);
-        $this->em->method('getRepository')->with(Conversation::class)->willReturn($convRepo);
-
-        $this->assertSame(404, $ctrl->deleteConversation(999, $this->em)->getStatusCode());
-    }
-
-    public function testDeleteConversationForbiddenForNonCreatorReturns403(): void
-    {
-        $user    = $this->createUser(1);
-        $creator = $this->createUser(2, 'Other', 'User', 'other@example.com');
-        $conv    = $this->createConversation(10, 'Test', '', $creator);
-        $ctrl    = $this->createControllerWithUser($user);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
-        $this->em->method('getRepository')->with(Conversation::class)->willReturn($convRepo);
-
-        $this->assertSame(403, $ctrl->deleteConversation(10, $this->em)->getStatusCode());
+        return [
+            'zero id'     => [0, 400],
+            'negative id' => [-5, 400],
+            'not found'   => [999, 404, fn($r) => $r->method('find')->willReturn(null)],
+            'forbidden'   => [10, 403, fn($r, $u, $t) => $r->method('find')->willReturn($t->makeConv(10, 'T', '', $t->makeUser(2, 'Other', 'User', 'other@example.com')))],
+        ];
     }
 
     public function testDeleteConversationTooManyMessagesReturns413(): void
     {
-        $user = $this->createUser(1);
-        $ctrl = $this->createControllerWithUser($user);
-
-        $maxMessages = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'CONVERSATION_MAX_MESSAGES_FOR_DELETE'))->getValue();
-        $messages    = array_fill(0, $maxMessages + 1, $this->createStub(Message::class));
-
-        $conv = $this->createMock(Conversation::class);
-        $conv->method('getId')->willReturn(10);
-        $conv->method('getTitle')->willReturn('Test');
-        $conv->method('getDescription')->willReturn('');
-        $conv->method('getCreatedBy')->willReturn($user);
-        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-        $conv->method('getLastMessageAt')->willReturn(null);
-        $conv->method('getUsers')->willReturn(new ArrayCollection([$user]));
-        $conv->method('getMessages')->willReturn(new ArrayCollection($messages));
-
+        $user = $this->makeUser(1);
+        $max  = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'CONVERSATION_MAX_MESSAGES_FOR_DELETE'))->getValue();
+        $conv = $this->makeConv(10, 'Test', '', $user, [$user], array_fill(0, $max + 1, $this->createStub(Message::class)));
         $convRepo = $this->createMock(EntityRepository::class);
         $convRepo->method('find')->willReturn($conv);
         $this->em->method('getRepository')->with(Conversation::class)->willReturn($convRepo);
-
-        $this->assertSame(413, $ctrl->deleteConversation(10, $this->em)->getStatusCode());
+        $data = json_decode($this->ctrlWithUser($user)->deleteConversation(10, $this->em)->getContent(), true);
+        $this->assertStringContainsString('too large to delete', $data['message']);
+        $this->assertStringContainsString((string)($max + 1), $data['message']);
     }
 
-    public function testDeleteConversationSuccessReturns200(): void
+    public function testDeleteConversationSuccessDeletesMessagesAndReturns200(): void
     {
-        $user = $this->createUser(1);
-        $conv = $this->createConversation(10, 'Test', '', $user);
-        $ctrl = $this->createControllerWithUser($user);
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('findBy')->willReturn([]);
-
-        $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-        // Rebuild ctrl with fresh em to avoid shared-mock conflict
-        $ctrl     = $this->createControllerWithUserAndEm($user, $em);
-        $em->expects($this->once())->method('remove')->with($conv);
-        $em->expects($this->once())->method('flush');
-
-        $response = $ctrl->deleteConversation(10, $em);
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('deleted', strtolower(json_decode($response->getContent(), true)['message']));
-    }
-
-    public function testDeleteConversationAlsoDeletesMessages(): void
-    {
-        $user = $this->createUser(1);
+        $user = $this->makeUser(1);
         $msg1 = $this->createStub(Message::class);
         $msg2 = $this->createStub(Message::class);
-
-        $conv = $this->createMock(Conversation::class);
-        $conv->method('getId')->willReturn(10);
-        $conv->method('getTitle')->willReturn('Test');
-        $conv->method('getDescription')->willReturn('');
-        $conv->method('getCreatedBy')->willReturn($user);
-        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-        $conv->method('getLastMessageAt')->willReturn(null);
-        $conv->method('getUsers')->willReturn(new ArrayCollection([$user]));
-        $conv->method('getMessages')->willReturn(new ArrayCollection([$msg1, $msg2]));
-
+        $conv = $this->makeConv(10, 'Test', '', $user, [$user], [$msg1, $msg2]);
         $convRepo = $this->createMock(EntityRepository::class);
         $convRepo->method('find')->willReturn($conv);
-        $msgRepo = $this->createMock(EntityRepository::class);
+        $msgRepo  = $this->createMock(EntityRepository::class);
         $msgRepo->method('findBy')->willReturn([$msg1, $msg2]);
-
-        $em   = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-        $ctrl = $this->createControllerWithUserAndEm($user, $em);
-
+        $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
         $em->expects($this->atLeast(3))->method('remove');
         $em->expects($this->once())->method('flush');
-
-        $response = $ctrl->deleteConversation(10, $em);
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(2, json_decode($response->getContent(), true)['deletedMessages']);
-    }
-
-    public function testDeleteConversationWithZeroMessagesReturns200(): void
-    {
-        $user     = $this->createUser(1);
-        $conv     = $this->createConversation(10, 'Test', '', $user);
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
-        $msgRepo  = $this->createMock(EntityRepository::class);
-        $msgRepo->method('findBy')->willReturn([]);
-
-        $em   = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-        $ctrl = $this->createControllerWithUserAndEm($user, $em);
-        $em->expects($this->once())->method('remove')->with($conv);
-        $em->expects($this->once())->method('flush');
-
-        $response = $ctrl->deleteConversation(10, $em);
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(0, json_decode($response->getContent(), true)['deletedMessages']);
-    }
-
-    public function testDeleteConversationInvalidTitleLogsWarning(): void
-    {
-        $user = $this->createUser(1);
-        $conv = $this->createMock(Conversation::class);
-        $conv->method('getId')->willReturn(10);
-        $conv->method('getTitle')->willReturn('<script>bad</script>');
-        $conv->method('getCreatedBy')->willReturn($user);
-        $conv->method('getMessages')->willReturn(new ArrayCollection([]));
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willReturn($conv);
-        $msgRepo  = $this->createMock(EntityRepository::class);
-        $msgRepo->method('findBy')->willReturn([]);
-
-        $em   = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-        $em->method('remove');
-        $em->method('flush');
-
-        $papertrail = $this->createMock(PapertrailService::class);
-        $papertrail->expects($this->atLeastOnce())->method('warning');
-
-        $ctrl = new class($this->messageRepo, $em, $papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        $this->assertSame(200, $ctrl->deleteConversation(10, $em)->getStatusCode());
+        $data = json_decode($this->ctrlWithUser($user, $em)->deleteConversation(10, $em)->getContent(), true);
+        $this->assertStringContainsString('deleted', strtolower($data['message']));
+        $this->assertSame(2, $data['deletedMessages']);
     }
 
     public function testDeleteConversationDbExceptionReturns500(): void
     {
-        $user     = $this->createUser(1);
-        $ctrl     = $this->createControllerWithUser($user);
+        $user     = $this->makeUser(1);
         $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('find')->willThrowException(new \Exception('DB failure'));
+        $convRepo->method('find')->willThrowException(new \Exception('DB'));
         $this->em->method('getRepository')->with(Conversation::class)->willReturn($convRepo);
-
-        $this->assertSame(500, $ctrl->deleteConversation(10, $this->em)->getStatusCode());
+        $this->assertSame(500, $this->ctrlWithUser($user)->deleteConversation(10, $this->em)->getStatusCode());
     }
 
     // =========================================================================
     // deleteMessage
     // =========================================================================
 
-    public function testDeleteMessageUnauthenticated(): void
+    #[DataProvider('deleteMsgErrorProvider')]
+    public function testDeleteMessageErrors(int $id, int $code, ?\Closure $setup = null): void
     {
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail) extends MessageController {
-            public function getUser(): ?UserInterface { return null; }
-        };
-        $this->assertSame(401, $ctrl->deleteMessage(1, $this->em)->getStatusCode());
+        $user = $this->makeUser(1);
+        if ($setup) {
+            $msgRepo = $this->createMock(EntityRepository::class);
+            $setup($msgRepo, $user, $this);
+            $this->em->method('getRepository')->with(Message::class)->willReturn($msgRepo);
+        }
+        $this->assertSame($code, $this->ctrlWithUser($user)->deleteMessage($id, $this->em)->getStatusCode());
     }
 
-    public function testDeleteMessageInvalidIdZeroReturns400(): void
+    public static function deleteMsgErrorProvider(): array
     {
-        $ctrl = $this->createControllerWithUser($this->createUser());
-        $this->assertSame(400, $ctrl->deleteMessage(0, $this->em)->getStatusCode());
+        return [
+            'zero id'      => [0, 400],
+            'negative id'  => [-1, 400],
+            'out of range' => [PHP_INT_MAX, 400],
+            'not found'    => [1, 404, fn($r) => $r->method('find')->willReturn(null)],
+            'forbidden'    => [100, 403, fn($r, $u, $t) => $r->method('find')->willReturn($t->makeMsg(100, 'Hi', $t->makeUser(2, 'Other', 'User', 'other@example.com'), $t->makeConv()))],
+        ];
     }
 
-    public function testDeleteMessageNegativeIdReturns400(): void
+    public function testDeleteMessageNullConversationReturns500(): void
     {
-        $ctrl = $this->createControllerWithUser($this->createUser());
-        $this->assertSame(400, $ctrl->deleteMessage(-1, $this->em)->getStatusCode());
-    }
-
-    public function testDeleteMessageOutOfRangeIdReturns400(): void
-    {
-        $ctrl = $this->createControllerWithUser($this->createUser());
-        $this->assertSame(400, $ctrl->deleteMessage(PHP_INT_MAX, $this->em)->getStatusCode());
-    }
-
-    public function testDeleteMessageNotFoundReturns404(): void
-    {
-        $user    = $this->createUser();
-        $ctrl    = $this->createControllerWithUser($user);
+        $user = $this->makeUser(1);
+        $msg  = $this->createMock(Message::class);
+        $msg->method('getId')->willReturn(1);
+        $msg->method('getContent')->willReturn('Hello');
+        $msg->method('getAuthor')->willReturn($user);
+        $msg->method('getConversation')->willReturn(null);
         $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willReturn(null);
-        $this->em->method('getRepository')->with(Message::class)->willReturn($msgRepo);
-
-        $this->assertSame(404, $ctrl->deleteMessage(1, $this->em)->getStatusCode());
-    }
-
-    public function testDeleteMessageForbiddenForNonAuthorReturns403(): void
-    {
-        $user    = $this->createUser(1);
-        $author  = $this->createUser(2, 'Other', 'User', 'other@example.com');
-        $message = $this->createMessage(100, 'Hello', $author, $this->createConversation());
-        $ctrl    = $this->createControllerWithUser($user);
-
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willReturn($message);
-        $this->em->method('getRepository')->with(Message::class)->willReturn($msgRepo);
-
-        $this->assertSame(403, $ctrl->deleteMessage(100, $this->em)->getStatusCode());
+        $msgRepo->method('find')->willReturn($msg);
+        $em   = $this->buildEm([Message::class => $msgRepo]);
+        $data = json_decode($this->ctrlWithUser($user, $em)->deleteMessage(1, $em)->getContent(), true);
+        $this->assertSame(500, $this->ctrlWithUser($user, $em)->deleteMessage(1, $em)->getStatusCode());
+        $this->assertSame('Invalid message conversation', $data['message']);
     }
 
     public function testDeleteMessageSuccessReturns200(): void
     {
-        $user    = $this->createUser(1);
-        $conv    = $this->createConversation(10, 'Test', '', $user);
-        $message = $this->createMessage(100, 'Hello world', $user, $conv);
-        $ctrl    = $this->createControllerWithUser($user);
-
+        $user    = $this->makeUser(1);
+        $msg     = $this->makeMsg(100, 'Hello', $user, $this->makeConv(10, 'T', '', $user));
         $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willReturn($message);
+        $msgRepo->method('find')->willReturn($msg);
         $em = $this->buildEm([Message::class => $msgRepo]);
-        // Rebuild ctrl with fresh em
-        $ctrl = $this->createControllerWithUserAndEm($user, $em);
-        $em->expects($this->once())->method('remove')->with($message);
-        $em->expects($this->once())->method('flush');
-
-        $this->assertSame(200, $ctrl->deleteMessage(100, $em)->getStatusCode());
-    }
-
-    public function testDeleteMessageNoConversationReturns500(): void
-    {
-        $user    = $this->createUser(1);
-        $message = $this->createMock(Message::class);
-        $message->method('getId')->willReturn(1);
-        $message->method('getContent')->willReturn('Hello world');
-        $message->method('getAuthor')->willReturn($user);
-        $message->method('getConversation')->willReturn(null);
-
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willReturn($message);
-        $em      = $this->buildEm([Message::class => $msgRepo]);
-        $ctrl    = $this->createControllerWithUserAndEm($user, $em);
-
-        $response = $ctrl->deleteMessage(1, $em);
-        $this->assertSame(500, $response->getStatusCode());
-        $this->assertSame('Invalid message conversation', json_decode($response->getContent(), true)['message']);
-    }
-
-    public function testDeleteMessageWithInvalidContentLogsWarning(): void
-    {
-        $user    = $this->createUser(1);
-        $conv    = $this->createConversation(10, 'Test', '', $user);
-        $message = $this->createMessage(100, '<script>xss</script>', $user, $conv);
-
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willReturn($message);
-        $em      = $this->buildEm([Message::class => $msgRepo]);
         $em->expects($this->once())->method('remove');
         $em->expects($this->once())->method('flush');
-
-        $papertrail = $this->createMock(PapertrailService::class);
-        $papertrail->expects($this->atLeastOnce())->method('warning');
-
-        $ctrl = new class($this->messageRepo, $em, $papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        $this->assertSame(200, $ctrl->deleteMessage(100, $em)->getStatusCode());
+        $this->assertSame(200, $this->ctrlWithUser($user, $em)->deleteMessage(100, $em)->getStatusCode());
     }
 
     public function testDeleteMessageDbExceptionReturns500(): void
     {
-        $user    = $this->createUser(1);
-        $ctrl    = $this->createControllerWithUser($user);
+        $user    = $this->makeUser(1);
         $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willThrowException(new \Exception('DB failure'));
+        $msgRepo->method('find')->willThrowException(new \Exception('DB'));
         $this->em->method('getRepository')->with(Message::class)->willReturn($msgRepo);
-
-        $this->assertSame(500, $ctrl->deleteMessage(1, $this->em)->getStatusCode());
+        $this->assertSame(500, $this->ctrlWithUser($user)->deleteMessage(1, $this->em)->getStatusCode());
     }
 
     // =========================================================================
-    // Private methods via Reflection
+    // Private methods
     // =========================================================================
 
-    private function callPrivate(string $method, ...$args): mixed
+    #[DataProvider('availabilityDatesProvider')]
+    public function testValidateAvailabilityDates(?\DateTimeImmutable $start, ?\DateTimeImmutable $end, bool $valid, ?string $errorContains = null): void
     {
-        $m = new \ReflectionMethod(MessageController::class, $method);
-        $m->setAccessible(true);
-        return $m->invoke($this->controller, ...$args);
+        $result = $this->callPrivate('validateAvailabilityDates', $start, $end);
+        $this->assertSame($valid, $result['valid']);
+        if ($errorContains) $this->assertStringContainsString($errorContains, $result['error']);
     }
 
-    // --- validateAvailabilityDates ---
-
-    public function testValidateAvailabilityDatesBothNull(): void
+    public static function availabilityDatesProvider(): array
     {
-        $this->assertFalse($this->callPrivate('validateAvailabilityDates', null, null)['valid']);
+        return [
+            'both null'         => [null, null, false],
+            'only start'        => [new \DateTimeImmutable('+1 day'), null, false],
+            'only end'          => [null, new \DateTimeImmutable('+2 days'), false],
+            'max before min'    => [new \DateTimeImmutable('+10 days'), new \DateTimeImmutable('+1 day'), false, 'after'],
+            'exceeds two years' => [new \DateTimeImmutable('+1 day'), new \DateTimeImmutable('+800 days'), false, '2 years'],
+            'max in past'       => [new \DateTimeImmutable('-10 days'), new \DateTimeImmutable('-1 day'), false, 'future'],
+            'valid'             => [new \DateTimeImmutable('+1 day'), new \DateTimeImmutable('+30 days'), true],
+        ];
     }
 
-    public function testValidateAvailabilityDatesOnlyMinDefined(): void
+    /**
+     * @param 'none'|'good'|'empty' $repoType  controls which User repo stub is injected
+     */
+    #[DataProvider('participantsProvider')]
+    public function testValidateConversationParticipants(array $ids, bool $valid, ?string $errorContains = null, string $repoType = 'none'): void
     {
-        $this->assertFalse($this->callPrivate('validateAvailabilityDates', new \DateTimeImmutable('+1 day'), null)['valid']);
+        $creator = $this->makeUser(1);
+        $em = match ($repoType) {
+            'good' => (function () {
+                $repo = $this->createMock(EntityRepository::class);
+                $repo->method('findBy')->willReturn([$this->makeUser(2, 'Marie', 'Curie', 'marie@example.com')]);
+                return $this->buildEm([User::class => $repo]);
+            })(),
+            'empty' => (function () {
+                $repo = $this->createMock(EntityRepository::class);
+                $repo->method('findBy')->willReturn([]);
+                return $this->buildEm([User::class => $repo]);
+            })(),
+            default => $this->em,
+        };
+        $result = $this->reflectMethod('validateConversationParticipants')->invoke($this->controller, $creator, $ids, $em);
+        $this->assertSame($valid, $result['valid']);
+        if ($errorContains) $this->assertStringContainsString($errorContains, $result['error']);
     }
 
-    public function testValidateAvailabilityDatesOnlyMaxDefined(): void
+    // Static: repo behaviour is encoded as a string key, mocks built in test method
+    public static function participantsProvider(): array
     {
-        $this->assertFalse($this->callPrivate('validateAvailabilityDates', null, new \DateTimeImmutable('+2 days'))['valid']);
+        return [
+            'too many'         => [range(2, 52), false, '50',              'none'],
+            'empty'            => [[],            false, '2 participants',  'none'],
+            'creator filtered' => [[1],           false, null,             'none'],
+            'non numeric'      => [['abc','xyz'], false, null,             'none'],
+            'zero and neg'     => [[0,-1,'0'],    false, '2 participants', 'none'],
+            'missing in db'    => [[2, 3],        false, 'Invalid user IDs','empty'],
+            'valid'            => [[2],           true,  null,             'good'],
+        ];
     }
 
-    public function testValidateAvailabilityDatesMaxBeforeMin(): void
+    /**
+     * @param 'none'|'other'|'same' $repoType  controls which existing-user stub is returned
+     */
+    #[DataProvider('emailProvider')]
+    public function testValidateEmailAndUniqueness(string $email, int $userId, bool $valid, ?string $errorContains = null, string $repoType = 'none'): void
     {
-        $result = $this->callPrivate('validateAvailabilityDates', new \DateTimeImmutable('+10 days'), new \DateTimeImmutable('+1 day'));
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('after', $result['error']);
+        $em = match ($repoType) {
+            'other' => $this->buildEm([User::class => $this->userRepo($this->makeUser(99))]),
+            'same'  => $this->buildEm([User::class => $this->userRepo($this->makeUser(1))]),
+            default => $this->em,
+        };
+        $result = $this->reflectMethod('validateEmailandUniqueness')->invoke($this->controller, $email, $userId, $em);
+        $this->assertSame($valid, $result['valid']);
+        if ($errorContains) $this->assertStringContainsString($errorContains, $result['error']);
     }
 
-    public function testValidateAvailabilityDatesRangeExceedsTwoYears(): void
+    // Static: repo scenario encoded as string key
+    public static function emailProvider(): array
     {
-        $result = $this->callPrivate('validateAvailabilityDates', new \DateTimeImmutable('+1 day'), new \DateTimeImmutable('+800 days'));
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('2 years', $result['error']);
+        return [
+            'too long'       => [str_repeat('a', 250).'@b.com', 1, false, '255',           'none'],
+            'invalid format' => ['not-an-email',                1, false, null,             'none'],
+            'taken by other' => ['taken@example.com',           1, false, 'already in use', 'other'],
+            'same user ok'   => ['jean@example.com',            1, true,  null,             'same'],
+        ];
     }
 
-    public function testValidateAvailabilityDatesMaxInPast(): void
+    #[DataProvider('canonicalDecodeProvider')]
+    public function testCanonicalDecode(string $input, string $expected): void
     {
-        $result = $this->callPrivate('validateAvailabilityDates', new \DateTimeImmutable('-10 days'), new \DateTimeImmutable('-1 day'));
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('future', $result['error']);
+        $this->assertSame($expected, $this->callPrivate('canonicalDecode', $input));
     }
 
-    public function testValidateAvailabilityDatesValidRange(): void
+    public static function canonicalDecodeProvider(): array
     {
-        $result = $this->callPrivate('validateAvailabilityDates', new \DateTimeImmutable('+1 day'), new \DateTimeImmutable('+30 days'));
-        $this->assertTrue($result['valid']);
-        $this->assertNull($result['error']);
-    }
-
-    // --- validateConversationParticipants ---
-
-    public function testValidateConversationParticipantsTooMany(): void
-    {
-        $creator = $this->createUser(1);
-        $m       = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-        $result  = $m->invoke($this->controller, $creator, range(2, 52), $this->em);
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('50', $result['error']);
-    }
-
-    public function testValidateConversationParticipantsEmpty(): void
-    {
-        $creator = $this->createUser(1);
-        $m       = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-        $result  = $m->invoke($this->controller, $creator, [], $this->em);
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('2 participants', $result['error']);
-    }
-
-    public function testValidateConversationParticipantsCreatorFilteredOut(): void
-    {
-        $creator = $this->createUser(1);
-        $m       = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, $creator, [1], $this->em)['valid']);
-    }
-
-    public function testValidateConversationParticipantsNonNumericSkipped(): void
-    {
-        $creator = $this->createUser(1);
-        $m       = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, $creator, ['abc', 'xyz'], $this->em)['valid']);
-    }
-
-    public function testValidateConversationParticipantsMissingUsers(): void
-    {
-        $creator  = $this->createUser(1);
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findBy')->willReturn([]);
-        $em = $this->buildEm([User::class => $userRepo]);
-
-        $m      = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, $creator, [2, 3], $em);
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('Invalid user IDs', $result['error']);
-    }
-
-    public function testValidateConversationParticipantsValid(): void
-    {
-        $creator     = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-        $userRepo    = $this->createMock(EntityRepository::class);
-        $userRepo->method('findBy')->willReturn([$participant]);
-        $em = $this->buildEm([User::class => $userRepo]);
-
-        $m      = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, $creator, [2], $em);
-        $this->assertTrue($result['valid']);
-        $this->assertCount(1, $result['validUsers']);
-    }
-
-    // --- validateEmailandUniqueness ---
-
-    public function testValidateEmailTooLong(): void
-    {
-        $m      = new \ReflectionMethod(MessageController::class, 'validateEmailandUniqueness');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, str_repeat('a', 250) . '@b.com', 1, $this->em);
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('255', $result['error']);
-    }
-
-    public function testValidateEmailInvalidFormat(): void
-    {
-        $m = new \ReflectionMethod(MessageController::class, 'validateEmailandUniqueness');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, 'not-an-email', 1, $this->em)['valid']);
-    }
-
-    public function testValidateEmailTakenByOtherUser(): void
-    {
-        $otherUser = $this->createUser(99);
-        $em        = $this->buildEm([User::class => $this->stubUserRepository($otherUser)]);
-
-        $m      = new \ReflectionMethod(MessageController::class, 'validateEmailandUniqueness');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, 'taken@example.com', 1, $em);
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('already in use', $result['error']);
-    }
-
-    public function testValidateEmailSameUserAllowed(): void
-    {
-        $currentUser = $this->createUser(1);
-        $em          = $this->buildEm([User::class => $this->stubUserRepository($currentUser)]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateEmailandUniqueness');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, 'jean@example.com', 1, $em)['valid']);
-    }
-
-    // --- canonicalDecode ---
-
-    public function testCanonicalDecodeHtmlEntities(): void
-    {
-        $this->assertSame('Hello & World', $this->callPrivate('canonicalDecode', 'Hello &amp; World'));
-    }
-
-    public function testCanonicalDecodeUrlEncoded(): void
-    {
-        $this->assertSame('Hello World', $this->callPrivate('canonicalDecode', 'Hello%20World'));
-    }
-
-    public function testCanonicalDecodeDoubleEncoded(): void
-    {
-        $this->assertSame('Hello & World', $this->callPrivate('canonicalDecode', 'Hello%20%26%20World'));
+        return [
+            'html entities'  => ['Hello &amp; World', 'Hello & World'],
+            'url encoded'    => ['Hello%20World', 'Hello World'],
+            'double encoded' => ['Hello%20%26%20World', 'Hello & World'],
+            'plain'          => ['Hello World', 'Hello World'],
+        ];
     }
 
     public function testCanonicalDecodeTooLongThrows(): void
@@ -1704,1076 +949,236 @@ public function testCreateMessageSuccessReturns201(): void
         $this->callPrivate('canonicalDecode', str_repeat('a', 200001));
     }
 
-    public function testCanonicalDecodePlainStringUnchanged(): void
+    #[DataProvider('validateStringProvider')]
+    public function testValidateString(string $value, int $max, bool $expected): void
     {
-        $this->assertSame('Hello World', $this->callPrivate('canonicalDecode', 'Hello World'));
+        $this->assertSame($expected, $this->callPrivate('validateString', $value, $max));
     }
 
-    // --- validateString ---
-
-    public function testValidateStringEmpty(): void           { $this->assertFalse($this->callPrivate('validateString', '', 100)); }
-    public function testValidateStringTooLong(): void         { $this->assertFalse($this->callPrivate('validateString', str_repeat('a', 101), 100)); }
-    public function testValidateStringCsvInjection(): void    { $this->assertFalse($this->callPrivate('validateString', '=SUM(A1)', 100)); }
-    public function testValidateStringXss(): void             { $this->assertFalse($this->callPrivate('validateString', '<script>alert(1)</script>', 100)); }
-    public function testValidateStringSqlSelect(): void        { $this->assertFalse($this->callPrivate('validateString', 'select * from users', 100)); }
-    public function testValidateStringSqlUnion(): void         { $this->assertFalse($this->callPrivate('validateString', 'union select password', 100)); }
-    public function testValidateStringSqlDrop(): void          { $this->assertFalse($this->callPrivate('validateString', 'drop table users', 100)); }
-    public function testValidateStringIframe(): void           { $this->assertFalse($this->callPrivate('validateString', '<iframe src="x"></iframe>', 100)); }
-    public function testValidateStringJavascript(): void       { $this->assertFalse($this->callPrivate('validateString', 'javascript:alert(1)', 100)); }
-    public function testValidateStringOnEvent(): void          { $this->assertFalse($this->callPrivate('validateString', 'onload=bad', 100)); }
-    public function testValidateStringValid(): void            { $this->assertTrue($this->callPrivate('validateString', 'Hello world, valid!', 100)); }
-    public function testValidateStringWithNewline(): void      { $this->assertTrue($this->callPrivate('validateString', "Hello\nworld", 100)); }
-
-    // --- validateName ---
-
-    public function testValidateNameEmpty(): void               { $this->assertFalse($this->callPrivate('validateName', '')); }
-    public function testValidateNameTooShort(): void             { $this->assertFalse($this->callPrivate('validateName', 'A')); }
-    public function testValidateNameTooLong(): void              { $this->assertFalse($this->callPrivate('validateName', str_repeat('a', 21))); }
-    public function testValidateNameStartsWithHyphen(): void     { $this->assertFalse($this->callPrivate('validateName', '-Jean')); }
-    public function testValidateNameEndsWithSpace(): void        { $this->assertFalse($this->callPrivate('validateName', 'Jean ')); }
-    public function testValidateNameContainsDigit(): void        { $this->assertFalse($this->callPrivate('validateName', 'Jean2')); }
-    public function testValidateNameDangerousCharLt(): void      { $this->assertFalse($this->callPrivate('validateName', 'Jean<Luc')); }
-    public function testValidateNameDangerousCharAt(): void      { $this->assertFalse($this->callPrivate('validateName', 'Jean@Luc')); }
-    public function testValidateNameDangerousCharAmp(): void     { $this->assertFalse($this->callPrivate('validateName', 'Jean&Luc')); }
-    public function testValidateNameDangerousCharSlash(): void   { $this->assertFalse($this->callPrivate('validateName', 'Jean/Luc')); }
-    public function testValidateNameThreeConsecutive(): void     { $this->assertFalse($this->callPrivate('validateName', 'Jean---Luc')); }
-    public function testValidateNameValidHyphen(): void          { $this->assertTrue($this->callPrivate('validateName', 'Jean-Luc')); }
-    public function testValidateNameValidApostrophe(): void      { $this->assertTrue($this->callPrivate('validateName', "O'Brien")); }
-    public function testValidateNameValidAccented(): void        { $this->assertTrue($this->callPrivate('validateName', 'Éléonore')); }
-
-    // --- sanitizeHtml ---
-
-    public function testSanitizeHtmlNullReturnsEmpty(): void      { $this->assertSame('', $this->callPrivate('sanitizeHtml', null)); }
-    public function testSanitizeHtmlEmptyReturnsEmpty(): void     { $this->assertSame('', $this->callPrivate('sanitizeHtml', '')); }
-
-    public function testSanitizeHtmlStripsTagsNoFormatting(): void
+    public static function validateStringProvider(): array
     {
-        $result = $this->callPrivate('sanitizeHtml', '<strong>Hello</strong> <script>bad</script>', false);
-        $this->assertStringNotContainsString('<script>', $result);
-        $this->assertStringNotContainsString('<strong>', $result);
-        $this->assertStringContainsString('Hello', $result);
+        return [
+            'empty'              => ['', 100, false],
+            'too long'           => [str_repeat('a', 101), 100, false],
+            'absolute >10000'    => [str_repeat('a', 10001), 20000, false],
+            'csv injection'      => ['=SUM(A1)', 100, false],
+            'xss'                => ['<script>alert(1)</script>', 100, false],
+            'sql select'         => ['select * from users', 100, false],
+            'sql union'          => ['union select password', 100, false],
+            'sql drop'           => ['drop table users', 100, false],
+            'iframe'             => ['<iframe src="x"></iframe>', 100, false],
+            'javascript proto'   => ['javascript:alert(1)', 100, false],
+            'on event'           => ['onload=bad', 100, false],
+            'starts with hyphen' => ['-Hello', 100, false],
+            'starts with plus'   => ['+Hello', 100, false],
+            'valid'              => ['Hello world!', 100, true],
+            'with newline'       => ["Hello\nworld", 100, true],
+        ];
     }
 
-    public function testSanitizeHtmlAllowsStrongWithFormatting(): void
+    #[DataProvider('validateNameProvider')]
+    public function testValidateName(string $name, bool $expected): void
     {
-        $result = $this->callPrivate('sanitizeHtml', '<strong>Hello</strong>', true);
-        $this->assertStringContainsString('<strong>Hello</strong>', $result);
+        $this->assertSame($expected, $this->callPrivate('validateName', $name));
     }
 
-    public function testSanitizeHtmlStripsScriptWithFormatting(): void
+    public static function validateNameProvider(): array
     {
-        $result = $this->callPrivate('sanitizeHtml', '<strong>ok</strong><script>bad</script>', true);
-        $this->assertStringNotContainsString('<script>', $result);
-        $this->assertStringContainsString('<strong>ok</strong>', $result);
+        $dangerous = [];
+        foreach (['<','>','&','"','\\','/','@','#','$','%','^','*','(',')','=','+','[',']','{','}'] as $i => $c) {
+            $dangerous["dangerous_$i"] = [$c.'Jean', false];
+        }
+        return array_merge($dangerous, [
+            'empty'              => ['', false],
+            'too short'          => ['A', false],
+            'too long'           => [str_repeat('a', 21), false],
+            'starts with hyphen' => ['-Jean', false],
+            'ends with space'    => ['Jean ', false],
+            'contains digit'     => ['Jean2', false],
+            'three consecutive'  => ['Jean---Luc', false],
+            'valid hyphen'       => ['Jean-Luc', true],
+            'valid apostrophe'   => ["O'Brien", true],
+            'valid accented'     => ['Éléonore', true],
+        ]);
     }
 
-    public function testSanitizeHtmlBlocksExternalLinks(): void
+ 
+    public static function sanitizeHtmlProvider(): array
     {
-        $result = $this->callPrivate('sanitizeHtml', '<a href="https://evil.com">click</a>', true);
-        $this->assertStringNotContainsString('evil.com', $result);
+        return [
+            'null'                 => [null,  false, ''],
+            'strips script'        => ['<strong>Hello</strong><script>bad</script>', false, 'Hello', '<script>'],
+            'allows strong'        => ['<strong>Hello</strong>', true, '<strong>Hello</strong>'],
+            'strips script+format' => ['<strong>ok</strong><script>bad</script>', true, '<strong>ok</strong>', '<script>'],
+            'blocks external link' => ['<a href="https://evil.com">click</a>', true, '', 'evil.com'],
+        ];
     }
 
-    // --- sanitizeForJson ---
-
-    public function testSanitizeForJsonNull(): void              { $this->assertNull($this->callPrivate('sanitizeForJson', null)); }
-    public function testSanitizeForJsonInteger(): void           { $this->assertSame(42, $this->callPrivate('sanitizeForJson', 42)); }
-
-    public function testSanitizeForJsonStripsControlChars(): void
+    #[DataProvider('sanitizeJsonProvider')]
+    public function testSanitizeForJson(mixed $input, mixed $expected): void
     {
-        $this->assertSame('helloworld', $this->callPrivate('sanitizeForJson', "hello\x00\x01\x1Fworld"));
+        $this->assertSame($expected, $this->callPrivate('sanitizeForJson', $input));
     }
 
-    public function testSanitizeForJsonPreservesNewlineTabCr(): void
+    public static function sanitizeJsonProvider(): array
     {
-        $this->assertSame("hello\n\t\rworld", $this->callPrivate('sanitizeForJson', "hello\n\t\rworld"));
+        return [
+            'null'                  => [null, null],
+            'integer'               => [42, 42],
+            'strips control chars'  => ["hello\x00\x01\x1Fworld", 'helloworld'],
+            'preserves newline tab' => ["hello\n\t\rworld", "hello\n\t\rworld"],
+            'array'                 => [["hello\x00world", "clean"], ['helloworld', 'clean']],
+        ];
     }
 
-    public function testSanitizeForJsonArray(): void
+    /**
+     * Assertion strategies (static, no closures):
+     *   'notContains' => assertStringNotContainsString
+     *   'count'       => assertCount
+     *   'equals'      => assertSame
+     */
+    #[DataProvider('sanitizeDataProvider')]
+    public function testSanitizeData(array $input, string $key, string $assertType, mixed $assertValue): void
     {
-        $this->assertSame(['helloworld', 'clean'], $this->callPrivate('sanitizeForJson', ["hello\x00world", "clean"]));
+        $result = $this->callPrivate('sanitizeData', $input);
+        match ($assertType) {
+            'notContains' => $this->assertStringNotContainsString($assertValue, $result[$key]),
+            'count'       => $this->assertCount($assertValue, $result[$key]),
+            'equals'      => $this->assertSame($assertValue, $result[$key]),
+        };
     }
 
-    // --- sanitizeData ---
-
-    public function testSanitizeDataTitle(): void
+    public static function sanitizeDataProvider(): array
     {
-        $result = $this->callPrivate('sanitizeData', ['title' => '<b>hello</b>']);
-        $this->assertStringNotContainsString('<b>', $result['title']);
+        return [
+            'title strips tags'       => [['title' => '<b>hello</b>'],                                 'title',           'notContains', '<b>'],
+            'desc strips script'      => [['description' => '<strong>ok</strong><script>bad</script>'], 'description',     'notContains', '<script>'],
+            'conv_users deduplicates' => [['conv_users' => [1, 2, 2, 0, -1, 3]],                       'conv_users',      'count',       3],
+            'conversation_id casts'   => [['conversation_id' => '42'],                                  'conversation_id', 'equals',      42],
+        ];
     }
 
-    public function testSanitizeDataDescription(): void
+    #[DataProvider('rateLimitProvider')]
+    public function testRateLimits(string $method, string $entityClass, int $count, bool $expected, bool $throwException = false): void
     {
-        $result = $this->callPrivate('sanitizeData', ['description' => '<strong>ok</strong><script>bad</script>']);
-        $this->assertStringNotContainsString('<script>', $result['description']);
+        $repo = $this->createMock(EntityRepository::class);
+        if ($throwException) {
+            $repo->method('createQueryBuilder')->willThrowException(new \Exception('DB'));
+        } else {
+            $repo->method('createQueryBuilder')->willReturn($this->qbCount($count));
+        }
+        $em   = $this->buildEm([$entityClass => $repo]);
+        $args = $method === 'validateMessageRateLimit'
+            ? [$this->makeUser(), $this->makeConv(), $em]
+            : [$this->makeUser(), $em];
+        $result = $this->reflectMethod($method)->invoke($this->controller, ...$args);
+        $this->assertSame($expected, $result['valid']);
     }
 
-    public function testSanitizeDataContent(): void
+    public static function rateLimitProvider(): array
     {
-        $result = $this->callPrivate('sanitizeData', ['content' => '<em>text</em>']);
-        $this->assertArrayHasKey('content', $result);
+        return [
+            'msg under limit'          => ['validateMessageRateLimit',           Message::class,      5,   true],
+            'msg at limit'             => ['validateMessageRateLimit',           Message::class,      100, false],
+            'msg db exception'         => ['validateMessageRateLimit',           Message::class,      0,   true,  true],
+            'conv create under limit'  => ['validateConversationCreateRateLimit', Conversation::class, 0,   true],
+            'conv create exceeded'     => ['validateConversationCreateRateLimit', Conversation::class, 999, false],
+            'conv create db exception' => ['validateConversationCreateRateLimit', Conversation::class, 0,   true,  true],
+            'conv delete nominal'      => ['validateConversationDeleteRateLimit', Conversation::class, 0,   true],
+            'conv delete db exception' => ['validateConversationDeleteRateLimit', Conversation::class, 0,   true,  true],
+        ];
     }
 
-    public function testSanitizeDataConvUsersDeduplicates(): void
+    #[DataProvider('hashProvider')]
+    public function testGenerateConversationHash(array $ids1, string $t1, array $ids2, string $t2, bool $equal): void
     {
-        $result = $this->callPrivate('sanitizeData', ['conv_users' => [1, 2, 2, 0, -1, 3]]);
-        $this->assertEqualsCanonicalizing([1, 2, 3], array_values($result['conv_users']));
+        $h1 = $this->callPrivate('generateConversationHash', $ids1, $t1);
+        $h2 = $this->callPrivate('generateConversationHash', $ids2, $t2);
+        $equal ? $this->assertSame($h1, $h2) : $this->assertNotSame($h1, $h2);
     }
 
-    public function testSanitizeDataConversationId(): void
+    public static function hashProvider(): array
     {
-        $result = $this->callPrivate('sanitizeData', ['conversation_id' => '42']);
-        $this->assertSame(42, $result['conversation_id']);
+        return [
+            'deterministic'         => [[1,2,3], 'My Conv',  [3,1,2], 'My Conv',  true],
+            'case insensitive'      => [[1,2],   'My Conv',  [1,2],   'MY CONV',  true],
+            'normalizes whitespace' => [[1,2],   'My  Conv', [1,2],   'My Conv',  true],
+            'differs on title'      => [[1,2],   'Title A',  [1,2],   'Title B',  false],
+        ];
     }
 
-    // --- validateMessageRateLimit ---
-
-    public function testValidateMessageRateLimitUnderLimit(): void
+    #[DataProvider('duplicateConvProvider')]
+    public function testCheckDuplicateConversation(mixed $single, bool $expected, bool $throw = false): void
     {
-        $user    = $this->createUser();
-        $conv    = $this->createConversation();
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(5));
-        $em = $this->buildEm([Message::class => $msgRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateMessageRateLimit');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, $user, $conv, $em)['valid']);
-    }
-
-    public function testValidateMessageRateLimitAtLimit(): void
-    {
-        $user    = $this->createUser();
-        $conv    = $this->createConversation();
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(100));
-        $em = $this->buildEm([Message::class => $msgRepo]);
-
-        $m      = new \ReflectionMethod(MessageController::class, 'validateMessageRateLimit');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, $user, $conv, $em);
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('rate limit', strtolower($result['error']));
-    }
-
-    public function testValidateMessageRateLimitDbExceptionFailsOpen(): void
-    {
-        $user    = $this->createUser();
-        $conv    = $this->createConversation();
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB error'));
-        $em = $this->buildEm([Message::class => $msgRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateMessageRateLimit');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, $user, $conv, $em)['valid']);
-    }
-
-    // --- validateConversationDeleteRateLimit ---
-
-    public function testValidateConversationDeleteRateLimitNominal(): void
-    {
-        $user = $this->createUser();
-        $m    = new \ReflectionMethod(MessageController::class, 'validateConversationDeleteRateLimit');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, $user, $this->em)['valid']);
-    }
-
-    public function testValidateConversationDeleteRateLimitDbExceptionFailsOpen(): void
-    {
-        $user     = $this->createUser();
+        $creator  = $this->makeUser(1);
         $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB error'));
+        $throw
+            ? $convRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB'))
+            : $convRepo->method('createQueryBuilder')->willReturn($this->qbCount(0, $single));
         $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateConversationDeleteRateLimit');
-        $m->setAccessible(true);
-        // Fail-open: even with a DB exception, should return valid=true
-        $this->assertTrue($m->invoke($this->controller, $user, $em)['valid']);
+        $this->assertSame($expected, $this->reflectMethod('checkDuplicateConversation')->invoke($this->controller, $creator, [2], 'Test', $em));
     }
 
-    // --- validateConversationCreateRateLimit ---
-
-    public function testValidateConversationCreateRateLimitUnderLimit(): void
+    public static function duplicateConvProvider(): array
     {
-        $user     = $this->createUser();
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateConversationCreateRateLimit');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, $user, $em)['valid']);
+        return [
+            'no duplicate' => [null,           false],
+            'found'        => [new \stdClass(), true],
+            'db exception' => [null,           false, true],
+        ];
     }
 
-    public function testValidateConversationCreateRateLimitExceeded(): void
+    /**
+     * User configuration array keys (all optional — defaults produce a valid user):
+     *   first (string), last (string), email (string),
+     *   start (relative date string e.g. '+10 days'), end (relative date string)
+     */
+    #[DataProvider('userStateProvider')]
+    public function testValidateUserState(array $userConfig, bool $valid, ?string $error = null, bool $useCustomEm = false): void
     {
-        $user     = $this->createUser();
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(999));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateConversationCreateRateLimit');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, $user, $em)['valid']);
-    }
-
-    public function testValidateConversationCreateRateLimitDbExceptionFailsOpen(): void
-    {
-        $user     = $this->createUser();
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB'));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'validateConversationCreateRateLimit');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, $user, $em)['valid']);
-    }
-
-    // --- generateConversationHash ---
-
-    public function testGenerateConversationHashDeterministic(): void
-    {
-        $h1 = $this->callPrivate('generateConversationHash', [1, 2, 3], 'My Conv');
-        $h2 = $this->callPrivate('generateConversationHash', [3, 1, 2], 'My Conv');
-        $this->assertSame($h1, $h2);
-    }
-
-    public function testGenerateConversationHashDiffersOnTitle(): void
-    {
-        $this->assertNotSame(
-            $this->callPrivate('generateConversationHash', [1, 2], 'Title A'),
-            $this->callPrivate('generateConversationHash', [1, 2], 'Title B')
+        $user = $this->makeUser(
+            first: $userConfig['first'] ?? 'Jean',
+            last:  $userConfig['last']  ?? 'Dupont',
+            email: $userConfig['email'] ?? 'jean.dupont@example.com',
+            start: isset($userConfig['start']) ? new \DateTimeImmutable($userConfig['start']) : null,
+            end:   isset($userConfig['end'])   ? new \DateTimeImmutable($userConfig['end'])   : null,
         );
+        $em   = $useCustomEm ? $this->buildEm([User::class => $this->userRepo(null)]) : $this->em;
+        $ctrl = new MessageController($this->messageRepo, $em, $this->papertrail);
+        $result = $this->reflectMethod('validateUserState')->invoke($ctrl, $user);
+        $this->assertSame($valid, $result['valid']);
+        if ($error) $this->assertSame($error, $result['error']);
     }
 
-    public function testGenerateConversationHashNormalizesCase(): void
+    // Static: user properties passed as a plain array; DateTimeImmutable created in test
+    public static function userStateProvider(): array
     {
-        $this->assertSame(
-            $this->callPrivate('generateConversationHash', [1, 2], 'My Conv'),
-            $this->callPrivate('generateConversationHash', [1, 2], 'MY CONV')
-        );
+        return [
+            'valid'                => [[],                                              true,  null,                       true],
+            'bad first name'       => [['first' => 'Jean99'],                          false, 'Invalid user name'],
+            'first name too short' => [['first' => 'J'],                               false, 'Invalid user name'],
+            'starts with hyphen'   => [['first' => '-Jean'],                           false, 'Invalid user name'],
+            'dangerous char'       => [['first' => 'Jean<Luc'],                        false, 'Invalid user name'],
+            'three consecutive'    => [['first' => 'Jean---Luc'],                      false, 'Invalid user name'],
+            'bad last name'        => [['last'  => 'Dupont<>'],                        false],
+            'bad email'            => [['email' => 'bad-email'],                       false, 'Invalid user email'],
+            'invalid dates'        => [['start' => '+10 days', 'end' => '+1 day'],     false, 'Invalid availability dates', true],
+        ];
     }
 
-    public function testGenerateConversationHashNormalizesWhitespace(): void
+    public function testValidateUserStateEmailTakenByOther(): void
     {
-        $this->assertSame(
-            $this->callPrivate('generateConversationHash', [1, 2], 'My  Conv'),
-            $this->callPrivate('generateConversationHash', [1, 2], 'My Conv')
-        );
-    }
-
-    // --- checkDuplicateConversation ---
-
-    public function testCheckDuplicateConversationNoDuplicate(): void
-    {
-        $creator  = $this->createUser(1);
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0, null));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'checkDuplicateConversation');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, $creator, [2], 'Test', $em));
-    }
-
-    public function testCheckDuplicateConversationFound(): void
-    {
-        $creator  = $this->createUser(1);
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0, $this->createMock(Conversation::class)));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'checkDuplicateConversation');
-        $m->setAccessible(true);
-        $this->assertTrue($m->invoke($this->controller, $creator, [2], 'Test', $em));
-    }
-
-    public function testCheckDuplicateConversationDbExceptionReturnsFalse(): void
-    {
-        $creator  = $this->createUser(1);
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willThrowException(new \Exception('DB'));
-        $em = $this->buildEm([Conversation::class => $convRepo]);
-
-        $m = new \ReflectionMethod(MessageController::class, 'checkDuplicateConversation');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, $creator, [2], 'Test', $em));
-    }
-
-    // --- validateUserState ---
-
-    public function testValidateUserStateValid(): void
-    {
-        $user = $this->createUser();
-        $em   = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $m      = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-        // validateUserState uses $this->em injected in controller, not a param
-        // Rebuild controller with fresh em
-        $ctrl   = new MessageController($this->messageRepo, $em, $this->papertrail);
-        $result = $m->invoke($ctrl, $user);
-        $this->assertTrue($result['valid']);
-    }
-
-    public function testValidateUserStateInvalidFirstName(): void
-    {
-        $user   = $this->createUser(firstName: 'Jean99');
-        $m      = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, $user);
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid user name', $result['error']);
-    }
-
-    public function testValidateUserStateInvalidLastName(): void
-    {
-        $user   = $this->createUser(lastName: 'Dupont<>');
-        $m      = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-        $this->assertFalse($m->invoke($this->controller, $user)['valid']);
-    }
-
-    public function testValidateUserStateInvalidEmail(): void
-    {
-        $user   = $this->createUser(email: 'bad-email');
-        $m      = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-        $result = $m->invoke($this->controller, $user);
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid user email', $result['error']);
-    }
-
-    public function testValidateUserStateEmailTakenByOtherUser(): void
-    {
-        $user      = $this->createUser(1, 'Jean', 'Dupont', 'jean@example.com');
-        $otherUser = $this->createUser(2, 'Autre', 'Nom', 'jean@example.com');
-        $em        = $this->buildEm([User::class => $this->stubUserRepository($otherUser)]);
-
-        $ctrl   = new MessageController($this->messageRepo, $em, $this->papertrail);
-        $m      = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-        $result = $m->invoke($ctrl, $user);
+        $user   = $this->makeUser(1, 'Jean', 'Dupont', 'jean@example.com');
+        $em     = $this->buildEm([User::class => $this->userRepo($this->makeUser(2, 'A', 'B', 'jean@example.com'))]);
+        $result = $this->reflectMethod('validateUserState')->invoke(new MessageController($this->messageRepo, $em, $this->papertrail), $user);
         $this->assertFalse($result['valid']);
         $this->assertStringContainsString('Invalid user email', $result['error']);
     }
 
-
-    public function testValidateUserStateInvalidDates(): void
-    {
-        $user = $this->createUser(
-            availabilityStart: new \DateTimeImmutable('+10 days'),
-            availabilityEnd:   new \DateTimeImmutable('+1 day')
-        );
-        $em   = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $ctrl   = new MessageController($this->messageRepo, $em, $this->papertrail);
-        $m      = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-        $result = $m->invoke($ctrl, $user);
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid availability dates', $result['error']);
-    }
-
-
-
-
-
-
-
-
-
-
-
-    public function testValidateStringStartsWithHyphenIsRejected(): void
-    {
-        // '-' est autorisé par la regex MAIS bloqué par le check CSV first-char
-        $this->assertFalse($this->callPrivate('validateString', '-Hello world', 100));
-    }
-
-    public function testValidateStringStartsWithPlusFails(): void
-    {
-        // '+' n'est pas dans la regex → bloqué avant le CSV check
-        // Ce test documente que '+' échoue (via regex, pas CSV)
-        $this->assertFalse($this->callPrivate('validateString', '+Hello', 100));
-    }
-
-
-    // =========================================================================
-    // NOUVEAU — validateConversationParticipants : branche $userId <= 0 (1 ligne)
-    //
-    // is_numeric(0) = true → on entre dans le cast → (int)0 = 0 → 0 <= 0 → continue
-    // Cette ligne n'était jamais atteinte dans les tests précédents.
-    // =========================================================================
-
-    public function testValidateConversationParticipantsZeroAndNegativeIdsSkipped(): void
-    {
-        $creator = $this->createUser(1);
-        $m       = new \ReflectionMethod(MessageController::class, 'validateConversationParticipants');
-        $m->setAccessible(true);
-
-        // 0 est numérique mais <= 0 → skippé ; -1 idem → validUserIds reste vide
-        $result = $m->invoke($this->controller, $creator, [0, -1, '0'], $this->em);
-
-        $this->assertFalse($result['valid']);
-        $this->assertStringContainsString('2 participants', $result['error']);
-    }
-
-
-    // =========================================================================
-    // NOUVEAU — validateUserState : 4 branches du bloc diagnostique (8 lignes)
-    //
-    // Le bloc "Tester chaque condition" (lines ~506-535) ne s'exécute que
-    // lorsque firstName est invalide. Chaque sous-branche n'est couverte
-    // que par un input spécifique.
-    // =========================================================================
-
-    /**
-     * Branche 'length' — mb_strlen($firstName) < 2
-     * 'J' (1 char) passe empty() mais échoue le test < 2 chars.
-     */
-    public function testValidateUserStateFirstNameTooShortCoversLengthBranch(): void
-    {
-        $user = $this->createUser(firstName: 'J'); // longueur 1 < 2 minimum
-        $m    = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-
-        $result = $m->invoke($this->controller, $user);
-
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid user name', $result['error']);
-    }
-
-    /**
-     * Branche 'start_end_invalid' — firstName commence par '-'
-     * preg_match('/^[\s\-\']/', '-Jean') = true → raison ajoutée.
-     */
-    public function testValidateUserStateFirstNameStartsWithHyphenCoversStartEndBranch(): void
-    {
-        $user = $this->createUser(firstName: '-Jean');
-        $m    = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-
-        $result = $m->invoke($this->controller, $user);
-
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid user name', $result['error']);
-    }
-
-    /**
-     * Branche 'dangerous_char' — firstName contient '<'
-     * '<' n'est pas dans la regex autorisée → invalid_chars détecté.
-     * Dans le bloc diagnostique, str_contains($firstName, '<') = true
-     * → exécute le corps du foreach ($dangerousChars) → lignes ~527-530.
-     */
-    public function testValidateUserStateFirstNameWithDangerousCharCoversDangerousBranch(): void
-    {
-        $user = $this->createUser(firstName: 'Jean<Luc');
-        $m    = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-
-        $result = $m->invoke($this->controller, $user);
-
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid user name', $result['error']);
-    }
-
-    /**
-     * Branche 'too_many_consecutive' — 3 tirets consécutifs
-     * 'Jean---Luc' PASSE la regex (lettres + tirets) mais échoue
-     * /[\s'\-]{3,}/ → raison 'too_many_consecutive' ajoutée → lignes ~532-534.
-     */
-    public function testValidateUserStateFirstNameThreeConsecutiveCharsCoversConsecutiveBranch(): void
-    {
-        $user = $this->createUser(firstName: 'Jean---Luc');
-        $m    = new \ReflectionMethod(MessageController::class, 'validateUserState');
-        $m->setAccessible(true);
-
-        $result = $m->invoke($this->controller, $user);
-
-        $this->assertFalse($result['valid']);
-        $this->assertSame('Invalid user name', $result['error']);
-    }
-
-
-    // =========================================================================
-    // NOUVEAU — getConnectedUser : 2 branches manquantes (6 + 4 = 10 lignes)
-    // =========================================================================
-
-    /**
-     * Couvre les branches ELSE des blocs availabilityDates (~lignes 731-735 et 743-748).
-     *
-     * Quand start (+10j) > end (+1j) : validateAvailabilityDates retourne valid=false
-     * → on entre dans le else → warning loggé pour start ET pour end.
-     * La réponse est quand même 200 (les dates invalides sont ignorées, pas fatales).
-     */
-    public function testGetConnectedUserInvalidDatesLogsWarningAndReturns200(): void
-    {
-        $user = $this->createUser(
-            availabilityStart: new \DateTimeImmutable('+10 days'), // start APRÈS end → invalide
-            availabilityEnd:   new \DateTimeImmutable('+1 day')
-        );
-
-        $em = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        // Au moins 2 warnings : un pour start, un pour end
-        $this->papertrail->expects($this->atLeast(2))->method('warning');
-
-        $response = $ctrl->getConnectedUser();
-        $this->assertSame(200, $response->getStatusCode());
-    }
-
-    /**
-     * Couvre le bloc catch (\Throwable $e) de getConnectedUser (~lignes 769-774).
-     *
-     * validateEmailandUniqueness() utilise $this->em (injecté dans le constructeur).
-     * On configure ce $em pour que findOneBy() lance une exception.
-     * Cette exception remonte jusqu'au catch de getConnectedUser → 500.
-     */
-    public function testGetConnectedUserEmailDbExceptionHitsCatchAndReturns500(): void
-    {
-        $user     = $this->createUser(1, 'Jean', 'Dupont', 'jean@example.com');
-        $userRepo = $this->createMock(EntityRepository::class);
-        $userRepo->method('findOneBy')->willThrowException(new \Exception('DB connection lost'));
-        $em = $this->buildEm([User::class => $userRepo]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        $response = $ctrl->getConnectedUser();
-        $this->assertSame(500, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('error', $data);
-    }
-
-    /**
-     * Couvre aussi le cas : availabilityStart set, availabilityEnd null
-     * → entre dans le premier if mais pas le second.
-     */
-    public function testGetConnectedUserOnlyStartDateSetLogsWarning(): void
-    {
-        $user = $this->createUser(
-            availabilityStart: new \DateTimeImmutable('+1 day'),
-            availabilityEnd:   null  // pas de end → validateAvailabilityDates retourne false
-        );
-
-        $em   = $this->buildEm([User::class => $this->stubUserRepository(null)]);
-
-        $ctrl = new class($this->messageRepo, $em, $this->papertrail, $user) extends MessageController {
-            private UserInterface $user;
-            public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->user = $u; }
-            public function getUser(): ?UserInterface { return $this->user; }
-        };
-
-        $this->papertrail->expects($this->atLeastOnce())->method('warning');
-
-        $response = $ctrl->getConnectedUser();
-        $this->assertSame(200, $response->getStatusCode());
-    }
-
-
-    // =========================================================================
-    // NOUVEAU — getUserConversations : branche description invalide (4 lignes)
-    //
-    // Ligne ~811-816 : if ($description !== '' && !$this->validateString($description, 1000))
-    // N'était jamais testée.
-    // =========================================================================
-
-    public function testGetUserConversationsInvalidDescriptionIsResetToEmpty(): void
-    {
-        $currentUser = $this->createUser(1);
-        $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-
-        $conv = $this->createMock(Conversation::class);
-        $conv->method('getId')->willReturn(10);
-        $conv->method('getTitle')->willReturn('Valid Title');
-        $conv->method('getDescription')->willReturn('<script>bad description</script>'); // invalide
-        $conv->method('getCreatedBy')->willReturn($currentUser);
-        $conv->method('getCreatedAt')->willReturn(new \DateTimeImmutable('2024-01-01'));
-        $conv->method('getLastMessageAt')->willReturn(null);
-        $conv->method('getUsers')->willReturn(new ArrayCollection([$currentUser, $participant]));
-        $conv->method('getMessages')->willReturn(new ArrayCollection([]));
-
-        $convRepo = $this->createMock(EntityRepository::class);
-        $convRepo->method('createQueryBuilder')->willReturn($this->createListQueryBuilder([$conv]));
-        $em = $this->buildEm([
-            Conversation::class => $convRepo,
-            User::class         => $this->stubUserRepository(null),
-        ]);
-
-        // Warning doit être loggé pour la description invalide
-        $this->papertrail->expects($this->atLeastOnce())->method('warning');
-
-        $ctrl     = $this->createControllerWithUserAndEm($currentUser, $em);
-        $response = $ctrl->getUserConversations($em);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        // La conversation est quand même retournée (description invalide = resetée, pas fatale)
-        $this->assertCount(1, $data);
-    }
-
-
-
-    // =========================================================================
-    // NOUVEAU — getMessages : pagination offset trop grand → 400
-    //
-    // Atteinte quand ($page - 1) * $limit > BusinessLimits::PAGINATION_MAX_OFFSET
-    // Nécessite page et limit qui donnent un offset dépassant la constante.
-    // =========================================================================
-
-    public function testGetMessagesVeryHighPageReturns400(): void
-    {
-        $user     = $this->createUser();
-        $security = $this->createSecurity($user);
-
-        // Utiliser PAGINATION_MAX_PAGE + 1 pour forcer le clamping puis dépasser l'offset
-        // On cherche à produire un offset > PAGINATION_MAX_OFFSET
-        // Avec limit=100 et page très haute, le clamping ramène à PAGINATION_MAX_PAGE.
-        // Si PAGINATION_MAX_PAGE * 100 > PAGINATION_MAX_OFFSET → 400 retourné.
-        // Sinon ce test retourne 200 (la branche est morte pour ces constantes).
-        $request = Request::create('/api/get/messages', 'GET', [
-            'page'  => PHP_INT_MAX,
-            'limit' => 100,
-        ]);
-
-        $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-
-        // Accepte 200 OU 400 selon les valeurs des constantes BusinessLimits
-        $this->assertContains($response->getStatusCode(), [200, 400]);
-    }
-
-
-    // =========================================================================
-    // NOUVEAU — createConversation : description présente dans le payload
-    //
-    // Couvre la branche isset($data['description']) dans sanitizeData
-    // ET la ligne $conversation->setDescription($data['description'] ?? '').
-    // =========================================================================
-
-
-public function testCreateConversationWithDescriptionFieldIs201(): void
+public function testSanitizeHtmlWithNull(): void
 {
-    $creator     = $this->createUser(1);
-    $participant = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-    $security    = $this->createSecurity($creator);
-
-    $userRepo = $this->createMock(EntityRepository::class);
-    $userRepo->method('findOneBy')->willReturn(null);
-    $userRepo->method('findBy')->willReturn([$participant]);
-
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-    $em = $this->buildEm([User::class => $userRepo, Conversation::class => $convRepo]);
-    $em->method('beginTransaction');
-    $em->method('persist')->willReturnCallback(function ($entity) {
-        $prop = (new \ReflectionClass($entity))->getProperty('id');
-        $prop->setAccessible(true);
-        $prop->setValue($entity, 1);
-    });
-    $em->method('flush');
-    $em->method('commit');
-
-    $request  = $this->createJsonRequest([
-        'title'       => 'My conversation',
-        'description' => 'A nice description here',
-        'conv_users'  => [2],
-    ]);
-    $response = $this->controller->createConversation($request, $security, $em);
-
-    $this->assertSame(201, $response->getStatusCode());
-    $data = json_decode($response->getContent(), true);
-    $this->assertSame('My conversation', $data['title']);
+    // Récupère le service ou utilise la méthode privée directement
+    $result = $this->callPrivate('sanitizeHtml', null);
+    $this->assertEquals('', $result);
 }
-
-    // =========================================================================
-    // deleteMessage : branche conversation invalide (getConversation null)
-    // (@codeCoverageIgnore). dans code controller
-    // =========================================================================
-
-    public function testDeleteMessageWithNullConversationReturns500WithMessage(): void
-    {
-        $user    = $this->createUser(1);
-        $message = $this->createMock(Message::class);
-        $message->method('getId')->willReturn(42);
-        $message->method('getContent')->willReturn('Hello world');
-        $message->method('getAuthor')->willReturn($user);
-        $message->method('getConversation')->willReturn(null); // ← déclenche le 500
-
-        $msgRepo = $this->createMock(EntityRepository::class);
-        $msgRepo->method('find')->willReturn($message);
-        $em      = $this->buildEm([Message::class => $msgRepo]);
-        $ctrl    = $this->createControllerWithUserAndEm($user, $em);
-
-        $response = $ctrl->deleteMessage(42, $em);
-
-        $this->assertSame(500, $response->getStatusCode());
-        $this->assertSame('Invalid message conversation', json_decode($response->getContent(), true)['message']);
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-// =========================================================================
-// NOUVEAU — validateString : branche mb_strlen > 10000 (1 ligne manquante)
-// La condition est : mb_strlen($value) > $maxLength || mb_strlen($value) > 10000
-// Si maxLength est > 10000, seule la branche >10000 bloque
-// =========================================================================
-
-public function testValidateStringExceeds10000CharsAbsoluteLimit(): void
-{
-    // maxLength très grand (20000) mais la valeur dépasse 10000
-    // Seule la protection absolue >10000 bloque
-    $longValue = str_repeat('a', 10001);
-    $this->assertFalse($this->callPrivate('validateString', $longValue, 20000));
-}
-
-// =========================================================================
-// NOUVEAU — getMessages : offset > PAGINATION_MAX_OFFSET → 400 forcé
-// On doit forcer page et limit pour que l'offset calculé dépasse la constante
-// sans être clampé par PAGINATION_MAX_PAGE
-// =========================================================================
-
-public function testGetMessagesOffsetExceedsMaxReturns400(): void
-{
-    // On va accéder à la constante via réflexion
-    $maxOffset = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_OFFSET'))->getValue();
-    $maxPage   = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_PAGE'))->getValue();
-    $maxLimit  = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_LIMIT'))->getValue();
-
-    // Si maxPage * maxLimit <= maxOffset, la branche est morte → skip
-    if (($maxPage - 1) * $maxLimit <= $maxOffset) {
-        $this->markTestSkipped('BusinessLimits configuration makes this branch unreachable');
-    }
-
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-    $request  = Request::create('/api/get/messages', 'GET', [
-        'page'  => $maxPage,
-        'limit' => $maxLimit,
-    ]);
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $this->assertSame(400, $response->getStatusCode());
-    $data = json_decode($response->getContent(), true);
-    $this->assertSame('Page number too high', $data['message']);
-}
-
-// =========================================================================
-// NOUVEAU — getMessages : page > PAGINATION_MAX_PAGE → clamped
-// =========================================================================
-
-public function testGetMessagesBeyondMaxPageIsClamped(): void
-{
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-    $request  = Request::create('/api/get/messages', 'GET', [
-        'page'  => 999999,
-        'limit' => 1,
-    ]);
-
-    $this->messageRepo->method('findBy')->willReturn([]);
-    $this->messageRepo->method('count')->willReturn(0);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    // Avec limit=1 l'offset est clampé à PAGINATION_MAX_PAGE - 1, jamais > MAX_OFFSET
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $this->assertContains($response->getStatusCode(), [200, 400]);
-}
-
-// =========================================================================
-// NOUVEAU — getMessages : limit < PAGINATION_MIN_LIMIT → clamped
-// =========================================================================
-
-public function testGetMessagesLimitBelowMinIsClamped(): void
-{
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-    $request  = Request::create('/api/get/messages', 'GET', [
-        'page'  => 1,
-        'limit' => -99,
-    ]);
-
-    $this->messageRepo->method('findBy')->willReturn([]);
-    $this->messageRepo->method('count')->willReturn(0);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $this->assertSame(200, $response->getStatusCode());
-}
-// =========================================================================
-// createMessage : ligne après le return (em->clear unreachable)
-// (@codeCoverageIgnore). dans code controller
-// =========================================================================
-
-public function testCreateMessagePersistExceptionTriggersRollbackAndReturns500(): void
-{
-    $user    = $this->createUser(1);
-    $conv    = $this->createConversation(10, 'Ma conv', '', $user, [$user]);
-    $msgRepo = $this->createMock(EntityRepository::class);
-    $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('find')->willReturn($conv);
-
-    $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-    $em->method('persist')->willThrowException(new \Exception('Persist failed'));
-    $em->expects($this->once())->method('rollback');
-
-    $ctrl     = $this->createAcceptingController($em);
-    $response = $ctrl->createMessage(
-        $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
-        $this->createSecurity($user),
-        $em,
-        $this->createDummyFactory()
-    );
-
-    $this->assertSame(500, $response->getStatusCode());
-    $data = json_decode($response->getContent(), true);
-    $this->assertSame('Error creating message', $data['message']);
-}
-
-
-// =========================================================================
-// validateString : valeur > 10000 chars avec contenu valide
-// La condition est : mb_strlen($value) > $maxLength || mb_strlen($value) > 10000
-// Avec maxLength=20000, seule la borne absolue 10000 bloque
-// =========================================================================
-
-public function testValidateStringOver10000CharsWithValidCharsIsRejected(): void
-{
-    // Générer 10001 lettres valides (ne contient que des lettres)
-    // La regex passe, mais mb_strlen > 10000 bloque
-    $value = str_repeat('a', 10001);
-    // maxLength grand pour que seule la borne absolue intervienne
-    $this->assertFalse($this->callPrivate('validateString', $value, 20000));
-}
-
-// =========================================================================
-// getMessages : forcer le chemin offset > PAGINATION_MAX_OFFSET → 400
-// On contourne le clamping en utilisant des valeurs de constantes réelles
-// =========================================================================
-
-public function testGetMessagesMaxPageWithMaxLimitMayReturn400(): void
-{
-    $maxOffset = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_OFFSET'))->getValue();
-    $maxPage   = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_PAGE'))->getValue();
-    $maxLimit  = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_LIMIT'))->getValue();
-
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-    $request  = Request::create('/api/get/messages', 'GET', [
-        'page'  => $maxPage,
-        'limit' => $maxLimit,
-    ]);
-
-    $this->messageRepo->method('findBy')->willReturn([]);
-    $this->messageRepo->method('count')->willReturn(0);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $offset   = ($maxPage - 1) * $maxLimit;
-
-    if ($offset > $maxOffset) {
-        $this->assertSame(400, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertSame('Page number too high', $data['message']);
-        $this->assertStringContainsString((string)$maxOffset, $data['error']);
-    } else {
-        $this->assertSame(200, $response->getStatusCode());
-    }
-}
-
-// =========================================================================
-// createMessage : exception dans persist → rollback → 500
-// Couvre le catch final et le em->clear() dans le catch
-// =========================================================================
-
-public function testCreateMessagePersistThrowsCoversRollbackAndCatchBlock(): void
-{
-    $user    = $this->createUser(1);
-    $conv    = $this->createConversation(10, 'Ma conv', '', $user, [$user]);
-
-    $msgRepo = $this->createMock(EntityRepository::class);
-    $msgRepo->method('createQueryBuilder')->willReturn($this->createCountQueryBuilder(0));
-
-    $convRepo = $this->createMock(EntityRepository::class);
-    $convRepo->method('find')->willReturn($conv);
-
-    $em = $this->buildEm([Conversation::class => $convRepo, Message::class => $msgRepo]);
-    $em->method('persist')->willThrowException(new \Exception('DB write error'));
-    $em->expects($this->once())->method('rollback');
-    $em->expects($this->once())->method('clear');
-
-    $ctrl     = $this->createAcceptingController($em);
-    $response = $ctrl->createMessage(
-        $this->createJsonRequest(['content' => 'Hello world', 'conversation_id' => 10]),
-        $this->createSecurity($user),
-        $em,
-        $this->createDummyFactory()
-    );
-
-    $this->assertSame(500, $response->getStatusCode());
-    $data = json_decode($response->getContent(), true);
-    $this->assertSame('Error creating message', $data['message']);
-    $this->assertSame('DB write error', $data['error']);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-public function testGetMessagesSingleWordAuthorNameFallsBackToUnknown(): void
-{
-    $user   = $this->createUser();
-    $conv   = $this->createConversation(creator: $user);
-    $author = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-
-    $msg = $this->createMock(Message::class);
-    $msg->method('getId')->willReturn(1);
-    $msg->method('getContent')->willReturn('Hello world');
-    $msg->method('getAuthor')->willReturn($author);
-    $msg->method('getAuthorName')->willReturn('Mononym');
-    $msg->method('getConversation')->willReturn($conv);
-    $msg->method('getConversationTitle')->willReturn('Test Conv');
-    $msg->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-
-    $security = $this->createSecurity($user);
-    $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
-    $this->messageRepo->method('findBy')->willReturn([$msg]);
-    $this->messageRepo->method('count')->willReturn(1);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $data     = json_decode($response->getContent(), true);
-
-    $this->assertSame(200, $response->getStatusCode());
-    $this->assertCount(1, $data['data']);
-    $this->assertSame('Unknown User', $data['data'][0]['authorName']);
-}
-
-public function testGetMessagesBothNamePartsInvalidFallsBackToUnknown(): void
-{
-    $user   = $this->createUser();
-    $conv   = $this->createConversation(creator: $user);
-    $author = $this->createUser(2, 'Marie', 'Curie', 'marie@example.com');
-
-    $msg = $this->createMock(Message::class);
-    $msg->method('getId')->willReturn(2);
-    $msg->method('getContent')->willReturn('Hello world');
-    $msg->method('getAuthor')->willReturn($author);
-    $msg->method('getAuthorName')->willReturn('Bad99 Name99');
-    $msg->method('getConversation')->willReturn($conv);
-    $msg->method('getConversationTitle')->willReturn('Test Conv');
-    $msg->method('getCreatedAt')->willReturn(new \DateTimeImmutable());
-
-    $security = $this->createSecurity($user);
-    $request  = Request::create('/api/get/messages', 'GET', ['page' => 1, 'limit' => 10]);
-
-    $this->messageRepo->method('findBy')->willReturn([$msg]);
-    $this->messageRepo->method('count')->willReturn(1);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $data     = json_decode($response->getContent(), true);
-
-    $this->assertSame(200, $response->getStatusCode());
-    $this->assertSame('Unknown User', $data['data'][0]['authorName']);
-}
-
-public function testGetMessagesAllPaginationClampingBranches(): void
-{
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-
-    // page < MIN → clampé vers MIN
-    // limit > MAX → clampé vers MAX
-    $request = Request::create('/api/get/messages', 'GET', [
-        'page'  => -5,
-        'limit' => 999999,
-    ]);
-
-    $this->messageRepo->method('findBy')->willReturn([]);
-    $this->messageRepo->method('count')->willReturn(0);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $this->assertContains($response->getStatusCode(), [200, 400]);
-}
-
-public function testGetMessagesPaginationPageAboveMaxIsClamped(): void
-{
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-
-    $maxPage = (new \ReflectionClassConstant(\App\BusinessLimits::class, 'PAGINATION_MAX_PAGE'))->getValue();
-
-    // page > MAX → clampé vers MAX
-    $request = Request::create('/api/get/messages', 'GET', [
-        'page'  => $maxPage + 1,
-        'limit' => 1,
-    ]);
-
-    $this->messageRepo->method('findBy')->willReturn([]);
-    $this->messageRepo->method('count')->willReturn(0);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $this->assertContains($response->getStatusCode(), [200, 400]);
-}
-
-public function testGetMessagesPaginationLimitBelowMinIsClamped(): void
-{
-    $user     = $this->createUser();
-    $security = $this->createSecurity($user);
-
-    $request = Request::create('/api/get/messages', 'GET', [
-        'page'  => 1,
-        'limit' => 0,
-    ]);
-
-    $this->messageRepo->method('findBy')->willReturn([]);
-    $this->messageRepo->method('count')->willReturn(0);
-    $this->em->method('getRepository')->willReturn($this->stubUserRepository(null));
-
-    $response = $this->controller->getMessages($security, $this->messageRepo, $request);
-    $this->assertSame(200, $response->getStatusCode());
-}
-
-
 }

@@ -151,9 +151,7 @@ class AuthController extends AbstractController
                     'message' => 'Invalid availability end date format'
                 ], Response::HTTP_BAD_REQUEST);
             }
-        } else {
-            $user->setAvailabilityEnd(new \DateTimeImmutable('2025-12-31'));
-        }
+        } 
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();

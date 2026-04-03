@@ -186,16 +186,14 @@ class Conversation
         return $this;
     }
 
-    public function removeMessage(Message $message): static
-    {
-        if ($this->messages->removeElement($message)) {
-            if ($message->getConversation() === $this) {
-                $message->setConversation(null);
-            }
-        }
 
-        return $this;
-    }
+
+    public function removeMessage(Message $message): static
+{
+    $this->messages->removeElement($message);
+
+    return $this;
+}
 
     /**
      * Retourne le dernier message de la conversation

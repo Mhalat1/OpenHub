@@ -291,17 +291,21 @@ public function getReceivedInvitations(): Collection
         return $this;
     }
 
-    public function removeMessage(Message $message): static
+    //public function removeMessage(Message $message): static
+    //{
+    //    if ($this->messages->removeElement($message)) {
+    //        if ($message->getAuthor() === $this) {
+    //            $message->setAuthor(null);
+    //        }
+    //    }
+    //    return $this;
+    //}
+
+    public function removeMessage(Message $message): self
     {
-        if ($this->messages->removeElement($message)) {
-            if ($message->getAuthor() === $this) {
-                $message->setAuthor(null);
-            }
-        }
+        $this->messages->removeElement($message);
         return $this;
     }
-
-
 
     
     public function getProjects(): Collection  // Changé de getProject() à getProjects()

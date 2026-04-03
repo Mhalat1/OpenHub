@@ -8,7 +8,7 @@ const LogoutButton = () => {
     // 🔄 Redirige automatiquement vers la page de login après 2 secondes
     setTimeout(() => {
       window.location.href = "/login";
-    }, 2000);
+    });
   };
 
   const handleReturnHome = () => {

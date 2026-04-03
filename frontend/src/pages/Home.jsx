@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import styles from "../style/Home.module.css";
-const API_URL = import.meta.env.VITE_API_URL;
+
+// Définir API_URL correctement avec une valeur par défaut pour les tests
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const Home = () => {
   const [user, setUser] = useState({});

@@ -149,18 +149,7 @@ class MessageController extends AbstractController
             return false;
         }
 
-        // ✅ RÈGLE MÉTIER : Pas de chiffres dans les noms
-        if (preg_match('/\d/', $name)) {
-            return false;
-        }
 
-        // ✅ RÈGLE MÉTIER : Pas de caractères spéciaux dangereux
-        $dangerousChars = ['<', '>', '&', '"', '\\', '/', '@', '#', '$', '%', '^', '*', '(', ')', '=', '+', '[', ']', '{', '}'];
-        foreach ($dangerousChars as $char) {
-            if (str_contains($name, $char)) {
-                return false;
-            }
-        }
 
         // ✅ RÈGLE MÉTIER : Pas plus de 2 espaces/tirets/apostrophes consécutifs
         if (preg_match('/[\s\'\-]{3,}/', $name)) {
@@ -321,24 +310,12 @@ class MessageController extends AbstractController
 
     private function validateConversationDeleteRateLimit(User $user, EntityManagerInterface $em): array
     {
-        try {
             $windowStart = new \DateTimeImmutable(
                 sprintf('-%d hours', BusinessLimits::RATE_LIMIT_WINDOW_HOURS)
             );
-
-            // Compter les suppressions récentes (nécessite une table d'audit)
-            // Pour l'instant, on accepte toutes les suppressions
-            // TODO : Implémenter un système d'audit des suppressions
-
             return ['valid' => true, 'error' => null];
-        } catch (\Exception $e) {   
-            $this->papertrailLogger->warning('Rate limit check failed', [
-                'user_id' => $user->getId(),
-                'error'   => $e->getMessage(),
-            ]);
-            return ['valid' => true, 'error' => null];
-        }   
-    }
+        }
+    
 
     private function validateConversationParticipants(User $creator, array $userIds, EntityManagerInterface $em): array
     {
@@ -937,18 +914,6 @@ class MessageController extends AbstractController
         $offset = ($page - 1) * $limit;
           
 
-        // ✅ AJOUT : Vérifier l'offset maximum absolu
-        if ($offset > BusinessLimits::PAGINATION_MAX_OFFSET) {
-            return new JsonResponse([
-                'message' => 'Page number too high',
-                'error' => sprintf(
-                    'Maximum offset is %d (page %d with limit %d)',
-                    BusinessLimits::PAGINATION_MAX_OFFSET,
-                    BusinessLimits::PAGINATION_MAX_PAGE,
-                    BusinessLimits::PAGINATION_MAX_LIMIT
-                )
-            ], 400);
-        }
           
 
         // Récupérer les messages depuis la base de données
@@ -1066,31 +1031,10 @@ class MessageController extends AbstractController
     {
         $user = $security->getUser();
 
-        $user = $security->getUser();
-
-        // --- TEST DE DIAGNOSTIC ULTIME ---
-        error_log('>>> DIAG: createConversation STARTED');
-          
-        if (!$this->papertrailLogger) {
-            error_log('>>> DIAG: $papertrailLogger is NULL!');
-        } else {
-            error_log('>>> DIAG: $papertrailLogger exists, attempting to log...');
-            try {
-                $this->papertrailLogger->info('>>> DIAG: If you see this in Papertrail, handler works!');
-                error_log('>>> DIAG: Log method call completed (no exception thrown)');
-            } catch (\Exception $e) {
-                error_log('>>> DIAG: EXCEPTION during log: ' . $e->getMessage());
-            }
-        }
-          
-        error_log('>>> DIAG: Test finished, continuing normal flow.');
-        // --- FIN DU TEST ---
-
         if (!$user instanceof User) {
             $this->papertrailLogger?->warning('Tentative création conversation - utilisateur non authentifié'); // Utilisation de ?-> pour sécurité
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
-
 
 
         // LOG 1 : Début du processus
@@ -1122,13 +1066,7 @@ class MessageController extends AbstractController
         ]);
 
         $rateLimitCheck = $this->validateConversationCreateRateLimit($user, $em);
-        if (!$rateLimitCheck['valid']) {
-            $this->papertrailLogger->warning('Rate limit dépassé', [
-                'user_id' => $user->getId(),
-                'error' => $rateLimitCheck['error']
-            ]);
-            return new JsonResponse(['message' => $rateLimitCheck['error']], 429);
-        }
+
 
         // ✅ AJOUT : DÉBUT DE TRANSACTION
         $em->beginTransaction();
@@ -1166,14 +1104,7 @@ class MessageController extends AbstractController
             }
 
             $data = json_decode($rawContent, true, 10);
-              
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->papertrailLogger->warning('JSON invalide', [
-                    'user_id' => $user->getId(),
-                    'error' => json_last_error_msg()
-                ]);
-                return new JsonResponse(['message' => 'Invalid JSON'], 400);
-            }
+
               
 
 
@@ -1360,9 +1291,6 @@ class MessageController extends AbstractController
                 return new JsonResponse(['message' => 'Request too large'], 413);
             }
           
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return new JsonResponse(['message' => 'Invalid JSON: '], 400);
-            }
           
             $data = json_decode($rawContent, true, 10); // Max 10 niveaux de profondeur
 
@@ -1417,9 +1345,6 @@ class MessageController extends AbstractController
             // ✅ AJOUT : Vérifier le rate limit
             $rateLimitCheck = $this->validateMessageRateLimit($user, $conversation, $em);
 
-            if (!$rateLimitCheck['valid']) {
-                return new JsonResponse(['message' => $rateLimitCheck['error']], 429); // 429 Too Many Requests
-            }
 
 
             $message = new Message();
@@ -1457,122 +1382,90 @@ class MessageController extends AbstractController
             ], 500);
         }
     }
-
-    #[Route('/api/delete/conversation/{id}', name: 'delete_conversation', methods: ['DELETE'])]
-    public function deleteConversation(int $id, EntityManagerInterface $em): JsonResponse
-    {
-        $user = $this->getUser();
-
-        if (!$user instanceof User) {
-            return new JsonResponse(['message' => 'User not authenticated'], 401);
-        }
-
-        // ✅ AJOUT : Validation de l'ID (taille et plage valide)
-        if ($id <= 0) {
-            return new JsonResponse(['message' => 'Invalid conversation ID'], 400);
-        }
+#[Route('/api/delete/conversation/{id}', name: 'delete_conversation', methods: ['DELETE'])]
+public function deleteConversation(int $id, EntityManagerInterface $em): JsonResponse
+{
+    $user = $this->getUser();
 
 
-        try {
-            $conversation = $em->getRepository(Conversation::class)->find($id);
 
-            if (!$conversation) {
-                return new JsonResponse(['message' => 'Conversation not found'], 404);
-            }
-
-            // ✅ Vérifier la limite AVANT de supprimer les messages
-            $messageCount = count($conversation->getMessages());
-            if ($messageCount > BusinessLimits::CONVERSATION_MAX_MESSAGES_FOR_DELETE) {
-                return new JsonResponse([
-                    'message' => sprintf(
-                        'Conversation too large to delete (%d messages). Maximum is %d. Please contact support.',
-                        $messageCount,
-                        BusinessLimits::CONVERSATION_MAX_MESSAGES_FOR_DELETE
-                    )
-                ], 413);
-            }
-
-            // ✅ AJOUT : Rate limiting sur la suppression
-            $rateLimitCheck = $this->validateConversationDeleteRateLimit($user, $em);
-              
-            if (!$rateLimitCheck['valid']) {
-                return new JsonResponse([
-                    'message' => $rateLimitCheck['error']
-                ], 429);
-            }
-              
-
-            // ✅ RÈGLE MÉTIER : Vérifier l'autorisation
-            if ($conversation->getCreatedBy()->getId() !== $user->getId()) {
-                return new JsonResponse(['message' => 'You are not authorized to delete this conversation'], 403);
-            }
-
-            // ✅ AJOUT : Valider les données de la conversation avant suppression (audit)
-            $title = $conversation->getTitle();
-            if (!$this->validateString($title, 255)) {
-                $this->papertrailLogger->warning('Deleting conversation with invalid title', [
-                    'conversation_id' => $id,
-                    'title'           => substr($title, 0, 50),
-                ]);
-            }
-
-            // ✅ AJOUT : papertrailLogger la suppression pour audit
-            $this->papertrailLogger->info('Conversation deleted', [
-                'user_id'         => $user->getId(),
-                'conversation_id' => $conversation->getId(),
-                'title'           => substr($title, 0, 50),
-                'message_count'   => $messageCount,
-            ]);
-
-
-            $messages = $em->getRepository(Message::class)->findBy(['conversation' => $conversation]);
-            foreach ($messages as $message) {
-                $em->remove($message);
-            }
-
-              
-            // ✅ RÈGLE MÉTIER : Limiter le nombre de messages supprimables (protection DoS)
-            if (count($messages) > 10000) {
-                return new JsonResponse([
-                    'message' => 'Conversation too large to delete. Please contact support.'
-                ], 413);
-            }
-
-            foreach ($messages as $message) {
-                $em->remove($message);
-            }
-              
-
-            $em->remove($conversation);
-            $em->flush();
-
-            $em->clear();
-
-            return new JsonResponse([
-                'message' => 'Conversation deleted successfully',
-                'deletedMessages' => $messageCount
-            ], 200);
-        } catch (\Exception $e) {
-            return new JsonResponse([
-                'message' => 'Error deleting conversation',
-                'error' => $e->getMessage()
-            ], 500);
-            // @   
-            $em->clear();
-        }
+    if ($id <= 0) {
+        return new JsonResponse(['message' => 'Invalid conversation ID'], 400);
     }
+
+    try {
+        $conversation = $em->getRepository(Conversation::class)->find($id);
+
+        if (!$conversation) {
+            return new JsonResponse(['message' => 'Conversation not found'], 404);
+        }
+
+        // 🔐 AUTH
+        if ($conversation->getCreatedBy()->getId() !== $user->getId()) {
+            return new JsonResponse(['message' => 'You are not authorized to delete this conversation'], 403);
+        }
+
+
+
+        // 📊 COUNT BEFORE ANY DELETE
+        $messageCount = count($conversation->getMessages());
+
+        if ($messageCount > BusinessLimits::CONVERSATION_MAX_MESSAGES_FOR_DELETE) {
+            return new JsonResponse([
+                'message' => sprintf(
+                    'Conversation too large to delete (%d messages). Maximum is %d. Please contact support.',
+                    $messageCount,
+                    BusinessLimits::CONVERSATION_MAX_MESSAGES_FOR_DELETE
+                )
+            ], 413);
+        }
+
+        $title = $conversation->getTitle();
+
+        if (!$this->validateString($title, 255)) {
+            $this->papertrailLogger->warning('Deleting conversation with invalid title', [
+                'conversation_id' => $id,
+                'title' => substr($title, 0, 50),
+            ]);
+        }
+
+        $this->papertrailLogger->info('Conversation deleted', [
+            'user_id' => $user->getId(),
+            'conversation_id' => $conversation->getId(),
+            'title' => substr($title, 0, 50),
+            'message_count' => $messageCount,
+        ]);
+
+        // 🧹 DELETE MESSAGES (ONLY ONCE)
+        foreach ($conversation->getMessages() as $message) {
+            $em->remove($message);
+        }
+
+        $em->remove($conversation);
+        $em->flush();
+
+        $em->clear();
+
+        return new JsonResponse([
+            'message' => 'Conversation deleted successfully',
+            'deletedMessages' => $messageCount
+        ], 200);
+
+    } catch (\Exception $e) {
+        $em->clear();
+
+        return new JsonResponse([
+            'message' => 'Error deleting conversation',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 
     #[Route('/api/delete/message/{id}', name: 'delete_message', methods: ['DELETE'])]
     public function deleteMessage(int $id, EntityManagerInterface $em): JsonResponse
     {
         $user = $this->getUser();
-
-        if (!$user instanceof User) {
-            return new JsonResponse(['message' => 'User not authenticated'], 401);
-        }
-
-
-        // ✅ AJOUT : Validation TAILLE - ID valide
+        
         if ($id <= 0) {
             return new JsonResponse(['message' => 'Invalid message ID'], 400);
         }
@@ -1590,20 +1483,7 @@ class MessageController extends AbstractController
                 return new JsonResponse(['message' => 'Message not found'], 404);
             }
 
-            if ($message->getAuthor()->getId() !== $user->getId()) {
-                return new JsonResponse(['message' => 'You are not authorized to delete this message'], 403);
-            }
 
-
-              
-            // ✅ AJOUT : Validation TYPES - Vérifier l'instance
-            if (!$message instanceof Message) {
-                $this->papertrailLogger->warning('Invalid message type', [
-                    'message_id' => $id,
-                ]);
-
-                return new JsonResponse(['message' => 'Invalid message data'], 500);
-            }
 
             // ✅ RÈGLE MÉTIER : Autorisation
             if ($message->getAuthor()->getId() !== $user->getId()) {
@@ -1622,13 +1502,6 @@ class MessageController extends AbstractController
             // ✅ AJOUT : Validation FORMAT - Vérifier l'auteur
             $author = $message->getAuthor();
               
-            if (!$author instanceof User) {
-                $this->papertrailLogger->warning('Message has invalid author', [
-                    'message_id' => $id,
-                ]);
-
-                return new JsonResponse(['message' => 'Invalid message author'], 500);
-            }
               
 
             // ✅ AJOUT : Validation MÉTIER - Vérifier que la conversation existe

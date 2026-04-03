@@ -228,4 +228,72 @@ class ConversationEntityTest extends TestCase
         $result = $this->conversation->setConversationHash('hash');
         $this->assertSame($this->conversation, $result);
     }
+
+
+
+
+public function testRemoveMessage(): void
+{
+    $message = new Message();
+
+    $this->conversation->addMessage($message);
+
+    $this->assertCount(1, $this->conversation->getMessages());
+    $this->assertSame($this->conversation, $message->getConversation());
+
+    $result = $this->conversation->removeMessage($message);
+
+    // ✔ retour fluent
+    $this->assertSame($this->conversation, $result);
+
+    // ✔ message retiré
+    $this->assertCount(0, $this->conversation->getMessages());
+    $this->assertFalse($this->conversation->getMessages()->contains($message));
+
+    // ⚠️ selon ton modèle : NE PAS tester null si non nullable
+}
+
+public function testRemoveMessageWhenNotInCollection(): void
+{
+    $message = new Message();
+
+    $result = $this->conversation->removeMessage($message);
+
+    $this->assertSame($this->conversation, $result);
+    $this->assertCount(0, $this->conversation->getMessages());
+}
+
+
+public function testGetDisplayTitleWithTitle(): void
+{
+    $user = new User();
+
+    $this->conversation->setTitle('Mon super chat');
+
+    $this->assertSame(
+        'Mon super chat',
+        $this->conversation->getDisplayTitle($user)
+    );
+}
+
+public function testGetDisplayTitle(): void
+{
+    $user = new User();
+
+    // Cas 1 : titre personnalisé
+    $this->conversation->setTitle('Mon salon privé');
+
+    $this->assertSame(
+        'Mon salon privé',
+        $this->conversation->getDisplayTitle($user)
+    );
+
+    // Cas 2 : titre vide string (fallback)
+    $this->conversation->setTitle('');
+
+    $this->assertSame(
+        'Conversation',
+        $this->conversation->getDisplayTitle($user)
+    );
+}
 }

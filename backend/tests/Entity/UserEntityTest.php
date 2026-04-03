@@ -491,4 +491,57 @@ class UserEntityTest extends TestCase
         $this->assertTrue($user->getProjects()->contains($project1));
         $this->assertSame($user, $result);
     }
+
+
+
+
+
+    
+
+
+
+
+
+public function testRemoveMessageThatBelongsToUser(): void
+{
+    $message = new Message();
+    $message->setContent('Hello world');
+    $message->setAuthor($this->user);
+    
+    $this->user->addMessage($message);
+    
+    $this->assertCount(1, $this->user->getMessages());
+    $this->assertTrue($this->user->getMessages()->contains($message));
+    $this->assertSame($this->user, $message->getAuthor());
+    
+    $result = $this->user->removeMessage($message);
+    
+    $this->assertSame($this->user, $result);
+    
+    // ✅ Le message est retiré de la collection
+    $this->assertCount(0, $this->user->getMessages());
+    $this->assertFalse($this->user->getMessages()->contains($message));
+    
+    // ✅ MAIS l’auteur reste (car non nullable)
+    $this->assertSame($this->user, $message->getAuthor());
+}
+
+
+public function testRemoveMessageReturnsSelf(): void
+{
+    $message = new Message();
+    $message->setContent('Hello world');
+    $message->setAuthor($this->user);
+    
+    // Cas 1: message pas dans la collection
+    $result1 = $this->user->removeMessage($message);
+    $this->assertSame($this->user, $result1);
+    
+    // Cas 2: message présent
+    $this->user->addMessage($message);
+    $result2 = $this->user->removeMessage($message);
+    $this->assertSame($this->user, $result2);
+}
+
+
 }

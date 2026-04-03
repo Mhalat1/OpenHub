@@ -363,4 +363,50 @@ class ProjectsControllerTest extends TestCase
         $data = json_decode($response->getContent(), true);
         $this->assertEquals('Project deleted successfully', $data['message']);
     }
+
+    public function testCreateProjectSuccess(): void
+    {
+        $this->security->method('getUser')->willReturn($this->user);
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->willReturn(null);
+        $this->em->method('getRepository')->willReturn($repository);
+
+        // 👉 Capture du projet passé à persist()
+        $projectCaptured = null;
+
+        $this->em->expects($this->once())
+            ->method('persist')
+            ->willReturnCallback(function ($project) use (&$projectCaptured) {
+                $projectCaptured = $project;
+            });
+
+        // 👉 flush() ne prend PAS d'argument → on utilise le projet capturé
+        $this->em->expects($this->once())
+            ->method('flush')
+            ->willReturnCallback(function () use (&$projectCaptured) {
+                $reflection = new \ReflectionClass($projectCaptured);
+                $property = $reflection->getProperty('id');
+                $property->setAccessible(true);
+                $property->setValue($projectCaptured, 42);
+            });
+
+        $request = new Request([], [], [], [], [], [], json_encode([
+            'name' => 'New Project',
+            'description' => 'Description',
+            'requiredSkills' => 'PHP, Symfony',
+            'startDate' => '2026-01-01',
+            'endDate' => '2026-12-31',
+        ]));
+
+        $response = $this->controller->createProject($request, $this->security);
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+
+        $this->assertEquals('Project created successfully', $data['message']);
+        $this->assertEquals(42, $data['project_id']);
+    }
+
 }

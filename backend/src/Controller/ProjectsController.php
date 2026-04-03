@@ -27,7 +27,6 @@ final class ProjectsController extends AbstractController
         $this->papertrailLogger->info('All projects fetched', [
             'count' => count($allProjects),
         ]);
-
         $data = [];
         foreach ($allProjects as $project) {
             $data[] = [
@@ -50,6 +49,7 @@ final class ProjectsController extends AbstractController
 
         if (!$user instanceof User) {
             $this->papertrailLogger->warning('Unauthenticated access to user projects');
+            
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -62,12 +62,10 @@ final class ProjectsController extends AbstractController
             ]);
             return new JsonResponse(['message' => 'Failed to fetch projects'], 500);
         }
-
         $this->papertrailLogger->info('User projects fetched', [
             'user_id' => $user->getId(),
             'count'   => count($projects),
         ]);
-
         $data = [];
         foreach ($projects as $project) {
             $data[] = [
@@ -90,6 +88,7 @@ final class ProjectsController extends AbstractController
 
         if (!$user instanceof User) {
             $this->papertrailLogger->warning('Unauthenticated access to add project');
+           
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -124,13 +123,11 @@ final class ProjectsController extends AbstractController
         $user->addProject($project);
         $this->manager->persist($user);
         $this->manager->flush();
-
         $this->papertrailLogger->info('✅ Project added to user', [
             'user_id'      => $user->getId(),
             'project_id'   => $project->getId(),
             'project_name' => $project->getName(),
         ]);
-
         return new JsonResponse([
             'success'      => true,
             'message'      => 'Compétence ajoutée avec succès',
@@ -144,7 +141,9 @@ public function createProject(Request $request, Security $security): JsonRespons
 
     if (!$user instanceof User) {
         $this->papertrailLogger->warning('Unauthenticated access to create project');
+
         return new JsonResponse(['message' => 'User not authenticated'], 401);
+
     }
 
     $data = json_decode($request->getContent(), true);
@@ -154,6 +153,7 @@ public function createProject(Request $request, Security $security): JsonRespons
     $requiredSkills = $data['requiredSkills'] ?? null;
 
     if (!$name || !$description || !$requiredSkills || !isset($data['startDate']) || !isset($data['endDate'])) {
+           
         $this->papertrailLogger->warning('Create project - missing required fields', [
             'has_name'           => !empty($name),
             'has_description'    => !empty($description),
@@ -171,6 +171,7 @@ public function createProject(Request $request, Security $security): JsonRespons
         $this->papertrailLogger->warning('Create project - invalid date format', [
             'error' => $e->getMessage(),
         ]);
+
         return new JsonResponse(['message' => 'Invalid date format'], 400);
     }
 
@@ -193,7 +194,6 @@ public function createProject(Request $request, Security $security): JsonRespons
         ]);
         return new JsonResponse(['message' => 'Failed to create project'], 500);
     }
-
     $this->papertrailLogger->info('✅ Project created', [
         'project_id'   => $project->getId(),
         'project_name' => $project->getName(),
@@ -214,6 +214,7 @@ public function createProject(Request $request, Security $security): JsonRespons
             $this->papertrailLogger->warning('Modify project - project not found', [
                 'project_id' => $id,
             ]);
+
             return new JsonResponse(['message' => 'Project not found'], 404);
         }
 
@@ -240,6 +241,7 @@ public function createProject(Request $request, Security $security): JsonRespons
                     'value'      => $data['startDate'],
                     'error'      => $e->getMessage(),
                 ]);
+
                 return new JsonResponse(['message' => 'Invalid startDate format'], 400);
             }
         }
@@ -258,16 +260,14 @@ public function createProject(Request $request, Security $security): JsonRespons
         }
 
         $this->manager->flush();
-
         $this->papertrailLogger->info('✅ Project updated', [
             'project_id'   => $project->getId(),
             'project_name' => $project->getName(),
             'fields'       => array_keys($data),
         ]);
-
         return new JsonResponse([
             'message'    => 'Project updated successfully',
-            'project_id' => $project->getId()
+            'project_id' => $project->getId() 
         ], 200);
     }
 
@@ -275,7 +275,6 @@ public function createProject(Request $request, Security $security): JsonRespons
     public function deleteProject(int $id): JsonResponse
     {
         $project = $this->manager->getRepository(Project::class)->find($id);
-
         if (!$project) {
             $this->papertrailLogger->warning('Delete project - project not found', [
                 'project_id' => $id,
@@ -287,11 +286,14 @@ public function createProject(Request $request, Security $security): JsonRespons
 
         $this->manager->remove($project);
         $this->manager->flush();
+        //Le vrai souci c'est que dans les tests unitaires (avec mocks), 
+        //Doctrine ne fait pas de vrai flush donc l'ID n'est jamais assigné par la BDD donc plante
 
         $this->papertrailLogger->info('✅ Project deleted', [
             'project_id'   => $id,
             'project_name' => $projectName,
         ]);
+
 
         return new JsonResponse(['message' => 'Project deleted successfully'], 200);
     }

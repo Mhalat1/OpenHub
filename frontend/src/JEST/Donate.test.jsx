@@ -2,141 +2,64 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DonatePage from "../pages/DonatePage";
 
-// Mock de fetch
 global.fetch = jest.fn();
 
-// Mock de window.location
-delete window.location;
-window.location = { href: "" };
+beforeEach(() => jest.clearAllMocks());
 
-// Mock de import.meta.env
-jest.mock("../pages/DonatePage", () => {
-  const actual = jest.requireActual("../pages/DonatePage");
-  return {
-    __esModule: true,
-    default: actual.default,
-  };
-});
+const setup = () => render(<DonatePage />);
+const getButton = () => screen.getByRole("button");
+const getInput = () => screen.getByRole("spinbutton");
 
 describe("DonatePage", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    window.location.href = "";
+  test("affiche le titre et la description", () => {
+    setup();
+    expect(screen.getByText(/Soutenir le projet open-hub/i)).toBeInTheDocument();
+    expect(screen.getByText(/open-hub est un projet open source/i)).toBeInTheDocument();
   });
 
-  test("affiche correctement le titre et la description", () => {
-    render(<DonatePage />);
-
-    expect(screen.getByText (/Soutenir le projet open-hub/i)).toBeInTheDocument();
-    expect(
-      screen.getByText (/open-hub est un projet open source/i),
-    ).toBeInTheDocument();
+  test("montant par défaut à 5€", () => {
+    setup();
+    expect(getInput()).toHaveValue(5);
   });
 
-  test("initialise le montant à 5€ par défaut", () => {
-    render(<DonatePage />);
-
-    // Utiliser getByRole au lieu de getByLabelText car le label n'est pas correctement associé
-    const input = screen.getByRole("spinbutton");
-    expect(input).toHaveValue(5);
+  test("permet de modifier le montant", () => {
+    setup();
+    fireEvent.change(getInput(), { target: { value: "25" } });
+    expect(getInput()).toHaveValue(25);
   });
 
-  test("permet de modifier le montant du don", () => {
-    render(<DonatePage />);
-
-    const input = screen.getByRole("spinbutton");
-    fireEvent.change(input, { target: { value: "25" } });
-
-    expect(input).toHaveValue(25);
-  });
-
-  test("affiche le bouton 'Faire un don' par défaut", () => {
-    render(<DonatePage />);
-
-    const button = screen.getByRole("button", { name: /Faire un don/i });
-    expect(button).toBeInTheDocument();
-    expect(button).not.toBeDisabled();
+  test("bouton actif par défaut", () => {
+    setup();
+    expect(screen.getByText(/Faire un don/i)).toBeInTheDocument();
+    expect(getButton()).not.toBeDisabled();
   });
 
   test("affiche 'Redirection...' pendant le chargement", async () => {
-    fetch.mockImplementationOnce(
-      () => new Promise((resolve) => setTimeout(resolve, 100)),
+    fetch.mockImplementationOnce(() => new Promise(() => {})); // ne résout jamais
+    setup();
+    fireEvent.click(getButton());
+    await waitFor(() => expect(screen.getByText(/Redirection.../i)).toBeInTheDocument());
+    expect(getButton()).toBeDisabled();
+  });
+
+  test("affiche une erreur si la requête échoue", async () => {
+    fetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    setup();
+    fireEvent.click(getButton());
+    await waitFor(() =>
+      expect(screen.getByText(/Erreur lors de la création de la session de paiement/i)).toBeInTheDocument()
     );
-
-    render(<DonatePage />);
-
-    const button = screen.getByRole("button", { name: /Faire un don/i });
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(screen.getByText (/Redirection.../i)).toBeInTheDocument();
-    });
-    expect(button).toBeDisabled();
+    expect(getButton()).not.toBeDisabled();
   });
 
-  test("affiche un message d'erreur si la requête échoue", async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    });
+  test("efface l'erreur lors d'une nouvelle tentative", async () => {
+    fetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    setup();
+    fireEvent.click(getButton());
+    await waitFor(() => expect(screen.getByText(/Erreur/i)).toBeInTheDocument());
 
-    render(<DonatePage />);
-
-    const button = screen.getByRole("button", { name: /Faire un don/i });
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText (
-          /Erreur lors de la création de la session de paiement/i,
-        ),
-      ).toBeInTheDocument();
-    });
-  });
-
-  test("réactive le bouton après une erreur", async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    });
-
-    render(<DonatePage />);
-
-    const button = screen.getByRole("button", { name: /Faire un don/i });
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(button).not.toBeDisabled();
-      expect(screen.getByText (/Faire un don/i)).toBeInTheDocument();
-    });
-  });
-
-  test("efface l'erreur précédente lors d'une nouvelle tentative", async () => {
-    // Premier appel - échec
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    });
-
-    render(<DonatePage />);
-
-    const button = screen.getByRole("button", { name: /Faire un don/i });
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(screen.getByText (/Erreur/i)).toBeInTheDocument();
-    });
-
-    // Deuxième appel - succès
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ url: "https://stripe.com/checkout" }),
-    });
-
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(screen.queryByText(/Erreur/i)).not.toBeInTheDocument();
-    });
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ url: "https://stripe.com/checkout" }) });
+    fireEvent.click(getButton());
+    await waitFor(() => expect(screen.queryByText(/Erreur/i)).not.toBeInTheDocument());
   });
 });

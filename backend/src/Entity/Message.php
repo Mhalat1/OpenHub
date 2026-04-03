@@ -80,10 +80,6 @@ class Message
     // ✅ Ajout : nom complet de l’auteur
     public function getAuthorName(): ?string
     {
-        if (!$this->author) {
-            return null;
-        }
-
         return $this->author->getFirstName() . ' ' . $this->author->getLastName();
     }
 

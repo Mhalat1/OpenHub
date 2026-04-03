@@ -31,6 +31,22 @@ class Project
     #[ORM\Column(length: 25)]
     private DateTimeImmutable $endDate;
 
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'projects')]
+    private ?User $user = null;
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+        return $this;
+    }
+
+    
+
 
     // ---------------- Getters and Setters ---------------- //
 

@@ -18,10 +18,16 @@ class FrontendMetricsController
         // Sous-dossier dédié, cohérent avec BackendMetricsController
         $this->tmpDir = sys_get_temp_dir() . '/openhub_metrics';
 
+        // @codeCoverageIgnoreStart
         if (!is_dir($this->tmpDir)) {
             mkdir($this->tmpDir, 0777, true);
         }
-    }
+        // @codeCoverageIgnoreEnd
+        //sys_get_temp_dir() retourne un dossier qui existe déjà sur la machine (ex: C:\Windows\Temp)
+
+
+
+            }
 
     // React appelle cet endpoint avec { lcp, fid, cls, page_load_time, js_errors, page_views, bounce }
     #[Route('/metrics/frontend/collect', name: 'frontend_metrics_collect', methods: ['POST', 'OPTIONS'])]

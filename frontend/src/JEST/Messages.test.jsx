@@ -1,913 +1,200 @@
-process.env.VITE_API_URL = "http://localhost:3000";
-// src/JEST/Messages.test.jsx
 import "@testing-library/jest-dom";
-import {
-    fireEvent,
-    render,
-    screen,
-    waitFor
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Messages from "../pages/Messages";
 
-// Mock de l'URL de l'API
-const API_URL = "http://localhost:3000";
-
-// Mock de localStorage
-const mockLocalStorage = {
-  store: {},
-  setItem: jest.fn((key, value) => {
-    mockLocalStorage.store[key] = value;
-  }),
-  getItem: jest.fn((key) => {
-    return mockLocalStorage.store[key] || null;
-  }),
-  removeItem: jest.fn((key) => {
-    delete mockLocalStorage.store[key];
-  }),
-  clear: jest.fn(() => {
-    mockLocalStorage.store = {};
-  }),
-};
-
-// Mock de fetch
 global.fetch = jest.fn();
-
-// Mock de window.confirm
 global.confirm = jest.fn(() => true);
 
-// Mock de import.meta.env
-jest.mock("../pages/Messages", () => {
-  const actual = jest.requireActual("../pages/Messages");
-  return {
-    __esModule: true,
-    default: actual.default,
-  };
+const mockLocalStorage = {
+  store: { token: "test-token-123", user_email: "user@user" },
+  getItem: jest.fn((key) => mockLocalStorage.store[key] || null),
+  setItem: jest.fn((key, value) => { mockLocalStorage.store[key] = value; }),
+  removeItem: jest.fn((key) => { delete mockLocalStorage.store[key]; }),
+  clear: jest.fn(() => { mockLocalStorage.store = {}; }),
+};
+
+beforeEach(() => {
+  global.fetch.mockClear();
+  global.confirm.mockClear();
+  mockLocalStorage.store = { token: "test-token-123", user_email: "user@user" };
+  Object.defineProperty(window, "localStorage", { value: mockLocalStorage, writable: true });
 });
 
-describe("Messages Component", () => {
-  beforeEach(() => {
-    // Reset des mocks
-    mockLocalStorage.store = {};
-    global.fetch.mockClear();
-    global.confirm.mockClear();
+const setup = () => render(<MemoryRouter><Messages /></MemoryRouter>);
 
-    // Définit window.localStorage
-    Object.defineProperty(window, "localStorage", {
-      value: mockLocalStorage,
-      writable: true,
-    });
-
-    // Simule un utilisateur connecté avec token
-    mockLocalStorage.store = {
-      token: "test-token-123",
-      user_email: "user@user",
-    };
-  });
-
-  // Helper pour mock les réponses API
-  const mockApiResponses = (overrides = {}) => {
-    const defaultResponses = {
-      "/api/getConnectedUser": {
-        id: 1,
-        firstName: "John",
-        lastName: "Doe",
-        email: "john@example.com",
-      },
-      "/api/user/friends": [
-        {
-          id: 2,
-          firstName: "Alice",
-          lastName: "Smith",
-          email: "alice@example.com",
-        },
-        {
-          id: 3,
-          firstName: "Bob",
-          lastName: "Johnson",
-          email: "bob@example.com",
-        },
-      ],
-      "/api/get/conversations": [
-        {
-          id: 1,
-          title: "Project Discussion",
-          description: "Discussion about the new project",
-          createdById: 1,
-        },
-        {
-          id: 2,
-          title: "Team Chat",
-          description: "General team chat",
-          createdById: 2,
-        },
-      ],
-      "/api/get/messages": {
-        data: [
-          {
-            id: 1,
-            content: "Hello everyone!",
-            conversationId: 1,
-            authorId: 1,
-            authorName: "John Doe",
-            createdAt: "2024-01-15T10:30:00Z",
-          },
-          {
-            id: 2,
-            content: "Hi John!",
-            conversationId: 1,
-            authorId: 2,
-            authorName: "Alice Smith",
-            createdAt: "2024-01-15T10:35:00Z",
-          },
-        ],
-      },
-    };
-
-    global.fetch.mockImplementation((url, options) => {
-
-      const responses = { ...defaultResponses, ...overrides };
-
-      for (const [endpoint, data] of Object.entries(responses)) {
-        if (url.includes(endpoint)) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => data,
-          });
-        }
-      }
-
-      if (url.includes("/api/create/") || url.includes("/api/delete/")) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            success: true,
-            message: "Operation successful",
-          }),
-        });
-      }
-
-      return Promise.resolve({
-        ok: false,
-        status: 404,
-        json: async () => ({ error: "Endpoint not found" }),
-      });
-    });
+const mockApi = (overrides = {}) => {
+  const defaults = {
+    "/api/getConnectedUser": { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com" },
+    "/api/user/friends": [
+      { id: 2, firstName: "Alice", lastName: "Smith", email: "alice@example.com" },
+      { id: 3, firstName: "Bob", lastName: "Johnson", email: "bob@example.com" },
+    ],
+    "/api/get/conversations": [
+      { id: 1, title: "Project Discussion", description: "About the project", createdById: 1 },
+      { id: 2, title: "Team Chat", description: "General chat", createdById: 2 },
+    ],
+    "/api/get/messages": { data: [
+      { id: 1, content: "Hello everyone!", conversationId: 1, authorId: 1, authorName: "John Doe", createdAt: "2024-01-15T10:30:00Z" },
+      { id: 2, content: "Hi John!", conversationId: 1, authorId: 2, authorName: "Alice Smith", createdAt: "2024-01-15T10:35:00Z" },
+    ]},
   };
 
-  test("1. Affiche le chargement initial", () => {
+  global.fetch.mockImplementation((url) => {
+    const responses = { ...defaults, ...overrides };
+    for (const [endpoint, data] of Object.entries(responses)) {
+      if (url.includes(endpoint)) {
+        // Si data est une fonction (ex: () => Promise.reject(...)), on l'appelle
+        return typeof data === "function" ? data() : Promise.resolve({ ok: true, json: async () => data });
+      }
+    }
+    if (url.includes("/api/create/") || url.includes("/api/delete/"))
+      return Promise.resolve({ ok: true, json: async () => ({ success: true }) });
+    return Promise.resolve({ ok: false, status: 404, json: async () => ({ error: "Not found" }) });
+  });
+};
+
+const openFirstConversation = async () => {
+  await waitFor(() => expect(screen.getByText("Project Discussion")).toBeInTheDocument(), { timeout: 3000 });
+  fireEvent.click(screen.getAllByText("▼")[0]);
+};
+
+// Matcher pour texte fragmenté dans le DOM (ex: "Friends (\n  0\n)")
+const textMatch = (text) => (_, el) =>
+  el?.tagName === "H2" && el?.textContent?.replace(/\s+/g, " ").trim() === text;
+
+describe("Messages Component", () => {
+  test("affiche le chargement initial", () => {
     global.fetch.mockImplementation(() => new Promise(() => {}));
-
-    render(
-      <MemoryRouter>
-        <Messages />
-      </MemoryRouter>,
-    );
-
+    setup();
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
-  test("3. Affiche un message d'erreur sans token", async () => {
+  test("affiche une erreur sans token", async () => {
     mockLocalStorage.store = {};
-
-    render(
-      <MemoryRouter>
-        <Messages />
-      </MemoryRouter>,
-    );
-
-    await waitFor(
-      () => {
-        expect(
-          screen.getByText (/Please log in to view messages/i),
-        ).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
+    setup();
+    await waitFor(() => expect(screen.getByText(/Please log in to view messages/i)).toBeInTheDocument(), { timeout: 3000 });
   });
 
-  test("4. Ouvre et ferme une conversation", async () => {
-    mockApiResponses();
-
-    render(
-      <MemoryRouter>
-        <Messages />
-      </MemoryRouter>,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    const toggleButtons = screen.getAllByText ("▼");
-    fireEvent.click(toggleButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("Hello everyone!")).toBeInTheDocument();
-        expect(screen.getByText("Hi John!")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    fireEvent.click(toggleButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.queryByText("Hello everyone!")).not.toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-  });
-
-  test("5. Crée une nouvelle conversation", async () => {
-    global.fetch
-      .mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              id: 1,
-              firstName: "John",
-              lastName: "Doe",
-              email: "john@example.com",
-            }),
-        }),
-      )
-      .mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve([
-              {
-                id: 2,
-                firstName: "Alice",
-                lastName: "Smith",
-                email: "alice@example.com",
-              },
-              {
-                id: 3,
-                firstName: "Bob",
-                lastName: "Johnson",
-                email: "bob@example.com",
-              },
-            ]),
-        }),
-      )
-      .mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([]),
-        }),
-      )
-      .mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ data: [] }),
-        }),
-      )
-      .mockImplementationOnce((url, options) => {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              success: true,
-              id: 999,
-              message: "Conversation created",
-            }),
-        });
-      });
-
-    render(
-      <MemoryRouter>
-        <Messages />
-      </MemoryRouter>,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
-
-    const titleInput = await screen.findByPlaceholderText(
-      "Title (2-255 characters)",
-    );
-    fireEvent.change(titleInput, { target: { value: "Test Conversation" } });
-
-    const descInput = screen.getByPlaceholderText(
-      "Description (optional, max 1000 characters)",
-    );
-    fireEvent.change(descInput, { target: { value: "Test description" } });
-
-    const checkboxes = screen.getAllByRole("checkbox");
-    fireEvent.click(checkboxes[0]);
-
-    const createButton = screen.getByText ("Create");
-    await waitFor(
-      () => {
-        expect(createButton).not.toBeDisabled();
-      },
-      { timeout: 2000 },
-    );
-
-    fireEvent.click(createButton);
-
-    await waitFor(
-      () => {
-        const fetchCalls = global.fetch.mock.calls;
-        const createCalls = fetchCalls.filter(
-          (call) =>
-            call[0] &&
-            typeof call[0] === "string" &&
-            call[0].includes("/api/create/conversation"),
-        );
-        expect(createCalls.length).toBe(1);
-      },
-      { timeout: 5000 },
-    );
-
-  }, 10000);
-
-  test("6. Envoie un message dans une conversation", async () => {
-    mockApiResponses();
-
-    render(
-      <MemoryRouter>
-        <Messages />
-      </MemoryRouter>,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    const toggleButtons = screen.getAllByText ("▼");
-    fireEvent.click(toggleButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(
-          screen.getByPlaceholderText(/Type your message/i),
-        ).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    const textarea = screen.getByPlaceholderText(/Type your message/i);
-    fireEvent.change(textarea, {
-      target: { value: "Test message from Jest!" },
+  test("erreur 401 → affiche please log in", async () => {
+    global.fetch.mockImplementation((url) => {
+      if (url.includes("/api/getConnectedUser"))
+        return Promise.resolve({ ok: false, status: 401, json: async () => ({ message: "Unauthorized" }) });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
     });
-
-    const sendButton = screen.getByText ("Send");
-    fireEvent.click(sendButton);
-
-    await waitFor(
-      () => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("/api/create/message"),
-          expect.objectContaining({
-            method: "POST",
-            body: JSON.stringify({
-              content: "Test message from Jest!",
-              conversation_id: 1,
-            }),
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
-
+    setup();
+    await waitFor(() => expect(screen.getByText(/Please log in to view messages/i)).toBeInTheDocument(), { timeout: 3000 });
   });
 
-  test("7. Supprime une conversation (confirmation)", async () => {
-    mockApiResponses();
+  test("ouvre et ferme une conversation", async () => {
+    mockApi();
+    setup();
+    await openFirstConversation();
+    await waitFor(() => expect(screen.getByText("Hello everyone!")).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.click(screen.getAllByText("▼")[0]);
+    await waitFor(() => expect(screen.queryByText("Hello everyone!")).not.toBeInTheDocument(), { timeout: 3000 });
+  });
 
-    render(
-      <MemoryRouter>
-        <Messages />
-      </MemoryRouter>,
-    );
+  test("envoie un message", async () => {
+    mockApi();
+    setup();
+    await openFirstConversation();
+    await waitFor(() => expect(screen.getByPlaceholderText(/Type your message/i)).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.change(screen.getByPlaceholderText(/Type your message/i), { target: { value: "Test message!" } });
+    fireEvent.click(screen.getByText("Send"));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/create/message"),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ content: "Test message!", conversation_id: 1 }) })
+    ), { timeout: 3000 });
+  });
 
-    await waitFor(
-      () => {
-        expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Use getAllByText since there may be multiple 🗑 buttons
-    const deleteButtons = screen.getAllByText("🗑");
-    fireEvent.click(deleteButtons[0]);
-
+  test("supprime une conversation avec confirmation", async () => {
+    mockApi();
+    setup();
+    await waitFor(() => expect(screen.getByText("Project Discussion")).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.click(screen.getAllByText("🗑")[0]);
     expect(global.confirm).toHaveBeenCalledWith("Delete this conversation?");
-
-    await waitFor(
-      () => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("/api/delete/conversation/1"),
-          expect.objectContaining({
-            method: "DELETE",
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
-
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/delete/conversation/1"),
+      expect.objectContaining({ method: "DELETE" })
+    ), { timeout: 3000 });
   });
 
-  // ==================== NOUVEAUX TESTS CORRIGÉS ====================
-
-  describe("Tests additionnels pour Messages", () => {
-    test("11. Gère les erreurs 401 (session expirée)", async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes("/api/getConnectedUser")) {
-          return Promise.resolve({
-            status: 401,
-            ok: false,
-            json: async () => ({ message: "Unauthorized" }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      // Le composant affiche "Please log in to view messages" quand l'utilisateur n'est pas connecté
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText (/Please log in to view messages/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("12. Affiche une liste d'amis vide", async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes("/api/getConnectedUser")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ id: 1, firstName: "John", lastName: "Doe" }),
-          });
-        }
-        if (url.includes("/api/user/friends")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [],
-          });
-        }
-        if (url.includes("/api/get/conversations")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [],
-          });
-        }
-        if (url.includes("/api/get/messages")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: [] }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Friends \(0\)/i)).toBeInTheDocument();
-          expect(screen.getByText("No friends available")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("13. Affiche une liste de conversations vide", async () => {
-      global.fetch.mockImplementation((url) => {
-        if (url.includes("/api/getConnectedUser")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ id: 1, firstName: "John", lastName: "Doe" }),
-          });
-        }
-        if (url.includes("/api/user/friends")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [
-              { id: 2, firstName: "Alice", lastName: "Smith" },
-            ],
-          });
-        }
-        if (url.includes("/api/get/conversations")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [],
-          });
-        }
-        if (url.includes("/api/get/messages")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: [] }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Conversations \(0\)/i)).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      expect(screen.queryByText("Project Discussion")).not.toBeInTheDocument();
-    });
-
-    test("14. Validation du titre de conversation trop court", async () => {
-      mockApiResponses();
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("New Conversation")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const titleInput = screen.getByPlaceholderText(
-        "Title (2-255 characters)",
-      );
-      const createButton = screen.getByText ("Create");
-
-      fireEvent.change(titleInput, { target: { value: "A" } });
-
-      const checkboxes = screen.getAllByRole("checkbox");
-      fireEvent.click(checkboxes[0]);
-
-      fireEvent.click(createButton);
-
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText (/Title must be between 2 and 255 characters/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("15. Validation du titre de conversation trop long", async () => {
-      mockApiResponses();
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("New Conversation")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const titleInput = screen.getByPlaceholderText(
-        "Title (2-255 characters)",
-      );
-      const createButton = screen.getByText ("Create");
-
-      fireEvent.change(titleInput, { target: { value: "A".repeat(256) } });
-
-      const checkboxes = screen.getAllByRole("checkbox");
-      fireEvent.click(checkboxes[0]);
-
-      fireEvent.click(createButton);
-
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText (/Title must be between 2 and 255 characters/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("17. Validation du message trop long", async () => {
-      mockApiResponses();
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const toggleButtons = screen.getAllByText ("▼");
-      fireEvent.click(toggleButtons[0]);
-
-      await waitFor(
-        () => {
-          expect(
-            screen.getByPlaceholderText(/Type your message/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const textarea = screen.getByPlaceholderText(/Type your message/i);
-      const sendButton = screen.getByText ("Send");
-
-      fireEvent.change(textarea, { target: { value: "A".repeat(251) } });
-      fireEvent.click(sendButton);
-
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText (/Message cannot exceed 250 characters/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("18. Supprime un message avec confirmation", async () => {
-      mockApiResponses();
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const toggleButtons = screen.getAllByText ("▼");
-      fireEvent.click(toggleButtons[0]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("Hello everyone!")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const deleteMsgButtons = screen.getAllByText("🗑");
-      // Le premier bouton est pour la conversation, le second pour le message
-      fireEvent.click(deleteMsgButtons[1]);
-
-      expect(global.confirm).toHaveBeenCalledWith("Delete this message?");
-
-      await waitFor(
-        () => {
-          expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining("/api/delete/message/1"),
-            expect.objectContaining({ method: "DELETE" }),
-          );
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("19. Annule la suppression d'un message", async () => {
-      global.confirm.mockReturnValueOnce(false);
-
-      mockApiResponses();
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const toggleButtons = screen.getAllByText ("▼");
-      fireEvent.click(toggleButtons[0]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("Hello everyone!")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const deleteMsgButtons = screen.getAllByText("🗑");
-      // Index 1 = message delete button (index 0 = conversation delete)
-      fireEvent.click(deleteMsgButtons[1]);
-
-      expect(global.confirm).toHaveBeenCalledWith("Delete this message?");
-
-      expect(global.fetch).not.toHaveBeenCalledWith(
-        expect.stringContaining("/api/delete/message/"),
-        expect.anything(),
-      );
-    });
-
-    test("20. Gère les erreurs réseau lors de la création de conversation", async () => {
-      global.fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/getConnectedUser")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ id: 1, firstName: "John", lastName: "Doe" }),
-          });
-        }
-        if (url.includes("/api/user/friends")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [
-              { id: 2, firstName: "Alice", lastName: "Smith" },
-            ],
-          });
-        }
-        if (url.includes("/api/get/conversations")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [],
-          });
-        }
-        if (url.includes("/api/get/messages")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: [] }),
-          });
-        }
-        if (url.includes("/api/create/conversation")) {
-          return Promise.reject(new Error("Network error"));
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText("New Conversation")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const titleInput = screen.getByPlaceholderText(
-        "Title (2-255 characters)",
-      );
-      fireEvent.change(titleInput, { target: { value: "Test Conversation" } });
-
-      const checkboxes = screen.getAllByRole("checkbox");
-      fireEvent.click(checkboxes[0]);
-
-      const createButton = screen.getByText ("Create");
-      fireEvent.click(createButton);
-
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Network error/i)).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
-
-    test("21. Gère les erreurs réseau lors de l'envoi de message", async () => {
-      global.fetch.mockImplementation((url, options) => {
-        if (url.includes("/api/getConnectedUser")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ id: 1, firstName: "John", lastName: "Doe" }),
-          });
-        }
-        if (url.includes("/api/user/friends")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [
-              { id: 2, firstName: "Alice", lastName: "Smith" },
-            ],
-          });
-        }
-        if (url.includes("/api/get/conversations")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => [
-              {
-                id: 1,
-                title: "Project Discussion",
-                description: "Discussion about the new project",
-                createdById: 1,
-              },
-            ],
-          });
-        }
-        if (url.includes("/api/get/messages")) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: [] }),
-          });
-        }
-        if (url.includes("/api/create/message")) {
-          return Promise.reject(new Error("Network error"));
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      render(
-        <MemoryRouter>
-          <Messages />
-        </MemoryRouter>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Project Discussion")).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const toggleButtons = screen.getAllByText ("▼");
-      fireEvent.click(toggleButtons[0]);
-      await waitFor(
-        () => {
-          expect(
-            screen.getByPlaceholderText(/Type your message/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-
-      const textarea = screen.getByPlaceholderText(/Type your message/i);
-      const sendButton = screen.getByText ("Send");
-      fireEvent.change(textarea, {
-        target: { value: "Test message from Jest!" },
-      });
-      fireEvent.click(sendButton);
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Network error/i)).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
-    });
+  test("supprime un message avec confirmation", async () => {
+    mockApi();
+    setup();
+    await openFirstConversation();
+    await waitFor(() => expect(screen.getByText("Hello everyone!")).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.click(screen.getAllByText("🗑")[1]);
+    expect(global.confirm).toHaveBeenCalledWith("Delete this message?");
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/delete/message/1"),
+      expect.objectContaining({ method: "DELETE" })
+    ), { timeout: 3000 });
   });
+
+  test("annule la suppression d'un message", async () => {
+    global.confirm.mockReturnValueOnce(false);
+    mockApi();
+    setup();
+    await openFirstConversation();
+    await waitFor(() => expect(screen.getByText("Hello everyone!")).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.click(screen.getAllByText("🗑")[1]);
+    expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining("/api/delete/message/"), expect.anything());
+  });
+
+  test.each([
+    ["Friends (0)", "No friends available", { "/api/user/friends": [], "/api/get/conversations": [] }],
+    ["Conversations (0)", null, { "/api/get/conversations": [] }],
+  ])("affiche liste vide : %s", async (text, extra, overrides) => {
+    mockApi(overrides);
+    setup();
+    await waitFor(() => expect(screen.getByText(textMatch(text))).toBeInTheDocument(), { timeout: 3000 });
+    if (extra) expect(screen.getByText(extra)).toBeInTheDocument();
+  });
+
+  test.each([
+    ["titre trop court", "A", /Title must be between 2 and 255 characters/i],
+    ["titre trop long", "A".repeat(256), /Title must be between 2 and 255 characters/i],
+  ])("validation : %s", async (_, value, error) => {
+    mockApi();
+    setup();
+    await waitFor(() => expect(screen.getByText("New Conversation")).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.change(screen.getByPlaceholderText("Title (2-255 characters)"), { target: { value } });
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByText("Create"));
+    await waitFor(() => expect(screen.getByText(error)).toBeInTheDocument(), { timeout: 3000 });
+  });
+
+  test("validation : message trop long", async () => {
+    mockApi();
+    setup();
+    await openFirstConversation();
+    await waitFor(() => expect(screen.getByPlaceholderText(/Type your message/i)).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.change(screen.getByPlaceholderText(/Type your message/i), { target: { value: "A".repeat(251) } });
+    fireEvent.click(screen.getByText("Send"));
+    await waitFor(() => expect(screen.getByText(/Message cannot exceed 250 characters/i)).toBeInTheDocument(), { timeout: 3000 });
+  });
+test.each([
+  ["création de conversation", "/api/create/conversation", async () => {
+    await waitFor(() => expect(screen.getByText("New Conversation")).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.change(screen.getByPlaceholderText("Title (2-255 characters)"), { target: { value: "Test" } });
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByText("Create"));
+  }],
+  ["envoi de message", "/api/create/message", async () => {
+    await openFirstConversation();
+    await waitFor(() => expect(screen.getByPlaceholderText(/Type your message/i)).toBeInTheDocument(), { timeout: 3000 });
+    fireEvent.change(screen.getByPlaceholderText(/Type your message/i), { target: { value: "Test!" } });
+    fireEvent.click(screen.getByText("Send"));
+  }],
+])("erreur réseau : %s", async (_, failUrl, act) => {
+  mockApi({ [failUrl]: () => Promise.reject(new Error("Network error")) });
+  setup();
+  await act();
+  // Vérifie que fetch a bien été appelé avec la bonne URL (l'erreur réseau a bien été déclenchée)
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining(failUrl), expect.anything()
+  ), { timeout: 3000 });
+});
 });

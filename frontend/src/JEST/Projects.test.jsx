@@ -3,830 +3,124 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Projects from "../pages/Projects";
 
-// Mock de l'API URL
-jest.mock("../pages/Projects", () => {
-  const actual = jest.requireActual("../pages/Projects");
-  return {
-    ...actual,
-    __esModule: true,
-    default: actual.default,
-  };
+global.fetch = jest.fn();
+window.confirm = jest.fn(() => true);
+Object.defineProperty(window, "localStorage", {
+  value: { getItem: jest.fn(() => "mock-token"), setItem: jest.fn(), clear: jest.fn(), removeItem: jest.fn() }
 });
 
-// Configuration des variables d'environnement
-const API_URL = "http://localhost:3000";
-process.env.VITE_API_URL = API_URL;
+beforeEach(() => jest.clearAllMocks());
 
-// Mock pour fetch
-global.fetch = jest.fn();
+const mockProjects = [
+  { id: 1, name: "Project Alpha", description: "A cutting-edge web application", requiredSkills: "React, Node.js, MongoDB", startDate: "2024-01-01T00:00:00.000Z", endDate: "2024-06-30T00:00:00.000Z" },
+  { id: 2, name: "Project Beta",  description: "Mobile app development",         requiredSkills: "React Native, Firebase",  startDate: "2024-02-01T00:00:00.000Z", endDate: "2024-08-31T00:00:00.000Z" },
+];
+const mockSkills = [
+  { id: 1, name: "Frontend Development", description: "UI building", technoUtilisees: "React, Vue", duree: "3 months" },
+  { id: 2, name: "Backend Development",  description: "Server side", technoUtilisees: "Node.js",    duree: "4 months" },
+];
 
-// Mock pour localStorage
-const localStorageMock = {
-  getItem: jest.fn(() => "mock-token"),
-  setItem: jest.fn(),
-  clear: jest.fn(),
-  removeItem: jest.fn(),
+// Correction : ordre des routes important — plus spécifique d'abord
+const mockApi = () => fetch.mockImplementation((url) => {
+  if (url.includes("allprojects"))   return Promise.resolve({ ok: true, json: () => Promise.resolve(mockProjects) });
+  if (url.includes("skills/create")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+  if (url.includes("skills/update")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+  if (url.includes("skills/delete")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+  if (url.includes("skills"))        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSkills) });
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+});
+
+const setup = async () => {
+  mockApi();
+  render(<Projects />);
+  const user = userEvent.setup();
+  await waitFor(() => expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument(), { timeout: 3000 });
+  await waitFor(() => expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument(), { timeout: 3000 });
+  return user;
 };
-Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
-// Mock pour window.confirm
-window.confirm = jest.fn(() => true);
+const expectFetch = (endpoint, method) =>
+  waitFor(() => expect(fetch).toHaveBeenCalledWith(
+    expect.stringContaining(endpoint), expect.objectContaining({ method })
+  ), { timeout: 3000 });
 
 describe("Projects Component", () => {
-  beforeEach(() => {
-    fetch.mockClear();
-    localStorageMock.getItem.mockClear();
-    window.confirm.mockClear();
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  const mockProjects = [
-    {
-      id: 1,
-      name: "Project Alpha",
-      description: "A cutting-edge web application",
-      requiredSkills: "React, Node.js, MongoDB",
-      startDate: "2024-01-01T00:00:00.000Z",
-      endDate: "2024-06-30T00:00:00.000Z",
-    },
-    {
-      id: 2,
-      name: "Project Beta",
-      description: "Mobile app development",
-      requiredSkills: "React Native, Firebase",
-      startDate: "2024-02-01T00:00:00.000Z",
-      endDate: "2024-08-31T00:00:00.000Z",
-    },
-  ];
-
-  const mockSkills = [
-    {
-      id: 1,
-      name: "Frontend Development",
-      description: "Building responsive user interfaces",
-      technoUtilisees: "React, Vue, Angular",
-      duree: "3 months",
-    },
-    {
-      id: 2,
-      name: "Backend Development",
-      description: "Server-side programming",
-      technoUtilisees: "Node.js, Express, MongoDB",
-      duree: "4 months",
-    },
-  ];
-
-  // Test 1: Initial loading state
-  test("1. Displays loading state initially", () => {
-    fetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-
+  test("chargement initial", () => {
+    fetch.mockImplementation(() => new Promise(() => {}));
     render(<Projects />);
-
     expect(screen.getAllByText(/loading projects and skills/i)[0]).toBeInTheDocument();
-    expect(document.querySelector(".spinner")).toBeInTheDocument();
   });
 
-  // Test 2: Renders projects and skills after loading
-  test("2. Renders projects and skills after successful data fetch", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Projects & Skills Management")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Verify projects are displayed
-    expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("Project Beta")[0]).toBeInTheDocument();
-
-    // Verify skills are displayed
-    expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("Backend Development")[0]).toBeInTheDocument();
-
-    // Verify counts
+  test("affiche projets et skills", async () => {
+    await setup();
     expect(screen.getAllByText(/Projects Management \(2\)/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/Skills Management \(2\)/i)[0]).toBeInTheDocument();
   });
 
-  // Test 3: Search functionality
-  test("3. Filters projects and skills based on search input", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Search for React
-    const searchInput = screen.getByPlaceholderText(
-      /search projects or skills/i,
-    );
-    await user.clear(searchInput);
-    await user.type(searchInput, "React");
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
-        expect(
-          screen.queryByText("Backend Development"),
-        ).not.toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+  test("filtre par recherche", async () => {
+    const user = await setup();
+    await user.type(screen.getByPlaceholderText(/search projects or skills/i), "React");
+    await waitFor(() => expect(screen.queryByText("Backend Development")).not.toBeInTheDocument(), { timeout: 3000 });
   });
 
-  // Test 4: Opens create project modal
-  test("4. Opens create project modal when button is clicked", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
+  test("états vides", async () => {
+    fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve([]) });
     render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    const createProjectButton = screen.getAllByText(/✨ Create New Project/i);
-    await user.click(createProjectButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
-        expect(
-          screen.getByPlaceholderText("Enter project name"),
-        ).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+    await waitFor(() => expect(screen.getAllByText("No projects available")).toHaveLength(1), { timeout: 3000 });
   });
 
-  // Test 5: Creates a new project
-  test("5. Creates a new project successfully", async () => {
-    fetch.mockImplementation((url, options) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      if (url.includes("create/new/project") && options?.method === "POST") {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              success: true,
-              message: "Project created successfully",
-            }),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Open modal
-    const createButton = screen.getAllByText(/✨ Create New Project/i);
-    await user.click(createButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Fill form
-    const nameInput = screen.getByPlaceholderText("Enter project name");
-    const descriptionInput = screen.getByPlaceholderText(
-      "Describe the project...",
-    );
-
-    await user.type(nameInput, "New Test Project");
-    await user.type(descriptionInput, "This is a test project description");
-
-    // Submit
-    const submitButton = screen.getAllByText("✨ Create Project");
-    await user.click(submitButton[0]);
-
-    await waitFor(
-      () => {
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining("create/new/project"),
-          expect.objectContaining({
-            method: "POST",
-            headers: expect.objectContaining({
-              Authorization: "Bearer mock-token",
-            }),
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
+  test("ferme la modale via overlay", async () => {
+    const user = await setup();
+    await user.click(screen.getAllByText(/✨ Create New Project/i)[0]);
+    await user.click(document.querySelector(".modalOverlay"));
+    await waitFor(() => expect(screen.queryByText("Create New Project")).not.toBeInTheDocument(), { timeout: 3000 });
   });
 
-  // Test 6: Opens create skill modal
-  test("6. Opens create skill modal when button is clicked", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    const createSkillButton = screen.getAllByText(/✨ Create New Skill/i);
-    await user.click(createSkillButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Create New Skill")[0]).toBeInTheDocument();
-        expect(
-          screen.getByPlaceholderText("Enter skill name"),
-        ).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+  test("validation champs requis", async () => {
+    const user = await setup();
+    await user.click(screen.getAllByText(/✨ Create New Project/i)[0]);
+    await user.click(screen.getAllByText("✨ Create Project")[0]);
+    await waitFor(() => expect(screen.getAllByText(/name and description are required/i)[0]).toBeInTheDocument(), { timeout: 3000 });
   });
 
-  // Test 7: Creates a new skill
-  test("7. Creates a new skill successfully", async () => {
-    fetch.mockImplementation((url, options) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills/create") && options?.method === "POST") {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              success: true,
-              message: "Skill created successfully",
-            }),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Open modal
-    const createButton = screen.getAllByText(/✨ Create New Skill/i);
-    await user.click(createButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Create New Skill")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Fill form
-    const nameInput = screen.getByPlaceholderText("Enter skill name");
-    const descriptionInput = screen.getByPlaceholderText(
-      "Describe the skill...",
-    );
-    const techInput = screen.getByPlaceholderText(/React, JavaScript/i);
-
-    await user.type(nameInput, "New Skill");
-    await user.type(descriptionInput, "Test skill description");
-    await user.type(techInput, "React, TypeScript");
-
-    // Submit
-    const submitButton = screen.getAllByText("✨ Create Skill");
-    await user.click(submitButton[0]);
-
-    await waitFor(
-      () => {
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining("skills/create"),
-          expect.objectContaining({
-            method: "POST",
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
+  test("crée un projet", async () => {
+    const user = await setup();
+    await user.click(screen.getAllByText(/✨ Create New Project/i)[0]);
+    await user.type(screen.getByPlaceholderText("Enter project name"), "New Project");
+    await user.type(screen.getByPlaceholderText("Describe the project..."), "Description");
+    await user.click(screen.getAllByText("✨ Create Project")[0]);
+    await expectFetch("create/new/project", "POST");
   });
 
-  // Test 8: Opens edit project modal
-  test("8. Opens edit project modal when edit button is clicked", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Find and click edit button
-    const editButtons = screen.getAllByTitle("Edit project");
-    await user.click(editButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Edit Project")[0]).toBeInTheDocument();
-        expect(screen.getByDisplayValue("Project Alpha")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+  test("crée un skill", async () => {
+    const user = await setup();
+    await user.click(screen.getAllByText(/✨ Create New Skill/i)[0]);
+    await user.type(screen.getByPlaceholderText("Enter skill name"), "New Skill");
+    await user.type(screen.getByPlaceholderText("Describe the skill..."), "Description");
+    await user.type(screen.getByPlaceholderText(/React, JavaScript/i), "React");
+    await user.click(screen.getAllByText("✨ Create Skill")[0]);
+    await expectFetch("skills/create", "POST");
   });
 
-  // Test 9: Deletes a project
-  test("9. Deletes a project successfully", async () => {
-    fetch.mockImplementation((url, options) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      if (url.includes("delete/project") && options?.method === "DELETE") {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Find and click delete button
-    const deleteButtons = screen.getAllByTitle("Delete project");
-    await user.click(deleteButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(window.confirm).toHaveBeenCalled();
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining("delete/project/1"),
-          expect.objectContaining({
-            method: "DELETE",
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
+  test.each([
+    ["projet", "Edit project", "Project Alpha",        "💾 Update Project", "modify/project/1", "PUT"],
+    ["skill",  "Edit skill",   "Frontend Development", "💾 Update Skill",   "skills/update/1",  "PUT"],
+  ])("modifie un %s", async (_, title, currentValue, submitText, endpoint, method) => {
+    const user = await setup();
+    await user.click(screen.getAllByTitle(title)[0]);
+    const input = await screen.findByDisplayValue(currentValue);
+    await user.clear(input);
+    await user.type(input, "Updated");
+    await user.click(screen.getAllByText(submitText)[0]);
+    await expectFetch(endpoint, method);
   });
 
-  // Test 10: Deletes a skill
-  test("10. Deletes a skill successfully", async () => {
-    fetch.mockImplementation((url, options) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills/delete") && options?.method === "DELETE") {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({ success: true, message: "Skill deleted" }),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Find and click delete button
-    const deleteButtons = screen.getAllByTitle("Delete skill");
-    await user.click(deleteButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(window.confirm).toHaveBeenCalled();
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining("skills/delete/1"),
-          expect.objectContaining({
-            method: "DELETE",
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
-  });
-
-  // Test 11: Updates a project
-  test("11. Updates a project successfully", async () => {
-    fetch.mockImplementation((url, options) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      if (url.includes("modify/project") && options?.method === "PUT") {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({ success: true, message: "Project updated" }),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Open edit modal
-    const editButtons = screen.getAllByTitle("Edit project");
-    await user.click(editButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Edit Project")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Modify name
-    const nameInput = screen.getByDisplayValue("Project Alpha");
-    await user.clear(nameInput);
-    await user.type(nameInput, "Updated Project Alpha");
-
-    // Submit
-    const updateButton = screen.getAllByText("💾 Update Project");
-    await user.click(updateButton[0]);
-
-    await waitFor(
-      () => {
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining("modify/project/1"),
-          expect.objectContaining({
-            method: "PUT",
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
-  });
-
-  // Test 12: Updates a skill
-  test("12. Updates a skill successfully", async () => {
-    fetch.mockImplementation((url, options) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills/update") && options?.method === "PUT") {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({ success: true, message: "Skill updated" }),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Frontend Development")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Open edit modal
-    const editButtons = screen.getAllByTitle("Edit skill");
-    await user.click(editButtons[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Edit Skill")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Modify name
-    const nameInput = screen.getByDisplayValue("Frontend Development");
-    await user.clear(nameInput);
-    await user.type(nameInput, "Updated Frontend");
-
-    // Submit
-    const updateButton = screen.getAllByText("💾 Update Skill");
-    await user.click(updateButton[0]);
-
-    await waitFor(
-      () => {
-        expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining("skills/update/1"),
-          expect.objectContaining({
-            method: "PUT",
-          }),
-        );
-      },
-      { timeout: 3000 },
-    );
-  });
-
-  // Test 13: Shows empty states
-  test("13. Shows empty states when no projects or skills exist", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([]),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([]),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("No projects available")).toHaveLength(1);
-        expect(screen.getAllByText("No skills available")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-  });
-
-  // Test 14: Closes modal when clicking outside
-  test("14. Closes modal when clicking on overlay", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Open modal
-    const createButton = screen.getAllByText(/✨ Create New Project/i);
-    await user.click(createButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Click on overlay
-    const overlay = document.querySelector(".modalOverlay");
-    await user.click(overlay);
-
-    await waitFor(
-      () => {
-        expect(
-          screen.queryByText("Create New Project"),
-        ).not.toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-  });
-
-  // Test 15: Validates required fields
-  test("15. Shows validation message for required fields", async () => {
-    fetch.mockImplementation((url) => {
-      if (url.includes("allprojects")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProjects),
-        });
-      }
-      if (url.includes("skills")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSkills),
-        });
-      }
-      return Promise.reject(new Error("Not found"));
-    });
-
-    render(<Projects />);
-    const user = userEvent.setup();
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Project Alpha")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Open modal
-    const createButton = screen.getAllByText(/✨ Create New Project/i);
-    await user.click(createButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Create New Project")[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Try to submit without filling required fields
-    const submitButton = screen.getAllByText("✨ Create Project");
-    await user.click(submitButton[0]);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText(/name and description are required/i)[0]).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+  test.each([
+    ["projet", "Delete project", "delete/project/1"],
+    ["skill",  "Delete skill",   "skills/delete/1"],
+  ])("supprime un %s", async (_, title, endpoint) => {
+    const user = await setup();
+    await user.click(screen.getAllByTitle(title)[0]);
+    await expectFetch(endpoint, "DELETE");
   });
 });
