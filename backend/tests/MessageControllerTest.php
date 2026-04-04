@@ -7,7 +7,7 @@ use App\Entity\Conversation;
 use App\Entity\Message;
 use App\Entity\User;
 use App\Repository\MessageRepository;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
@@ -27,7 +27,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class TestableMessageController extends MessageController
 {
-    public function __construct(MessageRepository $r, EntityManagerInterface $em, PapertrailService $pt, private readonly bool $accept = true)
+    public function __construct(MessageRepository $r, EntityManagerInterface $em, AxiomService $pt, private readonly bool $accept = true)
     {
         parent::__construct($r, $em, $pt);
     }
@@ -58,15 +58,15 @@ class MessageControllerTest extends WebTestCase
 {
     private MessageRepository&MockObject $messageRepo;
     private EntityManagerInterface&MockObject $em;
-    private PapertrailService&MockObject $papertrail;
+    private AxiomService&MockObject $Axiom;
     private MessageController $controller;
 
     protected function setUp(): void
     {
         $this->messageRepo = $this->createMock(MessageRepository::class);
         $this->em          = $this->createMock(EntityManagerInterface::class);
-        $this->papertrail  = $this->createMock(PapertrailService::class);
-        $this->controller  = new MessageController($this->messageRepo, $this->em, $this->papertrail);
+        $this->Axiom  = $this->createMock(AxiomService::class);
+        $this->controller  = new MessageController($this->messageRepo, $this->em, $this->Axiom);
     }
 
     // =========================================================================
@@ -116,7 +116,7 @@ class MessageControllerTest extends WebTestCase
 
     public function ctrlWithUser(User $user, ?EntityManagerInterface $em = null): MessageController
     {
-        $r = $this->messageRepo; $pt = $this->papertrail;
+        $r = $this->messageRepo; $pt = $this->Axiom;
         return new class($r, $em ?? $this->em, $pt, $user) extends MessageController {
             private UserInterface $u;
             public function __construct($r, $e, $p, $u) { parent::__construct($r, $e, $p); $this->u = $u; }
@@ -126,12 +126,12 @@ class MessageControllerTest extends WebTestCase
 
     private function ctrlAccepting(?EntityManagerInterface $em = null): TestableMessageController
     {
-        return new TestableMessageController($this->messageRepo, $em ?? $this->em, $this->papertrail, true);
+        return new TestableMessageController($this->messageRepo, $em ?? $this->em, $this->Axiom, true);
     }
 
     private function ctrlRejecting(): TestableMessageController
     {
-        return new TestableMessageController($this->messageRepo, $this->em, $this->papertrail, false);
+        return new TestableMessageController($this->messageRepo, $this->em, $this->Axiom, false);
     }
 
     private function jsonReq(array $payload): Request
@@ -208,7 +208,7 @@ class MessageControllerTest extends WebTestCase
 
     public function testGetConnectedUserUnauthenticated(): void
     {
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail) extends MessageController {
+        $ctrl = new class($this->messageRepo, $this->em, $this->Axiom) extends MessageController {
             public function getUser(): ?UserInterface { return null; }
         };
         $this->assertSame(401, $ctrl->getConnectedUser()->getStatusCode());
@@ -216,7 +216,7 @@ class MessageControllerTest extends WebTestCase
 
     public function testGetConnectedUserNotUserInstanceReturns500(): void
     {
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail) extends MessageController {
+        $ctrl = new class($this->messageRepo, $this->em, $this->Axiom) extends MessageController {
             public function getUser(): ?UserInterface {
                 return new class implements UserInterface {
                     public function getRoles(): array { return []; }
@@ -265,14 +265,14 @@ class MessageControllerTest extends WebTestCase
     public function testGetConnectedUserInvalidDatesLogsWarningAndReturns200(): void
     {
         $user = $this->makeUser(start: new \DateTimeImmutable('+10 days'), end: new \DateTimeImmutable('+1 day'));
-        $this->papertrail->expects($this->atLeast(2))->method('warning');
+        $this->Axiom->expects($this->atLeast(2))->method('warning');
         $this->assertSame(200, $this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo(null)]))->getConnectedUser()->getStatusCode());
     }
 
     public function testGetConnectedUserOnlyStartDateLogsWarning(): void
     {
         $user = $this->makeUser(start: new \DateTimeImmutable('+1 day'), end: null);
-        $this->papertrail->expects($this->atLeastOnce())->method('warning');
+        $this->Axiom->expects($this->atLeastOnce())->method('warning');
         $this->assertSame(200, $this->ctrlWithUser($user, $this->buildEm([User::class => $this->userRepo(null)]))->getConnectedUser()->getStatusCode());
     }
 
@@ -301,7 +301,7 @@ class MessageControllerTest extends WebTestCase
 
     public function testGetUserConversationsUnauthenticated(): void
     {
-        $ctrl = new class($this->messageRepo, $this->em, $this->papertrail) extends MessageController {
+        $ctrl = new class($this->messageRepo, $this->em, $this->Axiom) extends MessageController {
             public function getUser(): ?UserInterface { return null; }
         };
         $this->assertSame(401, $ctrl->getUserConversations($this->em)->getStatusCode());
@@ -387,7 +387,7 @@ class MessageControllerTest extends WebTestCase
         $convRepo = $this->createMock(EntityRepository::class);
         $convRepo->method('createQueryBuilder')->willReturn($this->qbList([$conv]));
         $em = $this->buildEm([Conversation::class => $convRepo, User::class => $this->userRepo(null)]);
-        $this->papertrail->expects($this->atLeastOnce())->method('warning');
+        $this->Axiom->expects($this->atLeastOnce())->method('warning');
         $this->assertCount(1, json_decode($this->ctrlWithUser($me, $em)->getUserConversations($em)->getContent(), true));
     }
 
@@ -1144,7 +1144,7 @@ class MessageControllerTest extends WebTestCase
             end:   isset($userConfig['end'])   ? new \DateTimeImmutable($userConfig['end'])   : null,
         );
         $em   = $useCustomEm ? $this->buildEm([User::class => $this->userRepo(null)]) : $this->em;
-        $ctrl = new MessageController($this->messageRepo, $em, $this->papertrail);
+        $ctrl = new MessageController($this->messageRepo, $em, $this->Axiom);
         $result = $this->reflectMethod('validateUserState')->invoke($ctrl, $user);
         $this->assertSame($valid, $result['valid']);
         if ($error) $this->assertSame($error, $result['error']);
@@ -1170,7 +1170,7 @@ class MessageControllerTest extends WebTestCase
     {
         $user   = $this->makeUser(1, 'Jean', 'Dupont', 'jean@example.com');
         $em     = $this->buildEm([User::class => $this->userRepo($this->makeUser(2, 'A', 'B', 'jean@example.com'))]);
-        $result = $this->reflectMethod('validateUserState')->invoke(new MessageController($this->messageRepo, $em, $this->papertrail), $user);
+        $result = $this->reflectMethod('validateUserState')->invoke(new MessageController($this->messageRepo, $em, $this->Axiom), $user);
         $this->assertFalse($result['valid']);
         $this->assertStringContainsString('Invalid user email', $result['error']);
     }

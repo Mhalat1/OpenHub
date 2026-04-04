@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -12,7 +12,7 @@ class LoginController extends AbstractController
 {
     public function __construct(
         private AuthenticationServiceInterface $authService,
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {}
 
     #[Route(path: '/api/login', name: 'app_login', methods: ['POST'])]
@@ -22,12 +22,12 @@ class LoginController extends AbstractController
         $lastUsername = $this->authService->getLastUsername();
 
         if ($error) {
-            $this->papertrailLogger->warning('Login failed', [
+            $this->AxiomLogger->warning('Login failed', [
                 'username' => $lastUsername,
                 'error'    => $error->getMessageKey(),
             ]);
         } else {
-            $this->papertrailLogger->info('Login successful', [
+            $this->AxiomLogger->info('Login successful', [
                 'username' => $lastUsername,
             ]);
         }
@@ -41,7 +41,7 @@ class LoginController extends AbstractController
     #[Route(path: '/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
     public function loginCheck(): Response
     {
-        $this->papertrailLogger->error('JWT firewall bypass detected - login_check reached controller', [
+        $this->AxiomLogger->error('JWT firewall bypass detected - login_check reached controller', [
             'endpoint' => '/api/login_check',
         ]);
 
@@ -54,7 +54,7 @@ class LoginController extends AbstractController
     #[Route(path: '/logout', name: 'app_logout', methods: ['GET', 'POST'])]
     public function logout(): Response
     {
-        $this->papertrailLogger->warning('Logout endpoint reached controller - should be intercepted by firewall');
+        $this->AxiomLogger->warning('Logout endpoint reached controller - should be intercepted by firewall');
 
         return $this->json([
             'message' => 'Logout endpoint - should be intercepted by firewall'

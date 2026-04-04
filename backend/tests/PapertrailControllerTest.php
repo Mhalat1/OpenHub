@@ -2,80 +2,80 @@
 
 namespace App\Tests\Controller;
 
-use App\Controller\PapertrailController;
-use App\Service\PapertrailService;
+use App\Controller\AxiomController;
+use App\Service\AxiomService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface as PsrContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
-class PapertrailControllerTest extends TestCase
+class AxiomControllerTest extends TestCase
 {
-    private PapertrailService&MockObject $papertrail;
-    private PapertrailController $controller;
+    private AxiomService&MockObject $Axiom;
+    private AxiomController $controller;
 
     protected function setUp(): void
     {
-        $this->papertrail = $this->createMock(PapertrailService::class);
-        $this->controller = new PapertrailController($this->papertrail);
+        $this->Axiom = $this->createMock(AxiomService::class);
+        $this->controller = new AxiomController($this->Axiom);
         $this->controller->setContainer(new class implements PsrContainerInterface {
             public function get(string $id): mixed { return null; }
             public function has(string $id): bool  { return false; }
         });
     }
 
-    public function testPapertrailEndpointReturns200(): void
+    public function testAxiomEndpointReturns200(): void
     {
-        $response = $this->controller->testPapertrail();
+        $response = $this->controller->testAxiom();
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
     }
 
-    public function testPapertrailResponseIsJson(): void
+    public function testAxiomResponseIsJson(): void
     {
-        $response = $this->controller->testPapertrail();
+        $response = $this->controller->testAxiom();
         $this->assertSame('application/json', $response->headers->get('Content-Type'));
     }
 
-    public function testPapertrailResponseHasExpectedKeys(): void
+    public function testAxiomResponseHasExpectedKeys(): void
     {
-        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data = json_decode($this->controller->testAxiom()->getContent(), true);
         $this->assertArrayHasKey('success',        $data);
         $this->assertArrayHasKey('message',        $data);
         $this->assertArrayHasKey('log',            $data);
-        $this->assertArrayHasKey('papertrail_url', $data);
+        $this->assertArrayHasKey('Axiom_url', $data);
     }
 
-    public function testPapertrailResponseSuccessIsTrue(): void
+    public function testAxiomResponseSuccessIsTrue(): void
     {
-        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data = json_decode($this->controller->testAxiom()->getContent(), true);
         $this->assertTrue($data['success']);
     }
 
-    public function testPapertrailMessageFieldIsCorrect(): void
+    public function testAxiomMessageFieldIsCorrect(): void
     {
-        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
-        $this->assertSame('Log envoyé à Papertrail', $data['message']);
+        $data = json_decode($this->controller->testAxiom()->getContent(), true);
+        $this->assertSame('Log envoyé à Axiom', $data['message']);
     }
 
-    public function testPapertrailLogFieldContainsExpectedPrefix(): void
+    public function testAxiomLogFieldContainsExpectedPrefix(): void
     {
-        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data = json_decode($this->controller->testAxiom()->getContent(), true);
         $this->assertStringStartsWith('Test depuis open-hub - ', $data['log']);
     }
 
-    public function testPapertrailLogFieldContainsTimestamp(): void
+    public function testAxiomLogFieldContainsTimestamp(): void
     {
-        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data = json_decode($this->controller->testAxiom()->getContent(), true);
         $this->assertMatchesRegularExpression(
             '/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/',
             $data['log']
         );
     }
 
-    public function testPapertrailLogTimestampIsRecent(): void
+    public function testAxiomLogTimestampIsRecent(): void
     {
         $before = time();
-        $data   = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data   = json_decode($this->controller->testAxiom()->getContent(), true);
         $after  = time();
 
         preg_match('/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', $data['log'], $matches);
@@ -86,45 +86,45 @@ class PapertrailControllerTest extends TestCase
         $this->assertLessThanOrEqual($after, $logTime);
     }
 
-    public function testPapertrailUrlFieldIsNotEmpty(): void
+    public function testAxiomUrlFieldIsNotEmpty(): void
     {
-        $data = json_decode($this->controller->testPapertrail()->getContent(), true);
-        $this->assertNotEmpty($data['papertrail_url']);
+        $data = json_decode($this->controller->testAxiom()->getContent(), true);
+        $this->assertNotEmpty($data['Axiom_url']);
     }
 
-    public function testPapertrailInfoIsCalledOnce(): void
+    public function testAxiomInfoIsCalledOnce(): void
     {
-        $this->papertrail->expects($this->once())->method('info');
-        $this->controller->testPapertrail();
+        $this->Axiom->expects($this->once())->method('info');
+        $this->controller->testAxiom();
     }
 
-    public function testPapertrailCanBeCalledMultipleTimesWithoutError(): void
+    public function testAxiomCanBeCalledMultipleTimesWithoutError(): void
     {
         for ($i = 0; $i < 3; $i++) {
-            $response = $this->controller->testPapertrail();
+            $response = $this->controller->testAxiom();
             $this->assertSame(Response::HTTP_OK, $response->getStatusCode(), "Appel #{$i} doit retourner 200");
         }
     }
 
-    public function testPapertrailEachCallHasUniqueTimestamp(): void
+    public function testAxiomEachCallHasUniqueTimestamp(): void
     {
-        $data1 = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data1 = json_decode($this->controller->testAxiom()->getContent(), true);
         sleep(1);
-        $data2 = json_decode($this->controller->testPapertrail()->getContent(), true);
+        $data2 = json_decode($this->controller->testAxiom()->getContent(), true);
 
         $this->assertNotSame($data1['log'], $data2['log']);
     }
 
-    public function testPapertrailHandlesServiceException(): void
+    public function testAxiomHandlesServiceException(): void
     {
-        $this->papertrail->method('info')
-            ->willThrowException(new \Exception('Simulated Papertrail failure'));
+        $this->Axiom->method('info')
+            ->willThrowException(new \Exception('Simulated Axiom failure'));
 
-        $response = $this->controller->testPapertrail();
+        $response = $this->controller->testAxiom();
 
         $this->assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
-        $this->assertSame('Simulated Papertrail failure', $data['error']);
+        $this->assertSame('Simulated Axiom failure', $data['error']);
     }
 }

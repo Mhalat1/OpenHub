@@ -18,7 +18,7 @@ class TraceIdGenerator
 
     private function generate(): string
     {
-        // Format : timestamp-random pour lisibilité dans Papertrail
+        // Format : timestamp-random pour lisibilité dans Axiom
         return sprintf(
             '%s-%s',
             date('His'),                    // ex: 143052

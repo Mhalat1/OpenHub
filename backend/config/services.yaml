@@ -8,10 +8,10 @@ services:
  
     App\Service\AuthenticationServiceInterface: '@App\Service\AuthenticationService'
 
-    App\Service\PapertrailService:
+    App\Service\AXIOMService:
         arguments:
-            $url: '%env(PAPERTRAIL_URL)%'
-            $token: '%env(PAPERTRAIL_TOKEN)%'
+            $url: '%env(AXIOM_URL)%'
+            $token: '%env(AXIOM_TOKEN)%'
 
 
     App\Service\TraceIdGenerator:

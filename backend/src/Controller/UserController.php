@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,7 +25,7 @@ final class UserController extends AbstractController
     public function __construct(
         EntityManagerInterface $manager,
         UserService $userService,
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {
         $this->manager        = $manager;
         $this->userRepository = $this->manager->getRepository(User::class);
@@ -44,12 +44,12 @@ final class UserController extends AbstractController
         $availabilityStart = $data['availabilityStart'] ?? null;
         $availabilityEnd   = $data['availabilityEnd']   ?? null;
 
-        $this->papertrailLogger->info('User creation attempt', [
+        $this->AxiomLogger->info('User creation attempt', [
             'email' => $email,
         ]);
 
         if (!$email || !$password) {
-            $this->papertrailLogger->warning('User creation - missing email or password', [
+            $this->AxiomLogger->warning('User creation - missing email or password', [
                 'email' => $email,
             ]);
             return new JsonResponse([
@@ -60,7 +60,7 @@ final class UserController extends AbstractController
 
         $emailExists = $this->userRepository->findOneBy(['email' => $email]);
         if ($emailExists) {
-            $this->papertrailLogger->warning('User creation - email already in use', [
+            $this->AxiomLogger->warning('User creation - email already in use', [
                 'email' => $email,
             ]);
             return new JsonResponse([
@@ -75,7 +75,7 @@ final class UserController extends AbstractController
             if ($availabilityStart) {
                 $startDate = new \DateTimeImmutable($availabilityStart);
                 if ($startDate < $today) {
-                    $this->papertrailLogger->warning('User creation - availabilityStart in the past', [
+                    $this->AxiomLogger->warning('User creation - availabilityStart in the past', [
                         'email' => $email,
                         'value' => $availabilityStart,
                     ]);
@@ -89,7 +89,7 @@ final class UserController extends AbstractController
             if ($availabilityEnd) {
                 $endDate = new \DateTimeImmutable($availabilityEnd);
                 if ($endDate < $today) {
-                    $this->papertrailLogger->warning('User creation - availabilityEnd in the past', [
+                    $this->AxiomLogger->warning('User creation - availabilityEnd in the past', [
                         'email' => $email,
                         'value' => $availabilityEnd,
                     ]);
@@ -101,7 +101,7 @@ final class UserController extends AbstractController
             }
 
             if ($availabilityStart && $availabilityEnd && $endDate < $startDate) {
-                $this->papertrailLogger->warning('User creation - endDate before startDate', [
+                $this->AxiomLogger->warning('User creation - endDate before startDate', [
                     'email'             => $email,
                     'availabilityStart' => $availabilityStart,
                     'availabilityEnd'   => $availabilityEnd,
@@ -125,7 +125,7 @@ final class UserController extends AbstractController
         $this->manager->persist($user);
         $this->manager->flush();
 
-        $this->papertrailLogger->info('✅ User created successfully', [
+        $this->AxiomLogger->info('✅ User created successfully', [
             'user_id' => $user->getId(),
             'email'   => $user->getEmail(),
         ]);
@@ -150,7 +150,7 @@ final class UserController extends AbstractController
     {
         $users = $this->userRepository->findAll();
 
-        $this->papertrailLogger->info('All users fetched', [
+        $this->AxiomLogger->info('All users fetched', [
             'count' => count($users),
         ]);
 
@@ -172,14 +172,14 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user) {
-            $this->papertrailLogger->warning('getConnectedUser - user not authenticated');
+            $this->AxiomLogger->warning('getConnectedUser - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
         if (!$user instanceof User) {
             $userEntity = $this->userRepository->findOneBy(['email' => $user->getUserIdentifier()]);
             if (!$userEntity) {
-                $this->papertrailLogger->warning('getConnectedUser - user entity not found', [
+                $this->AxiomLogger->warning('getConnectedUser - user entity not found', [
                     'identifier' => $user->getUserIdentifier(),
                 ]);
                 return new JsonResponse(['message' => 'User entity not found'], 404);
@@ -189,7 +189,7 @@ final class UserController extends AbstractController
 
         $userData = $this->userService->findAll($user);
 
-        $this->papertrailLogger->info('Connected user fetched', [
+        $this->AxiomLogger->info('Connected user fetched', [
             'user_id' => $user->getId(),
         ]);
 
@@ -210,14 +210,14 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('getUserSkills - user not authenticated');
+            $this->AxiomLogger->warning('getUserSkills - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
         try {
             $skills = $user->getSkills();
 
-            $this->papertrailLogger->info('User skills fetched', [
+            $this->AxiomLogger->info('User skills fetched', [
                 'user_id' => $user->getId(),
                 'count'   => count($skills),
             ]);
@@ -235,7 +235,7 @@ final class UserController extends AbstractController
 
             return new JsonResponse($data);
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error fetching user skills', [
+            $this->AxiomLogger->error('Error fetching user skills', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -252,7 +252,7 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('getAllSkills - user not authenticated');
+            $this->AxiomLogger->warning('getAllSkills - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -260,7 +260,7 @@ final class UserController extends AbstractController
             $skillsRepo = $this->manager->getRepository(Skills::class);
             $allSkills  = $skillsRepo->findAll();
 
-            $this->papertrailLogger->info('All skills fetched', [
+            $this->AxiomLogger->info('All skills fetched', [
                 'user_id' => $user->getId(),
                 'count'   => count($allSkills),
             ]);
@@ -285,7 +285,7 @@ final class UserController extends AbstractController
 
                     $data[] = $skillData;
                 } catch (\Exception $e) {
-                    $this->papertrailLogger->warning('Error processing skill', [
+                    $this->AxiomLogger->warning('Error processing skill', [
                         'skill_id' => $skill->getId(),
                         'error'    => $e->getMessage(),
                     ]);
@@ -295,7 +295,7 @@ final class UserController extends AbstractController
 
             return new JsonResponse($data);
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error fetching all skills', [
+            $this->AxiomLogger->error('Error fetching all skills', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -314,35 +314,35 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('createSkill - user not authenticated');
+            $this->AxiomLogger->warning('createSkill - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
         try {
             $data = json_decode($request->getContent(), true);
 
-            $this->papertrailLogger->info('Skill creation attempt', [
+            $this->AxiomLogger->info('Skill creation attempt', [
                 'user_id'    => $user->getId(),
                 'skill_name' => $data['name'] ?? null,
             ]);
 
             if (empty($data['name'])) {
-                $this->papertrailLogger->warning('createSkill - missing name', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('createSkill - missing name', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Skill name is required'], 400);
             }
 
             if (empty($data['description'])) {
-                $this->papertrailLogger->warning('createSkill - missing description', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('createSkill - missing description', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Description is required'], 400);
             }
 
             if (empty($data['technoUtilisees'])) {
-                $this->papertrailLogger->warning('createSkill - missing technoUtilisees', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('createSkill - missing technoUtilisees', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Technologies used is required'], 400);
             }
 
             if (empty($data['duree'])) {
-                $this->papertrailLogger->warning('createSkill - missing duree', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('createSkill - missing duree', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Duration is required'], 400);
             }
 
@@ -350,7 +350,7 @@ final class UserController extends AbstractController
             $existingSkill = $skillsRepo->findOneBy(['Name' => $data['name']]);
 
             if ($existingSkill) {
-                $this->papertrailLogger->warning('createSkill - skill name already exists', [
+                $this->AxiomLogger->warning('createSkill - skill name already exists', [
                     'user_id'    => $user->getId(),
                     'skill_name' => $data['name'],
                 ]);
@@ -366,7 +366,7 @@ final class UserController extends AbstractController
                 $duree = new \DateTimeImmutable($data['duree']);
                 $skill->setDuree($duree);
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('createSkill - invalid duree format', [
+                $this->AxiomLogger->warning('createSkill - invalid duree format', [
                     'user_id' => $user->getId(),
                     'value'   => $data['duree'],
                     'error'   => $e->getMessage(),
@@ -377,7 +377,7 @@ final class UserController extends AbstractController
             $this->manager->persist($skill);
             $this->manager->flush();
 
-            $this->papertrailLogger->info('✅ Skill created', [
+            $this->AxiomLogger->info('✅ Skill created', [
                 'user_id'    => $user->getId(),
                 'skill_id'   => $skill->getId(),
                 'skill_name' => $skill->getName(),
@@ -396,7 +396,7 @@ final class UserController extends AbstractController
             ], 201);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error creating skill', [
+            $this->AxiomLogger->error('Error creating skill', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -414,7 +414,7 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('updateSkill - user not authenticated');
+            $this->AxiomLogger->warning('updateSkill - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -423,7 +423,7 @@ final class UserController extends AbstractController
             $skill      = $skillsRepo->find($id);
 
             if (!$skill) {
-                $this->papertrailLogger->warning('updateSkill - skill not found', [
+                $this->AxiomLogger->warning('updateSkill - skill not found', [
                     'user_id'  => $user->getId(),
                     'skill_id' => $id,
                 ]);
@@ -432,7 +432,7 @@ final class UserController extends AbstractController
 
             $data = json_decode($request->getContent(), true);
 
-            $this->papertrailLogger->info('Skill update attempt', [
+            $this->AxiomLogger->info('Skill update attempt', [
                 'user_id'  => $user->getId(),
                 'skill_id' => $id,
                 'fields'   => array_keys($data),
@@ -441,7 +441,7 @@ final class UserController extends AbstractController
             if (isset($data['name'])) {
                 $existingSkill = $skillsRepo->findOneBy(['Name' => $data['name']]);
                 if ($existingSkill && $existingSkill->getId() !== $id) {
-                    $this->papertrailLogger->warning('updateSkill - name already exists', [
+                    $this->AxiomLogger->warning('updateSkill - name already exists', [
                         'user_id'    => $user->getId(),
                         'skill_id'   => $id,
                         'skill_name' => $data['name'],
@@ -463,7 +463,7 @@ final class UserController extends AbstractController
                 try {
                     $skill->setDuree(new \DateTimeImmutable($data['duree']));
                 } catch (\Exception $e) {
-                    $this->papertrailLogger->warning('updateSkill - invalid duree format', [
+                    $this->AxiomLogger->warning('updateSkill - invalid duree format', [
                         'user_id'  => $user->getId(),
                         'skill_id' => $id,
                         'value'    => $data['duree'],
@@ -475,7 +475,7 @@ final class UserController extends AbstractController
 
             $this->manager->flush();
 
-            $this->papertrailLogger->info('✅ Skill updated', [
+            $this->AxiomLogger->info('✅ Skill updated', [
                 'user_id'  => $user->getId(),
                 'skill_id' => $skill->getId(),
             ]);
@@ -493,7 +493,7 @@ final class UserController extends AbstractController
             ]);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error updating skill', [
+            $this->AxiomLogger->error('Error updating skill', [
                 'user_id'  => $user->getId(),
                 'skill_id' => $id,
                 'error'    => $e->getMessage(),
@@ -512,7 +512,7 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('deleteSkill - user not authenticated');
+            $this->AxiomLogger->warning('deleteSkill - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -521,7 +521,7 @@ final class UserController extends AbstractController
             $skill      = $skillsRepo->find($id);
 
             if (!$skill) {
-                $this->papertrailLogger->warning('deleteSkill - skill not found', [
+                $this->AxiomLogger->warning('deleteSkill - skill not found', [
                     'user_id'  => $user->getId(),
                     'skill_id' => $id,
                 ]);
@@ -533,7 +533,7 @@ final class UserController extends AbstractController
             $this->manager->remove($skill);
             $this->manager->flush();
 
-            $this->papertrailLogger->info('✅ Skill deleted', [
+            $this->AxiomLogger->info('✅ Skill deleted', [
                 'user_id'    => $user->getId(),
                 'skill_id'   => $id,
                 'skill_name' => $skillName,
@@ -545,7 +545,7 @@ final class UserController extends AbstractController
             ]);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error deleting skill', [
+            $this->AxiomLogger->error('Error deleting skill', [
                 'user_id'  => $user->getId(),
                 'skill_id' => $id,
                 'error'    => $e->getMessage(),
@@ -563,7 +563,7 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('addUserSkill - user not authenticated');
+            $this->AxiomLogger->warning('addUserSkill - user not authenticated');
             return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
         }
 
@@ -572,13 +572,13 @@ final class UserController extends AbstractController
             $skillId = $data['skill_id'] ?? null;
 
             if (!$skillId) {
-                $this->papertrailLogger->warning('addUserSkill - missing skill_id', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('addUserSkill - missing skill_id', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'ID de compétence manquant'], 400);
             }
 
             $skill = $em->getRepository(Skills::class)->find($skillId);
             if (!$skill) {
-                $this->papertrailLogger->warning('addUserSkill - skill not found', [
+                $this->AxiomLogger->warning('addUserSkill - skill not found', [
                     'user_id'  => $user->getId(),
                     'skill_id' => $skillId,
                 ]);
@@ -586,7 +586,7 @@ final class UserController extends AbstractController
             }
 
             if ($user->getSkills()->contains($skill)) {
-                $this->papertrailLogger->warning('addUserSkill - skill already added', [
+                $this->AxiomLogger->warning('addUserSkill - skill already added', [
                     'user_id'  => $user->getId(),
                     'skill_id' => $skillId,
                 ]);
@@ -597,7 +597,7 @@ final class UserController extends AbstractController
             $em->persist($user);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Skill added to user', [
+            $this->AxiomLogger->info('✅ Skill added to user', [
                 'user_id'    => $user->getId(),
                 'skill_id'   => $skill->getId(),
                 'skill_name' => $skill->getName(),
@@ -610,7 +610,7 @@ final class UserController extends AbstractController
             ], 201);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error adding skill to user', [
+            $this->AxiomLogger->error('Error adding skill to user', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -623,7 +623,7 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('removeUserSkill - user not authenticated');
+            $this->AxiomLogger->warning('removeUserSkill - user not authenticated');
             return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
         }
 
@@ -632,13 +632,13 @@ final class UserController extends AbstractController
             $skillId = $data['skill_id'] ?? null;
 
             if (!$skillId) {
-                $this->papertrailLogger->warning('removeUserSkill - missing skill_id', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('removeUserSkill - missing skill_id', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'ID de compétence manquant'], 400);
             }
 
             $skill = $em->getRepository(Skills::class)->find($skillId);
             if (!$skill) {
-                $this->papertrailLogger->warning('removeUserSkill - skill not found', [
+                $this->AxiomLogger->warning('removeUserSkill - skill not found', [
                     'user_id'  => $user->getId(),
                     'skill_id' => $skillId,
                 ]);
@@ -646,7 +646,7 @@ final class UserController extends AbstractController
             }
 
             if (!$user->getSkills()->contains($skill)) {
-                $this->papertrailLogger->warning('removeUserSkill - user does not have this skill', [
+                $this->AxiomLogger->warning('removeUserSkill - user does not have this skill', [
                     'user_id'  => $user->getId(),
                     'skill_id' => $skillId,
                 ]);
@@ -656,7 +656,7 @@ final class UserController extends AbstractController
             $user->removeSkill($skill);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Skill removed from user', [
+            $this->AxiomLogger->info('✅ Skill removed from user', [
                 'user_id'    => $user->getId(),
                 'skill_id'   => $skill->getId(),
                 'skill_name' => $skill->getName(),
@@ -669,7 +669,7 @@ final class UserController extends AbstractController
             ], 200);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error removing skill from user', [
+            $this->AxiomLogger->error('Error removing skill from user', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -682,7 +682,7 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('changeAvailability - user not authenticated');
+            $this->AxiomLogger->warning('changeAvailability - user not authenticated');
             return new JsonResponse(['message' => 'Utilisateur non connecté'], 401);
         }
 
@@ -692,7 +692,7 @@ final class UserController extends AbstractController
             $availabilityEnd   = $data['availabilityEnd']   ?? null;
 
             if (!$availabilityStart || !$availabilityEnd) {
-                $this->papertrailLogger->warning('changeAvailability - missing dates', [
+                $this->AxiomLogger->warning('changeAvailability - missing dates', [
                     'user_id' => $user->getId(),
                 ]);
                 return new JsonResponse(['success' => false, 'message' => 'availability not sended'], 400);
@@ -701,7 +701,7 @@ final class UserController extends AbstractController
             try {
                 $startDate = new \DateTimeImmutable($availabilityStart);
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('changeAvailability - invalid availabilityStart', [
+                $this->AxiomLogger->warning('changeAvailability - invalid availabilityStart', [
                     'user_id' => $user->getId(),
                     'value'   => $availabilityStart,
                     'error'   => $e->getMessage(),
@@ -712,7 +712,7 @@ final class UserController extends AbstractController
             try {
                 $endDate = new \DateTimeImmutable($availabilityEnd);
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('changeAvailability - invalid availabilityEnd', [
+                $this->AxiomLogger->warning('changeAvailability - invalid availabilityEnd', [
                     'user_id' => $user->getId(),
                     'value'   => $availabilityEnd,
                     'error'   => $e->getMessage(),
@@ -725,7 +725,7 @@ final class UserController extends AbstractController
             $em->persist($user);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Availability updated', [
+            $this->AxiomLogger->info('✅ Availability updated', [
                 'user_id'           => $user->getId(),
                 'availabilityStart' => $availabilityStart,
                 'availabilityEnd'   => $availabilityEnd,
@@ -739,7 +739,7 @@ final class UserController extends AbstractController
             ], 200);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error updating availability', [
+            $this->AxiomLogger->error('Error updating availability', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -753,14 +753,14 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('getUserProjects - user not authenticated');
+            $this->AxiomLogger->warning('getUserProjects - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
         try {
             $projects = $user->getProject();
 
-            $this->papertrailLogger->info('User projects fetched', [
+            $this->AxiomLogger->info('User projects fetched', [
                 'user_id' => $user->getId(),
                 'count'   => count($projects),
             ]);
@@ -779,7 +779,7 @@ final class UserController extends AbstractController
 
             return new JsonResponse($data);
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error fetching user projects', [
+            $this->AxiomLogger->error('Error fetching user projects', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -793,7 +793,7 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('addUserToProject - user not authenticated');
+            $this->AxiomLogger->warning('addUserToProject - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -802,13 +802,13 @@ final class UserController extends AbstractController
             $projectId = $data['project_id'] ?? null;
 
             if (!$projectId) {
-                $this->papertrailLogger->warning('addUserToProject - missing project_id', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('addUserToProject - missing project_id', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Project ID required'], 400);
             }
 
             $project = $em->getRepository(Project::class)->find($projectId);
             if (!$project) {
-                $this->papertrailLogger->warning('addUserToProject - project not found', [
+                $this->AxiomLogger->warning('addUserToProject - project not found', [
                     'user_id'    => $user->getId(),
                     'project_id' => $projectId,
                 ]);
@@ -816,7 +816,7 @@ final class UserController extends AbstractController
             }
 
             if ($user->getProject()->contains($project)) {
-                $this->papertrailLogger->warning('addUserToProject - user already in project', [
+                $this->AxiomLogger->warning('addUserToProject - user already in project', [
                     'user_id'    => $user->getId(),
                     'project_id' => $projectId,
                 ]);
@@ -826,7 +826,7 @@ final class UserController extends AbstractController
             $user->addProject($project);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ User added to project', [
+            $this->AxiomLogger->info('✅ User added to project', [
                 'user_id'      => $user->getId(),
                 'project_id'   => $project->getId(),
                 'project_name' => $project->getName(),
@@ -839,7 +839,7 @@ final class UserController extends AbstractController
             ], 200);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error adding user to project', [
+            $this->AxiomLogger->error('Error adding user to project', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -853,7 +853,7 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('removeUserFromProject - user not authenticated');
+            $this->AxiomLogger->warning('removeUserFromProject - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -862,13 +862,13 @@ final class UserController extends AbstractController
             $projectId = $data['project_id'] ?? null;
 
             if (!$projectId) {
-                $this->papertrailLogger->warning('removeUserFromProject - missing project_id', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('removeUserFromProject - missing project_id', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Project ID required'], 400);
             }
 
             $project = $em->getRepository(Project::class)->find($projectId);
             if (!$project) {
-                $this->papertrailLogger->warning('removeUserFromProject - project not found', [
+                $this->AxiomLogger->warning('removeUserFromProject - project not found', [
                     'user_id'    => $user->getId(),
                     'project_id' => $projectId,
                 ]);
@@ -876,7 +876,7 @@ final class UserController extends AbstractController
             }
 
             if (!$user->getProject()->contains($project)) {
-                $this->papertrailLogger->warning('removeUserFromProject - user not in project', [
+                $this->AxiomLogger->warning('removeUserFromProject - user not in project', [
                     'user_id'    => $user->getId(),
                     'project_id' => $projectId,
                 ]);
@@ -886,7 +886,7 @@ final class UserController extends AbstractController
             $user->removeUserProject($project);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ User removed from project', [
+            $this->AxiomLogger->info('✅ User removed from project', [
                 'user_id'      => $user->getId(),
                 'project_id'   => $project->getId(),
                 'project_name' => $project->getName(),
@@ -899,7 +899,7 @@ final class UserController extends AbstractController
             ], 200);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error removing user from project', [
+            $this->AxiomLogger->error('Error removing user from project', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -912,7 +912,7 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('getReceivedInvitations - user not authenticated');
+            $this->AxiomLogger->warning('getReceivedInvitations - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -928,7 +928,7 @@ final class UserController extends AbstractController
             }
         }
 
-        $this->papertrailLogger->info('Received invitations fetched', [
+        $this->AxiomLogger->info('Received invitations fetched', [
             'user_id' => $user->getId(),
             'count'   => count($received),
         ]);
@@ -941,7 +941,7 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('getSentInvitations - user not authenticated');
+            $this->AxiomLogger->warning('getSentInvitations - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -957,7 +957,7 @@ final class UserController extends AbstractController
             }
         }
 
-        $this->papertrailLogger->info('Sent invitations fetched', [
+        $this->AxiomLogger->info('Sent invitations fetched', [
             'user_id' => $user->getId(),
             'count'   => count($data),
         ]);
@@ -970,14 +970,14 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('getUserFriends - user not authenticated');
+            $this->AxiomLogger->warning('getUserFriends - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
         try {
             $friends = $user->getFriends();
 
-            $this->papertrailLogger->info('User friends fetched', [
+            $this->AxiomLogger->info('User friends fetched', [
                 'user_id' => $user->getId(),
                 'count'   => count($friends),
             ]);
@@ -994,7 +994,7 @@ final class UserController extends AbstractController
 
             return new JsonResponse($data);
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error fetching user friends', [
+            $this->AxiomLogger->error('Error fetching user friends', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -1008,13 +1008,13 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('deleteFriend - user not authenticated');
+            $this->AxiomLogger->warning('deleteFriend - user not authenticated');
             return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
         }
 
         $friend = $em->getRepository(User::class)->find($id);
         if (!$friend) {
-            $this->papertrailLogger->warning('deleteFriend - friend not found', [
+            $this->AxiomLogger->warning('deleteFriend - friend not found', [
                 'user_id'   => $user->getId(),
                 'friend_id' => $id,
             ]);
@@ -1022,7 +1022,7 @@ final class UserController extends AbstractController
         }
 
         if (!$user->getFriends()->contains($friend)) {
-            $this->papertrailLogger->warning('deleteFriend - not in friend list', [
+            $this->AxiomLogger->warning('deleteFriend - not in friend list', [
                 'user_id'   => $user->getId(),
                 'friend_id' => $id,
             ]);
@@ -1033,7 +1033,7 @@ final class UserController extends AbstractController
         $friend->removeFriend($user);
         $em->flush();
 
-        $this->papertrailLogger->info('✅ Friend removed', [
+        $this->AxiomLogger->info('✅ Friend removed', [
             'user_id'   => $user->getId(),
             'friend_id' => $id,
         ]);
@@ -1046,7 +1046,7 @@ final class UserController extends AbstractController
     {
         $user = $security->getUser();
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('sendInvitation - user not authenticated');
+            $this->AxiomLogger->warning('sendInvitation - user not authenticated');
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
@@ -1055,13 +1055,13 @@ final class UserController extends AbstractController
             $friendId = $data['friend_id'] ?? null;
 
             if (!$friendId) {
-                $this->papertrailLogger->warning('sendInvitation - missing friend_id', ['user_id' => $user->getId()]);
+                $this->AxiomLogger->warning('sendInvitation - missing friend_id', ['user_id' => $user->getId()]);
                 return new JsonResponse(['success' => false, 'message' => 'Friend ID required'], 400);
             }
 
             $friend = $em->getRepository(User::class)->find($friendId);
             if (!$friend) {
-                $this->papertrailLogger->warning('sendInvitation - target user not found', [
+                $this->AxiomLogger->warning('sendInvitation - target user not found', [
                     'user_id'   => $user->getId(),
                     'friend_id' => $friendId,
                 ]);
@@ -1069,7 +1069,7 @@ final class UserController extends AbstractController
             }
 
             if ($user->getFriends()->contains($friend)) {
-                $this->papertrailLogger->warning('sendInvitation - already friends', [
+                $this->AxiomLogger->warning('sendInvitation - already friends', [
                     'user_id'   => $user->getId(),
                     'friend_id' => $friendId,
                 ]);
@@ -1077,7 +1077,7 @@ final class UserController extends AbstractController
             }
 
             if ($user->getSentInvitations()->contains($friend)) {
-                $this->papertrailLogger->warning('sendInvitation - invitation already sent', [
+                $this->AxiomLogger->warning('sendInvitation - invitation already sent', [
                     'user_id'   => $user->getId(),
                     'friend_id' => $friendId,
                 ]);
@@ -1087,7 +1087,7 @@ final class UserController extends AbstractController
             $user->addSentInvitation($friend);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Invitation sent', [
+            $this->AxiomLogger->info('✅ Invitation sent', [
                 'user_id'   => $user->getId(),
                 'friend_id' => $friendId,
             ]);
@@ -1095,7 +1095,7 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => true, 'message' => 'Invitation envoyée avec succès'], 200);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error sending invitation', [
+            $this->AxiomLogger->error('Error sending invitation', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -1109,13 +1109,13 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('acceptInvitation - user not authenticated');
+            $this->AxiomLogger->warning('acceptInvitation - user not authenticated');
             return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
         }
 
         $sender = $em->getRepository(User::class)->find($senderId);
         if (!$sender) {
-            $this->papertrailLogger->warning('acceptInvitation - sender not found', [
+            $this->AxiomLogger->warning('acceptInvitation - sender not found', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
             ]);
@@ -1123,7 +1123,7 @@ final class UserController extends AbstractController
         }
 
         if (!$user->getReceivedInvitations()->contains($sender)) {
-            $this->papertrailLogger->warning('acceptInvitation - no invitation found', [
+            $this->AxiomLogger->warning('acceptInvitation - no invitation found', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
             ]);
@@ -1141,7 +1141,7 @@ final class UserController extends AbstractController
             $em->persist($sender);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Invitation accepted', [
+            $this->AxiomLogger->info('✅ Invitation accepted', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
             ]);
@@ -1149,7 +1149,7 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => true, 'message' => 'Invitation acceptée. Vous êtes maintenant amis.']);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error accepting invitation', [
+            $this->AxiomLogger->error('Error accepting invitation', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
                 'error'     => $e->getMessage(),
@@ -1164,13 +1164,13 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('deleteReceivedInvitation - user not authenticated');
+            $this->AxiomLogger->warning('deleteReceivedInvitation - user not authenticated');
             return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
         }
 
         $sender = $em->getRepository(User::class)->find($senderId);
         if (!$sender) {
-            $this->papertrailLogger->warning('deleteReceivedInvitation - sender not found', [
+            $this->AxiomLogger->warning('deleteReceivedInvitation - sender not found', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
             ]);
@@ -1178,7 +1178,7 @@ final class UserController extends AbstractController
         }
 
         if (!$user->getReceivedInvitations()->contains($sender)) {
-            $this->papertrailLogger->warning('deleteReceivedInvitation - invitation not found', [
+            $this->AxiomLogger->warning('deleteReceivedInvitation - invitation not found', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
             ]);
@@ -1193,7 +1193,7 @@ final class UserController extends AbstractController
             $em->persist($sender);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Received invitation deleted', [
+            $this->AxiomLogger->info('✅ Received invitation deleted', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
             ]);
@@ -1201,7 +1201,7 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => true, 'message' => 'Invitation reçue supprimée avec succès']);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error deleting received invitation', [
+            $this->AxiomLogger->error('Error deleting received invitation', [
                 'user_id'   => $user->getId(),
                 'sender_id' => $senderId,
                 'error'     => $e->getMessage(),
@@ -1216,13 +1216,13 @@ final class UserController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('deleteSentInvitation - user not authenticated');
+            $this->AxiomLogger->warning('deleteSentInvitation - user not authenticated');
             return new JsonResponse(['success' => false, 'message' => 'Utilisateur non authentifié'], 401);
         }
 
         $receiver = $em->getRepository(User::class)->find($receiverId);
         if (!$receiver) {
-            $this->papertrailLogger->warning('deleteSentInvitation - receiver not found', [
+            $this->AxiomLogger->warning('deleteSentInvitation - receiver not found', [
                 'user_id'     => $user->getId(),
                 'receiver_id' => $receiverId,
             ]);
@@ -1230,7 +1230,7 @@ final class UserController extends AbstractController
         }
 
         if (!$user->getSentInvitations()->contains($receiver)) {
-            $this->papertrailLogger->warning('deleteSentInvitation - invitation not found', [
+            $this->AxiomLogger->warning('deleteSentInvitation - invitation not found', [
                 'user_id'     => $user->getId(),
                 'receiver_id' => $receiverId,
             ]);
@@ -1245,7 +1245,7 @@ final class UserController extends AbstractController
             $em->persist($receiver);
             $em->flush();
 
-            $this->papertrailLogger->info('✅ Sent invitation deleted', [
+            $this->AxiomLogger->info('✅ Sent invitation deleted', [
                 'user_id'     => $user->getId(),
                 'receiver_id' => $receiverId,
             ]);
@@ -1253,7 +1253,7 @@ final class UserController extends AbstractController
             return new JsonResponse(['success' => true, 'message' => 'Invitation envoyée supprimée avec succès']);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Error deleting sent invitation', [
+            $this->AxiomLogger->error('Error deleting sent invitation', [
                 'user_id'     => $user->getId(),
                 'receiver_id' => $receiverId,
                 'error'       => $e->getMessage(),

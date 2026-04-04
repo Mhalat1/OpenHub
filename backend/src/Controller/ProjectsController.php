@@ -4,7 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Project;
 use App\Entity\User;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -16,7 +16,7 @@ final class ProjectsController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $manager,
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {}
 
     #[Route('/api/allprojects', name: 'app_all_projects', methods: ['GET'])]
@@ -24,7 +24,7 @@ final class ProjectsController extends AbstractController
     {
         $allProjects = $this->manager->getRepository(Project::class)->findAll();
 
-        $this->papertrailLogger->info('All projects fetched', [
+        $this->AxiomLogger->info('All projects fetched', [
             'count' => count($allProjects),
         ]);
         $data = [];
@@ -48,7 +48,7 @@ final class ProjectsController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('Unauthenticated access to user projects');
+            $this->AxiomLogger->warning('Unauthenticated access to user projects');
             
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
@@ -56,13 +56,13 @@ final class ProjectsController extends AbstractController
         try {
             $projects = $user->getProject();
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('❌ Failed to fetch user projects', [
+            $this->AxiomLogger->error('❌ Failed to fetch user projects', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
             return new JsonResponse(['message' => 'Failed to fetch projects'], 500);
         }
-        $this->papertrailLogger->info('User projects fetched', [
+        $this->AxiomLogger->info('User projects fetched', [
             'user_id' => $user->getId(),
             'count'   => count($projects),
         ]);
@@ -87,7 +87,7 @@ final class ProjectsController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger->warning('Unauthenticated access to add project');
+            $this->AxiomLogger->warning('Unauthenticated access to add project');
            
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
@@ -96,7 +96,7 @@ final class ProjectsController extends AbstractController
         $projectId = $data['project_id'] ?? null;
 
         if (!$projectId) {
-            $this->papertrailLogger->warning('Add project - missing project_id', [
+            $this->AxiomLogger->warning('Add project - missing project_id', [
                 'user_id' => $user->getId(),
             ]);
             return new JsonResponse(['message' => 'Missing project_id'], 400);
@@ -104,7 +104,7 @@ final class ProjectsController extends AbstractController
 
         $project = $this->manager->getRepository(Project::class)->find($projectId);
         if (!$project) {
-            $this->papertrailLogger->warning('Add project - project not found', [
+            $this->AxiomLogger->warning('Add project - project not found', [
                 'user_id'    => $user->getId(),
                 'project_id' => $projectId,
             ]);
@@ -112,7 +112,7 @@ final class ProjectsController extends AbstractController
         }
 
         if ($user->getProject()->contains($project)) {
-            $this->papertrailLogger->warning('Add project - already added', [
+            $this->AxiomLogger->warning('Add project - already added', [
                 'user_id'      => $user->getId(),
                 'project_id'   => $projectId,
                 'project_name' => $project->getName(),
@@ -123,7 +123,7 @@ final class ProjectsController extends AbstractController
         $user->addProject($project);
         $this->manager->persist($user);
         $this->manager->flush();
-        $this->papertrailLogger->info('✅ Project added to user', [
+        $this->AxiomLogger->info('✅ Project added to user', [
             'user_id'      => $user->getId(),
             'project_id'   => $project->getId(),
             'project_name' => $project->getName(),
@@ -140,7 +140,7 @@ public function createProject(Request $request, Security $security): JsonRespons
     $user = $security->getUser();
 
     if (!$user instanceof User) {
-        $this->papertrailLogger->warning('Unauthenticated access to create project');
+        $this->AxiomLogger->warning('Unauthenticated access to create project');
 
         return new JsonResponse(['message' => 'User not authenticated'], 401);
 
@@ -154,7 +154,7 @@ public function createProject(Request $request, Security $security): JsonRespons
 
     if (!$name || !$description || !$requiredSkills || !isset($data['startDate']) || !isset($data['endDate'])) {
            
-        $this->papertrailLogger->warning('Create project - missing required fields', [
+        $this->AxiomLogger->warning('Create project - missing required fields', [
             'has_name'           => !empty($name),
             'has_description'    => !empty($description),
             'has_requiredSkills' => !empty($requiredSkills),
@@ -168,7 +168,7 @@ public function createProject(Request $request, Security $security): JsonRespons
         $startDate = new \DateTimeImmutable($data['startDate']);
         $endDate   = new \DateTimeImmutable($data['endDate']);
     } catch (\Exception $e) {
-        $this->papertrailLogger->warning('Create project - invalid date format', [
+        $this->AxiomLogger->warning('Create project - invalid date format', [
             'error' => $e->getMessage(),
         ]);
 
@@ -187,14 +187,14 @@ public function createProject(Request $request, Security $security): JsonRespons
         $this->manager->persist($project);
         $this->manager->flush();
     } catch (\Exception $e) {
-        $this->papertrailLogger->error('❌ Failed to save project to database', [
+        $this->AxiomLogger->error('❌ Failed to save project to database', [
             'error'        => $e->getMessage(),
             'project_name' => $name,
             'user_id'      => $user->getId(),
         ]);
         return new JsonResponse(['message' => 'Failed to create project'], 500);
     }
-    $this->papertrailLogger->info('✅ Project created', [
+    $this->AxiomLogger->info('✅ Project created', [
         'project_id'   => $project->getId(),
         'project_name' => $project->getName(),
     ]);
@@ -211,7 +211,7 @@ public function createProject(Request $request, Security $security): JsonRespons
         $project = $this->manager->getRepository(Project::class)->find($id);
 
         if (!$project) {
-            $this->papertrailLogger->warning('Modify project - project not found', [
+            $this->AxiomLogger->warning('Modify project - project not found', [
                 'project_id' => $id,
             ]);
 
@@ -236,7 +236,7 @@ public function createProject(Request $request, Security $security): JsonRespons
             try {
                 $project->setStartDate(new \DateTimeImmutable($data['startDate']));
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('Modify project - invalid startDate', [
+                $this->AxiomLogger->warning('Modify project - invalid startDate', [
                     'project_id' => $id,
                     'value'      => $data['startDate'],
                     'error'      => $e->getMessage(),
@@ -250,7 +250,7 @@ public function createProject(Request $request, Security $security): JsonRespons
             try {
                 $project->setEndDate(new \DateTimeImmutable($data['endDate']));
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('Modify project - invalid endDate', [
+                $this->AxiomLogger->warning('Modify project - invalid endDate', [
                     'project_id' => $id,
                     'value'      => $data['endDate'],
                     'error'      => $e->getMessage(),
@@ -260,7 +260,7 @@ public function createProject(Request $request, Security $security): JsonRespons
         }
 
         $this->manager->flush();
-        $this->papertrailLogger->info('✅ Project updated', [
+        $this->AxiomLogger->info('✅ Project updated', [
             'project_id'   => $project->getId(),
             'project_name' => $project->getName(),
             'fields'       => array_keys($data),
@@ -276,7 +276,7 @@ public function createProject(Request $request, Security $security): JsonRespons
     {
         $project = $this->manager->getRepository(Project::class)->find($id);
         if (!$project) {
-            $this->papertrailLogger->warning('Delete project - project not found', [
+            $this->AxiomLogger->warning('Delete project - project not found', [
                 'project_id' => $id,
             ]);
             return new JsonResponse(['message' => 'Project not found'], 404);
@@ -289,7 +289,7 @@ public function createProject(Request $request, Security $security): JsonRespons
         //Le vrai souci c'est que dans les tests unitaires (avec mocks), 
         //Doctrine ne fait pas de vrai flush donc l'ID n'est jamais assigné par la BDD donc plante
 
-        $this->papertrailLogger->info('✅ Project deleted', [
+        $this->AxiomLogger->info('✅ Project deleted', [
             'project_id'   => $id,
             'project_name' => $projectName,
         ]);

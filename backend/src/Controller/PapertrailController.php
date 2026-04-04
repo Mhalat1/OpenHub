@@ -2,37 +2,37 @@
 
 namespace App\Controller;
 
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
-class PapertrailController extends AbstractController
+class AxiomController extends AbstractController
 {
     public function __construct(
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {}
 
-    #[Route('/api/test/papertrail', name: 'test_papertrail', methods: ['GET'])]
-    public function testPapertrail(): JsonResponse
+    #[Route('/api/test/Axiom', name: 'test_Axiom', methods: ['GET'])]
+    public function testAxiom(): JsonResponse
     {
         try {
             $testMessage = "Test depuis open-hub - " . date('Y-m-d H:i:s');
 
-            $this->papertrailLogger->info($testMessage, [
+            $this->AxiomLogger->info($testMessage, [
                 'source'    => 'browser_test',
                 'timestamp' => date('Y-m-d H:i:s'),
             ]);
 
             return new JsonResponse([
                 'success'         => true,
-                'message'         => 'Log envoyé à Papertrail',
+                'message'         => 'Log envoyé à Axiom',
                 'log'             => $testMessage,
-                'papertrail_url'  => $_ENV['PAPERTRAIL_URL'] ?? 'non défini'
+                'Axiom_url'  => $_ENV['Axiom_URL'] ?? 'non défini'
             ]);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Papertrail test failed', [
+            $this->AxiomLogger->error('Axiom test failed', [
                 'error' => $e->getMessage(),
             ]);
 

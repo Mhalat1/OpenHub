@@ -73,8 +73,8 @@ jobs:
           printf 'STRIPE_PRIVATE_KEY=sk_test_mock\n' >> .env
           printf 'STRIPE_PUBLIC_KEY=pk_test_mock\n' >> .env
           printf 'STRIPE_SECRET_KEY=sk_test_mock\n' >> .env
-          printf 'PAPERTRAIL_TOKEN=https://mock\n' >> .env
-          printf 'PAPERTRAIL_URL=mock\n' >> .env
+          printf 'AXIOM_TOKEN=https://mock\n' >> .env
+          printf 'AXIOM_URL=mock\n' >> .env
           printf 'DATABASE_URL=mysql://root:root@127.0.0.1:3306/open-hub?serverVersion=8.0.32&charset=utf8mb4\n' > .env.test.local
           printf 'JWT_PASSPHRASE=ci_jwt_passphrase\n' >> .env.test.local
           cat .env.test.local

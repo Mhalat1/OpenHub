@@ -4,7 +4,7 @@ namespace App\Tests\Controller;
 
 use App\Controller\LoginController;
 use App\Service\AuthenticationService;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,20 +19,20 @@ class LoginControllerTest extends TestCase
     /** @var AuthenticationService&MockObject */
     private MockObject $authService;
 
-    /** @var PapertrailService&MockObject */
-    private MockObject $papertrailLogger;
+    /** @var AxiomService&MockObject */
+    private MockObject $AxiomLogger;
 
     protected function setUp(): void
     {
         $this->authService      = $this->createMock(AuthenticationService::class);
-        $this->papertrailLogger = $this->createMock(PapertrailService::class);
+        $this->AxiomLogger = $this->createMock(AxiomService::class);
     }
 
     // NOTE: On surcharge json() car AbstractController::json() dépend du container
     // Symfony absent en test unitaire pur.
     private function makeController(): LoginController
     {
-        return new class($this->authService, $this->papertrailLogger) extends LoginController {
+        return new class($this->authService, $this->AxiomLogger) extends LoginController {
             public function json(mixed $data, int $status = 200, array $headers = [], array $context = []): JsonResponse
             {
                 return new JsonResponse($data, $status, $headers);

@@ -42,9 +42,9 @@ services:
         value: open-hub-backend
       - key: OTEL_TRACES_EXPORTER
         value: otlp
-      - key: PAPERTRAIL_TOKEN
+      - key: AXIOM_TOKEN
         sync: false
-      - key: PAPERTRAIL_URL
+      - key: AXIOM_URL
         value: https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs
 
 

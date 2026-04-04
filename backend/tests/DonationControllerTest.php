@@ -3,7 +3,7 @@
 namespace App\Tests\Controller;
 
 use App\Controller\DonationController;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Stripe\Checkout\Session;
@@ -12,21 +12,21 @@ use Symfony\Component\HttpFoundation\Request;
 
 class DonationControllerTest extends TestCase
 {
-    // NOTE: On utilise MockObject ici uniquement pour PapertrailService car
+    // NOTE: On utilise MockObject ici uniquement pour AxiomService car
     // son constructeur attend 3 dépendances qu'on ne peut pas instancier
     // facilement en test unitaire. Le mock évite ce problème sans impacter
     // la logique testée (le logger n'est pas ce qu'on teste ici).
-    /** @var PapertrailService&MockObject */
-    private MockObject $papertrailLogger;
+    /** @var AxiomService&MockObject */
+    private MockObject $AxiomLogger;
     private DonationController $controller;
 
     protected function setUp(): void
     {
-        // NOTE: createMock() génère une classe anonyme qui étend PapertrailService
+        // NOTE: createMock() génère une classe anonyme qui étend AxiomService
         // en court-circuitant son constructeur — équivalent à notre classe anonyme
         // avec public function __construct() {} mais géré automatiquement par PHPUnit.
-        $this->papertrailLogger = $this->createMock(PapertrailService::class);
-        $this->controller       = new DonationController($this->papertrailLogger);
+        $this->AxiomLogger = $this->createMock(AxiomService::class);
+        $this->controller       = new DonationController($this->AxiomLogger);
     }
 
     // ✅ Couvre le bloc catch (lignes 56–65)

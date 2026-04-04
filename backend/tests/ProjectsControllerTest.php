@@ -5,7 +5,7 @@ namespace App\Tests\Controller;
 use App\Controller\ProjectsController;
 use App\Entity\Project;
 use App\Entity\User;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +20,7 @@ class ProjectsControllerTest extends TestCase
     private Security&MockObject $security;
     private User&MockObject $user;
     private Project&MockObject $project;
-    private PapertrailService&MockObject $papertrailService;
+    private AxiomService&MockObject $AxiomService;
     private ProjectsController $controller;
 
     protected function setUp(): void
@@ -29,9 +29,9 @@ class ProjectsControllerTest extends TestCase
         $this->security = $this->createMock(Security::class);
         $this->user = $this->createMock(User::class);
         $this->project = $this->createMock(Project::class);
-        $this->papertrailService = $this->createMock(PapertrailService::class);
+        $this->AxiomService = $this->createMock(AxiomService::class);
         
-        $this->controller = new ProjectsController($this->em, $this->papertrailService, $this->security);
+        $this->controller = new ProjectsController($this->em, $this->AxiomService, $this->security);
     }
 
     // ========================================

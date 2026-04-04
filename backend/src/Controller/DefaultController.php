@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -10,13 +10,13 @@ use Symfony\Component\Routing\Attribute\Route;
 class DefaultController extends AbstractController
 {
     public function __construct(
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {}
 
     #[Route('/', name: 'app_home')]
     public function index(): JsonResponse
     {
-        $this->papertrailLogger->info('API root endpoint hit');
+        $this->AxiomLogger->info('API root endpoint hit');
 
         return new JsonResponse([
             'status'    => 'OK',

@@ -16,14 +16,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use App\BusinessLimits;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 
 
 class MessageController extends AbstractController
 {
     private MessageRepository $messageRepository;
     private EntityManagerInterface $em;
-    private PapertrailService $papertrailLogger;  // Changement de type
+    private AxiomService $AxiomLogger;  // Changement de type
 
 
 
@@ -34,11 +34,11 @@ class MessageController extends AbstractController
     public function __construct(
         MessageRepository $messageRepository,
         EntityManagerInterface $em,
-        PapertrailService $papertrailLogger  // Injection directe
+        AxiomService $AxiomLogger  // Injection directe
     ) {
         $this->messageRepository = $messageRepository;
         $this->em = $em;
-        $this->papertrailLogger = $papertrailLogger;
+        $this->AxiomLogger = $AxiomLogger;
         // ✅ Utiliser les constantes centralisées
         ini_set('pcre.backtrack_limit', (string) BusinessLimits::PCRE_BACKTRACK_LIMIT);
         ini_set('max_execution_time', (string) BusinessLimits::MAX_EXECUTION_TIME);
@@ -442,7 +442,7 @@ class MessageController extends AbstractController
 
             return ['valid' => true, 'error' => null];
         } catch (\Exception $e) {
-            $this->papertrailLogger->warning('Rate limit check failed', [
+            $this->AxiomLogger->warning('Rate limit check failed', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -463,7 +463,7 @@ class MessageController extends AbstractController
         error_log('FirstName length: ' . mb_strlen($user->getFirstName()));
         error_log('LastName length: ' . mb_strlen($user->getLastName()));
 
-        $this->papertrailLogger->error('NEW CODE IS RUNNING - validateUserState test');
+        $this->AxiomLogger->error('NEW CODE IS RUNNING - validateUserState test');
 
         // Vérifier les noms avec logs forcés
         $firstNameValid = $this->validateName($user->getFirstName());
@@ -572,7 +572,7 @@ class MessageController extends AbstractController
 
             return ['valid' => true, 'error' => null];
         } catch (\Exception $e) {
-            $this->papertrailLogger->warning('Rate limit check failed', [
+            $this->AxiomLogger->warning('Rate limit check failed', [
                 'user_id' => $user->getId(),
                 'error'   => $e->getMessage(),
             ]);
@@ -617,7 +617,7 @@ class MessageController extends AbstractController
 
             return $existing !== null;
         } catch (\Exception $e) {
-            $this->papertrailLogger->warning('Error checking duplicate conversation', [
+            $this->AxiomLogger->warning('Error checking duplicate conversation', [
                 'error' => $e->getMessage(),
             ]);
             return false;
@@ -653,7 +653,7 @@ class MessageController extends AbstractController
             $lastName = $user->getLastName();
 
             if (!$this->validateName($firstName)) {
-                $this->papertrailLogger->warning('Invalid firstName', [
+                $this->AxiomLogger->warning('Invalid firstName', [
                     'user_id'    => $user->getId(),
                     'first_name' => $firstName,
                 ]);
@@ -665,7 +665,7 @@ class MessageController extends AbstractController
 
             if (!$this->validateName($lastName)) {
 
-                $this->papertrailLogger->warning('Invalid lastName', [
+                $this->AxiomLogger->warning('Invalid lastName', [
                     'user_id'   => $user->getId(),
                     'last_name' => $lastName,
                 ]);
@@ -680,7 +680,7 @@ class MessageController extends AbstractController
             $email = $user->getEmail();
             $emailValidation = $this->validateEmailandUniqueness($email, $user->getId(), $this->em);
             if (!$emailValidation['valid']) {
-                $this->papertrailLogger->warning('Invalid email', [
+                $this->AxiomLogger->warning('Invalid email', [
                     'user_id' => $user->getId(),
                     'error'   => $emailValidation['error'],
                 ]);
@@ -702,7 +702,7 @@ class MessageController extends AbstractController
                 if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
                     $availabilityStart = $startDateStr;
                 } else {
-                    $this->papertrailLogger->warning('Invalid availability start date', [
+                    $this->AxiomLogger->warning('Invalid availability start date', [
                         'user_id' => $user->getId(),
                         'date'    => $startDateStr,
                     ]);
@@ -714,7 +714,7 @@ class MessageController extends AbstractController
                 if ($this->validateAvailabilityDates($user->getAvailabilityStart(), $user->getAvailabilityEnd())['valid']) {
                     $availabilityEnd = $endDateStr;
                 } else {
-                    $this->papertrailLogger->warning('Invalid availability end date', [
+                    $this->AxiomLogger->warning('Invalid availability end date', [
                         'user_id' => $user->getId(),
                         'date'    => $endDateStr,
                     ]);
@@ -777,7 +777,7 @@ class MessageController extends AbstractController
                 $title = $conversation->getTitle();
                 if (!$this->validateString($title, 255)) {
 
-                    $this->papertrailLogger->warning('Invalid conversation title', [
+                    $this->AxiomLogger->warning('Invalid conversation title', [
                         'conversation_id' => $conversation->getId(),
                     ]);
                     continue; // Sauter cette conversation corrompue
@@ -786,7 +786,7 @@ class MessageController extends AbstractController
                 // ✅ AJOUT : Valider la description 
                 $description = $conversation->getDescription() ?? '';
                 if ($description !== '' && !$this->validateString($description, 1000)) {
-                    $this->papertrailLogger->warning('Invalid conversation description', [
+                    $this->AxiomLogger->warning('Invalid conversation description', [
                         'conversation_id' => $conversation->getId(),
                     ]);
                     $description = ''; // Réinitialiser si invalide
@@ -801,7 +801,7 @@ class MessageController extends AbstractController
                         $lastName = $convUser->getLastName();
 
                         if (!$this->validateName($firstName) || !$this->validateName($lastName)) {
-                            $this->papertrailLogger->warning('Invalid participant name', [
+                            $this->AxiomLogger->warning('Invalid participant name', [
                                 'user_id'         => $convUser->getId(),
                                 'conversation_id' => $conversation->getId(),
                             ]);
@@ -812,7 +812,7 @@ class MessageController extends AbstractController
                         $email = $convUser->getEmail();
                         $emailCheck = $this->validateEmailandUniqueness($email, $convUser->getId(), $em);
                         if (!$emailCheck['valid']) {
-                            $this->papertrailLogger->warning('Invalid participant email', [
+                            $this->AxiomLogger->warning('Invalid participant email', [
                                 'user_id' => $convUser->getId(),
                             ]);
                             continue; // Sauter cet utilisateur
@@ -828,7 +828,7 @@ class MessageController extends AbstractController
 
                 // ✅ RÈGLE MÉTIER : Ne pas retourner de conversation sans participants valides
                 if (empty($users)) {
-                    $this->papertrailLogger->warning('Conversation has no valid participants', [
+                    $this->AxiomLogger->warning('Conversation has no valid participants', [
                         'conversation_id' => $conversation->getId(),
                     ]);
                     continue;
@@ -938,7 +938,7 @@ class MessageController extends AbstractController
             // ✅ AJOUT : Valider le contenu du message
             $content = $message->getContent();
             if (!$this->validateMessageContent($content)) {
-                $this->papertrailLogger->warning('Invalid message content', [
+                $this->AxiomLogger->warning('Invalid message content', [
                     'message_id' => $message->getId(),
                 ]);
                 continue; // Sauter ce message corrompu
@@ -952,7 +952,7 @@ class MessageController extends AbstractController
                 $this->em
             );
             if (!$emailCheck['valid']) {
-                $this->papertrailLogger->warning('Invalid author email', [
+                $this->AxiomLogger->warning('Invalid author email', [
                     'message_id' => $message->getId(),
                 ]);
                 $authorEmail = 'unknown@invalid.com'; // Fallback sécurisé
@@ -964,7 +964,7 @@ class MessageController extends AbstractController
             $nameParts = explode(' ', $authorName, 2);
             if (count($nameParts) === 2) {
                 if (!$this->validateName($nameParts[0]) || !$this->validateName($nameParts[1])) {
-                    $this->papertrailLogger->warning('Invalid author name', [
+                    $this->AxiomLogger->warning('Invalid author name', [
                         'message_id' => $message->getId(),
                     ]);
                     $authorName = 'Unknown User';
@@ -976,7 +976,7 @@ class MessageController extends AbstractController
             // ✅ AJOUT : Valider le titre de la conversation
             $conversationTitle = $message->getConversationTitle();
             if (!$this->validateString($conversationTitle, 255)) {
-                $this->papertrailLogger->warning('Invalid conversation title for message', [
+                $this->AxiomLogger->warning('Invalid conversation title for message', [
                     'message_id' => $message->getId(),
                 ]);
                 $conversationTitle = 'Untitled Conversation';
@@ -984,7 +984,7 @@ class MessageController extends AbstractController
 
             // ✅ RÈGLE MÉTIER : Vérifier que la conversation existe toujours
             if (!$message->getConversation()) {
-                $this->papertrailLogger->warning('Message has no associated conversation', [
+                $this->AxiomLogger->warning('Message has no associated conversation', [
                     'message_id' => $message->getId(),
                 ]);
                 continue; // Sauter ce message orphelin
@@ -1032,25 +1032,25 @@ class MessageController extends AbstractController
         $user = $security->getUser();
 
         if (!$user instanceof User) {
-            $this->papertrailLogger?->warning('Tentative création conversation - utilisateur non authentifié'); // Utilisation de ?-> pour sécurité
+            $this->AxiomLogger?->warning('Tentative création conversation - utilisateur non authentifié'); // Utilisation de ?-> pour sécurité
             return new JsonResponse(['message' => 'User not authenticated'], 401);
         }
 
 
         // LOG 1 : Début du processus
-        $this->papertrailLogger->info('Début création conversation', [
+        $this->AxiomLogger->info('Début création conversation', [
             'user_id' => $user->getId(),
             'email' => $user->getEmail()
         ]);
 
         // ✅ ÉTAPE 1 : Valider l'état du compte utilisateur
-        $this->papertrailLogger->debug('Validation état utilisateur', [
+        $this->AxiomLogger->debug('Validation état utilisateur', [
             'user_id' => $user->getId()
         ]);
 
         $userValidation = $this->validateUserState($user);
         if (!$userValidation['valid']) {
-            $this->papertrailLogger->warning('Échec validation état utilisateur', [
+            $this->AxiomLogger->warning('Échec validation état utilisateur', [
                 'user_id' => $user->getId(),
                 'error' => $userValidation['error']
             ]);
@@ -1061,7 +1061,7 @@ class MessageController extends AbstractController
         }
 
         // ✅ AJOUT : Validations AVANT la transaction
-        $this->papertrailLogger->debug('Vérification rate limit', [
+        $this->AxiomLogger->debug('Vérification rate limit', [
             'user_id' => $user->getId()
         ]);
 
@@ -1070,7 +1070,7 @@ class MessageController extends AbstractController
 
         // ✅ AJOUT : DÉBUT DE TRANSACTION
         $em->beginTransaction();
-        $this->papertrailLogger->debug('Transaction démarrée', [
+        $this->AxiomLogger->debug('Transaction démarrée', [
             'user_id' => $user->getId()
         ]);
 
@@ -1078,7 +1078,7 @@ class MessageController extends AbstractController
             // ✅ PROTECTION XXE : Vérifier le Content-Type
             $contentType = $request->headers->get('Content-Type', '');
             if (!str_starts_with($contentType, 'application/json')) {
-                $this->papertrailLogger->warning('Content-Type invalide', [
+                $this->AxiomLogger->warning('Content-Type invalide', [
                     'user_id' => $user->getId(),
                     'content_type' => $contentType
                 ]);
@@ -1089,14 +1089,14 @@ class MessageController extends AbstractController
 
             // Parser le JSON
             $rawContent = $request->getContent();
-            $this->papertrailLogger->debug('Réception données', [
+            $this->AxiomLogger->debug('Réception données', [
                 'user_id' => $user->getId(),
                 'size' => strlen($rawContent)
             ]);
 
             // Protection contre les payloads massifs
             if (strlen($rawContent) > 10000) {
-                $this->papertrailLogger->warning('Payload trop volumineux', [
+                $this->AxiomLogger->warning('Payload trop volumineux', [
                     'user_id' => $user->getId(),
                     'size' => strlen($rawContent)
                 ]);
@@ -1112,7 +1112,7 @@ class MessageController extends AbstractController
             $allowedFields = ['title', 'description', 'conv_users'];
             $extraFields = array_diff(array_keys($data), $allowedFields);
             if (!empty($extraFields)) {
-                $this->papertrailLogger->warning('Champs interdits détectés', [
+                $this->AxiomLogger->warning('Champs interdits détectés', [
                     'user_id' => $user->getId(),
                     'extra_fields' => $extraFields
                 ]);
@@ -1121,14 +1121,14 @@ class MessageController extends AbstractController
 
             // Validation préliminaire
             if (empty($data['title']) || !is_string($data['title'])) {
-                $this->papertrailLogger->warning('Titre manquant ou invalide', [
+                $this->AxiomLogger->warning('Titre manquant ou invalide', [
                     'user_id' => $user->getId()
                 ]);
                 return new JsonResponse(['message' => 'Title is required and must be a string'], 400);
             }
 
             // Décodage canonique
-            $this->papertrailLogger->debug('Décodage canonique du titre', [
+            $this->AxiomLogger->debug('Décodage canonique du titre', [
                 'user_id' => $user->getId(),
                 'title_original' => substr($data['title'], 0, 50)
             ]);
@@ -1136,7 +1136,7 @@ class MessageController extends AbstractController
 
             // Validation stricte
             if (!$this->validateString($data['title'], 255)) {
-                $this->papertrailLogger->warning('Titre invalide après décodage', [
+                $this->AxiomLogger->warning('Titre invalide après décodage', [
                     'user_id' => $user->getId(),
                     'title' => substr($data['title'], 0, 50)
                 ]);
@@ -1144,7 +1144,7 @@ class MessageController extends AbstractController
             }
 
             // Création de la conversation
-            $this->papertrailLogger->info('Création de la conversation en base', [
+            $this->AxiomLogger->info('Création de la conversation en base', [
                 'user_id' => $user->getId(),
                 'title' => $data['title']
             ]);
@@ -1160,14 +1160,14 @@ class MessageController extends AbstractController
             // Gestion des participants
             $userIdsToInvite = $data['conv_users'] ?? [];
             if (!empty($userIdsToInvite)) {
-                $this->papertrailLogger->debug('Ajout des participants', [
+                $this->AxiomLogger->debug('Ajout des participants', [
                     'user_id' => $user->getId(),
                     'participant_count' => count($userIdsToInvite)
                 ]);
 
                 $check = $this->validateConversationParticipants($user, $userIdsToInvite, $em);
                 if (!$check['valid']) {
-                    $this->papertrailLogger->warning('Participants invalides', [
+                    $this->AxiomLogger->warning('Participants invalides', [
                         'user_id' => $user->getId(),
                         'error' => $check['error']
                     ]);
@@ -1181,7 +1181,7 @@ class MessageController extends AbstractController
 
             // Vérification des doublons
             if ($this->checkDuplicateConversation($user, $userIdsToInvite, $data['title'], $em)) {
-                $this->papertrailLogger->warning('Conversation en double détectée', [
+                $this->AxiomLogger->warning('Conversation en double détectée', [
                     'user_id' => $user->getId(),
                     'title' => $data['title']
                 ]);
@@ -1197,7 +1197,7 @@ class MessageController extends AbstractController
             $em->flush();
 
             // LOG DE SUCCÈS - TRÈS IMPORTANT
-            $this->papertrailLogger->info('✅ Conversation créée avec succès', [
+            $this->AxiomLogger->info('✅ Conversation créée avec succès', [
                 'user_id' => $user->getId(),
                 'conversation_id' => $conversation->getId(),
                 'title' => $data['title'],
@@ -1206,7 +1206,7 @@ class MessageController extends AbstractController
 
             $em->commit();
 
-            $this->papertrailLogger->debug('Transaction commitée', [
+            $this->AxiomLogger->debug('Transaction commitée', [
                 'user_id' => $user->getId(),
                 'conversation_id' => $conversation->getId()
             ]);
@@ -1223,7 +1223,7 @@ class MessageController extends AbstractController
                 'userCount' => count($conversation->getUsers())
             ], 201);
         } catch (\InvalidArgumentException $e) {   
-            $this->papertrailLogger->error('Erreur de validation', [
+            $this->AxiomLogger->error('Erreur de validation', [
                 'user_id' => $user->getId(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1234,7 +1234,7 @@ class MessageController extends AbstractController
               
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Erreur Conversation creation', [
+            $this->AxiomLogger->error('Erreur Conversation creation', [
                 'user_id' => $user->getId(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1373,7 +1373,7 @@ class MessageController extends AbstractController
             $em->rollback();
             $em->clear();
 
-            $this->papertrailLogger->error('Transaction failed in createMessage', [
+            $this->AxiomLogger->error('Transaction failed in createMessage', [
                 'error' => $e->getMessage(),
             ]);
             return new JsonResponse([
@@ -1423,13 +1423,13 @@ public function deleteConversation(int $id, EntityManagerInterface $em): JsonRes
         $title = $conversation->getTitle();
 
         if (!$this->validateString($title, 255)) {
-            $this->papertrailLogger->warning('Deleting conversation with invalid title', [
+            $this->AxiomLogger->warning('Deleting conversation with invalid title', [
                 'conversation_id' => $id,
                 'title' => substr($title, 0, 50),
             ]);
         }
 
-        $this->papertrailLogger->info('Conversation deleted', [
+        $this->AxiomLogger->info('Conversation deleted', [
             'user_id' => $user->getId(),
             'conversation_id' => $conversation->getId(),
             'title' => substr($title, 0, 50),
@@ -1494,7 +1494,7 @@ public function deleteConversation(int $id, EntityManagerInterface $em): JsonRes
             // ✅ AJOUT : Validation FORMAT - Vérifier l'intégrité avant suppression
             $content = $message->getContent();
             if (!$this->validateMessageContent($content)) {
-                $this->papertrailLogger->warning('Deleting message with invalid content', [
+                $this->AxiomLogger->warning('Deleting message with invalid content', [
                     'message_id' => $id,
                 ]);
             }
@@ -1508,13 +1508,13 @@ public function deleteConversation(int $id, EntityManagerInterface $em): JsonRes
             $conversation = $message->getConversation();
             if (!$conversation instanceof Conversation) {
 
-                $this->papertrailLogger->warning('Message has no valid conversation', [
+                $this->AxiomLogger->warning('Message has no valid conversation', [
                     'message_id' => $id,
                 ]);
 
                 return new JsonResponse(['message' => 'Invalid message conversation'], 500);
             }
-            $this->papertrailLogger->info('Message deleted', [
+            $this->AxiomLogger->info('Message deleted', [
                 'user_id'         => $user->getId(),
                 'message_id'      => $message->getId(),
                 'conversation_id' => $conversation->getId(),

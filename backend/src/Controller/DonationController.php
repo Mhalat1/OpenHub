@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Stripe\Stripe;
 use Stripe\Checkout\Session;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class DonationController extends AbstractController
 {
     public function __construct(
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {}
 
     #[Route('/api/donate', name: 'donation', methods: ['POST'])]
@@ -22,7 +22,7 @@ class DonationController extends AbstractController
         $data   = json_decode($request->getContent(), true);
         $amount = isset($data['amount']) ? (int)$data['amount'] * 100 : 500;
 
-        $this->papertrailLogger->info('Donation attempt', [
+        $this->AxiomLogger->info('Donation attempt', [
             'amount_cents' => $amount,
         ]);
 
@@ -46,7 +46,7 @@ class DonationController extends AbstractController
                 'cancel_url'  => 'https://ton-site.fr/don/cancel',
             ]);
 
-            $this->papertrailLogger->info('✅ Stripe session created', [
+            $this->AxiomLogger->info('✅ Stripe session created', [
                 'session_id'   => $session->id,
                 'amount_cents' => $amount,
             ]);
@@ -54,7 +54,7 @@ class DonationController extends AbstractController
             return new JsonResponse(['url' => $session->url]);
 
         } catch (\Exception $e) {
-            $this->papertrailLogger->error('Stripe session creation failed', [
+            $this->AxiomLogger->error('Stripe session creation failed', [
                 'amount_cents' => $amount,
                 'error'        => $e->getMessage(),
             ]);

@@ -1,9 +1,9 @@
 <?php
-// src/Service/PapertrailService.php
+// src/Service/AxiomService.php
 
 namespace App\Service;
 
-class PapertrailService
+class AxiomService
 {
     private string $url;
     private string $token;

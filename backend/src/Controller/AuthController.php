@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +19,7 @@ class AuthController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtManager,
-        private PapertrailService $papertrailLogger,
+        private AxiomService $AxiomLogger,
     ) {}
 
     #[Route('/api/register', name: 'api_register', methods: ['POST', 'OPTIONS'])]
@@ -31,12 +31,12 @@ class AuthController extends AbstractController
         $firstName = $data['firstName'] ?? '';
         $lastName = $data['lastName'] ?? '';
 
-        $this->papertrailLogger->info('Registration attempt', [
+        $this->AxiomLogger->info('Registration attempt', [
             'email' => $email,
         ]);
 
         if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $firstName) || mb_strlen($firstName) < 2 || mb_strlen($firstName) > 100) {
-            $this->papertrailLogger->warning('Invalid firstName format on registration', [
+            $this->AxiomLogger->warning('Invalid firstName format on registration', [
                 'email'      => $email,
                 'first_name' => $firstName,
             ]);
@@ -47,7 +47,7 @@ class AuthController extends AbstractController
         }
 
         if (!preg_match('/^[\p{L}\s\'\-]+$/uD', $lastName) || mb_strlen($lastName) < 2 || mb_strlen($lastName) > 100) {
-            $this->papertrailLogger->warning('Invalid lastName format on registration', [
+            $this->AxiomLogger->warning('Invalid lastName format on registration', [
                 'email'     => $email,
                 'last_name' => $lastName,
             ]);
@@ -61,7 +61,7 @@ class AuthController extends AbstractController
         $availabilityEnd   = $data['availabilityEnd']   ?? null;
 
         if (empty($email) || empty($password) || empty($firstName) || empty($lastName)) {
-            $this->papertrailLogger->warning('Missing required fields on registration', [
+            $this->AxiomLogger->warning('Missing required fields on registration', [
                 'email'          => $email,
                 'has_password'   => !empty($password),
                 'has_first_name' => !empty($firstName),
@@ -74,7 +74,7 @@ class AuthController extends AbstractController
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->papertrailLogger->warning('Invalid email format on registration', [
+            $this->AxiomLogger->warning('Invalid email format on registration', [
                 'email' => $email,
             ]);
             return $this->json([
@@ -88,7 +88,7 @@ class AuthController extends AbstractController
             $tldParts = explode('.', $parts[1]);
             $tld = end($tldParts);
             if (strlen($tld) < 2) {
-                $this->papertrailLogger->warning('Email TLD too short on registration', [
+                $this->AxiomLogger->warning('Email TLD too short on registration', [
                     'email' => $email,
                     'tld'   => $tld,
                 ]);
@@ -101,7 +101,7 @@ class AuthController extends AbstractController
 
         $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingUser) {
-            $this->papertrailLogger->warning('Registration attempt with already existing email', [
+            $this->AxiomLogger->warning('Registration attempt with already existing email', [
                 'email' => $email,
             ]);
             return $this->json([
@@ -123,7 +123,7 @@ class AuthController extends AbstractController
             try {
                 $user->setAvailabilityStart(new \DateTimeImmutable($availabilityStart));
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('Invalid availability start date on registration', [
+                $this->AxiomLogger->warning('Invalid availability start date on registration', [
                     'email' => $email,
                     'value' => $availabilityStart,
                     'error' => $e->getMessage(),
@@ -141,7 +141,7 @@ class AuthController extends AbstractController
             try {
                 $user->setAvailabilityEnd(new \DateTimeImmutable($availabilityEnd));
             } catch (\Exception $e) {
-                $this->papertrailLogger->warning('Invalid availability end date on registration', [
+                $this->AxiomLogger->warning('Invalid availability end date on registration', [
                     'email' => $email,
                     'value' => $availabilityEnd,
                     'error' => $e->getMessage(),
@@ -156,7 +156,7 @@ class AuthController extends AbstractController
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        $this->papertrailLogger->info('✅ User registered successfully', [
+        $this->AxiomLogger->info('✅ User registered successfully', [
             'user_id' => $user->getId(),
             'email'   => $user->getEmail(),
         ]);

@@ -50,6 +50,6 @@ security:
 
         - { path: ^/api/frontend-metrics, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/test, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/api/test/papertrail, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/test/axiom, roles: IS_AUTHENTICATED_FULLY }
 
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

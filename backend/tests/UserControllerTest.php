@@ -7,7 +7,7 @@ use App\Entity\User;
 use App\Entity\Skills;
 use App\Entity\Project;
 use App\Service\UserService;
-use App\Service\PapertrailService;
+use App\Service\AxiomService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -46,7 +46,7 @@ class UserControllerTest extends TestCase
         $this->ctrl = new UserController(
             $this->em,
             $this->userService,
-            $this->createMock(PapertrailService::class)
+            $this->createMock(AxiomService::class)
         );
     }
 
