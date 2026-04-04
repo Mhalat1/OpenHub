@@ -185,8 +185,7 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      // UTILISEZ L'URL RELATIVE ! Pas besoin de API_URL
-      const response = await fetch("/api/register", {
+        const response = await fetch(`${API_URL}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState),
