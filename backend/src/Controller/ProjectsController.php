@@ -42,44 +42,6 @@ final class ProjectsController extends AbstractController
         return new JsonResponse($data);
     }
 
-    #[Route('/api/user/projects', name: 'app_user_projects', methods: ['GET'])]
-    public function userProjects(Security $security): JsonResponse
-    {
-        $user = $security->getUser();
-
-        if (!$user instanceof User) {
-            $this->AxiomLogger->warning('Unauthenticated access to user projects');
-            
-            return new JsonResponse(['message' => 'User not authenticated'], 401);
-        }
-
-        try {
-            $projects = $user->getProject();
-        } catch (\Exception $e) {
-            $this->AxiomLogger->error('❌ Failed to fetch user projects', [
-                'user_id' => $user->getId(),
-                'error'   => $e->getMessage(),
-            ]);
-            return new JsonResponse(['message' => 'Failed to fetch projects'], 500);
-        }
-        $this->AxiomLogger->info('User projects fetched', [
-            'user_id' => $user->getId(),
-            'count'   => count($projects),
-        ]);
-        $data = [];
-        foreach ($projects as $project) {
-            $data[] = [
-                'id'             => $project->getId(),
-                'name'           => $project->getName(),
-                'description'    => $project->getDescription(),
-                'requiredSkills' => $project->getRequiredSkills(),
-                'startDate'      => $project->getStartDate()?->format('Y-m-d'),
-                'endDate'        => $project->getEndDate()?->format('Y-m-d'),
-            ];
-        }
-
-        return new JsonResponse($data);
-    }
 
     #[Route('/api/user/add/project', name: 'app_add_project', methods: ['POST'])]
     public function addProject(Request $request, Security $security): JsonResponse
