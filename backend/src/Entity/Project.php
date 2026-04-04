@@ -25,10 +25,10 @@ class Project
     #[ORM\Column(length: 25)]
     private string $requiredSkills;
 
-    #[ORM\Column(length: 25)]
+    #[ORM\Column(type: 'datetime_immutable')]
     private DateTimeImmutable $startDate;
 
-    #[ORM\Column(length: 25)]
+    #[ORM\Column(type: 'datetime_immutable')]
     private DateTimeImmutable $endDate;
 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'projects')]
