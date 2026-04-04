@@ -5,11 +5,11 @@ cela modifie le README.md avec les valeur a jour !!
 
 # 🚀 Installation de backend
 
-> **Dernière mise à jour :** 2026-03-22
+> **Dernière mise à jour :** 2026-04-04
 > **Projet :** backend
 > **Symfony :** 7.3
 > **PHP nécessaire :** 8.2+
-> **Base de données :** mysql
+> **Base de données :** 
 
 ## 📋 Prérequis
 
