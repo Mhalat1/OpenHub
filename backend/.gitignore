@@ -1,4 +1,6 @@
 .env.dev
+.env.test
+
 config/jwt/
 var/
 vendor/
@@ -8,8 +10,6 @@ node_modules/
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
-.env.test
-.env.dev
 /config/secrets/
 /var/
 /vendor/
