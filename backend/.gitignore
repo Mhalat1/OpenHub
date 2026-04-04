@@ -8,9 +8,8 @@ node_modules/
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
-.env
-.env.local
-.env.*.local
+.env.test
+.env.dev
 /config/secrets/
 /var/
 /vendor/
