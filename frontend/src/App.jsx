@@ -9,6 +9,13 @@ import Profil from "./pages/Profil";
 import Projects from "./pages/Projects";
 import UserCreate from "./pages/Register";
 
+// ✅ Guard : redirige vers /login si pas de token
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" replace />;
+};
+
+
 function AppContent() {
   const location = useLocation();
 

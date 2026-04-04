@@ -43,27 +43,40 @@ const Projects = () => {
   };
 
   // ===== PROJECTS FUNCTIONS =====
-  const fetchProjects = async () => {
+ const fetchProjects = async () => {
     const token = localStorage.getItem("token");
-    try {
-      const response = await fetch(`${API_URL}/api/allprojects`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
 
-      if (!response.ok) throw new Error("Failed to fetch projects");
-      const data = await response.json();
-      setProjects(data);
-    } catch (err) {
-      setError(err.message);
-      showMessage(`❌ ${err.message}`, "error");
-    } finally {
-      setLoading(false);
+    if (!token) {
+        window.location.href = "/login";
+        return;
     }
-  };
+
+    try {
+        const response = await fetch(`${API_URL}/api/allprojects`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (response.status === 401) {
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+            return;
+        }
+
+        if (!response.ok) throw new Error(`Projects API error: ${response.status}`);
+        
+        const data = await response.json();
+        setProjects(data);
+    } catch (err) {
+        setError(err.message);
+        showMessage(`❌ ${err.message}`, "error");
+    } finally {
+        setLoading(false);
+    }
+};
 
   const createProject = async () => {
     if (!project.name || !project.description) {
