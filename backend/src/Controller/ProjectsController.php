@@ -22,24 +22,31 @@ final class ProjectsController extends AbstractController
     #[Route('/api/allprojects', name: 'app_all_projects', methods: ['GET'])]
     public function projects(): JsonResponse
     {
-        $allProjects = $this->manager->getRepository(Project::class)->findAll();
+        try {
+            $allProjects = $this->manager->getRepository(Project::class)->findAll();
 
-        $this->AxiomLogger->info('All projects fetched', [
-            'count' => count($allProjects),
-        ]);
-        $data = [];
-        foreach ($allProjects as $project) {
-            $data[] = [
-                'id'             => $project->getId(),
-                'name'           => $project->getName(),
-                'description'    => $project->getDescription(),
-                'requiredSkills' => $project->getRequiredSkills(),
-                'startDate'      => $project->getStartDate()?->format('Y-m-d'),
-                'endDate'        => $project->getEndDate()?->format('Y-m-d'),
-            ];
+            $this->AxiomLogger->info('All projects fetched', [
+                'count' => count($allProjects),
+            ]);
+
+            $data = array_map(fn(Project $p) => [
+                'id'             => $p->getId(),
+                'name'           => $p->getName(),
+                'description'    => $p->getDescription(),
+                'requiredSkills' => $p->getRequiredSkills(),
+                'startDate'      => $p->getStartDate()?->format('Y-m-d'),
+                'endDate'        => $p->getEndDate()?->format('Y-m-d'),
+            ], $allProjects);
+
+            return new JsonResponse($data);
+
+        } catch (\Exception $e) {
+            $this->AxiomLogger->error('allprojects crashed', [
+                'exception' => $e->getMessage(),
+                'class'     => get_class($e),
+            ]);
+            return new JsonResponse(['error' => $e->getMessage()], 500);
         }
-
-        return new JsonResponse($data);
     }
 
 
