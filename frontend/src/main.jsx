@@ -1,20 +1,23 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import App from "./App";
-import "./index.css";
-import reportWebVitals from "./reportWebVitals";
-reportWebVitals();
+// Dans reportWebVitals.js — ajoute ça à la fin
+const reportWebVitals = () => {
+  // Envoi immédiat au chargement
+  sendToBackend({
+    page_views: 1,
+    js_errors: jsErrors,
+    bounce: 0,
+    page_load_time: performance.now() / 1000,
+  });
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>,
-);
+  import("web-vitals").then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+    getLCP((m) => sendToBackend({ lcp: m.value / 1000 }));
+    getFID((m) => sendToBackend({ fid: m.value / 1000 }));
+    getCLS((m) => sendToBackend({ cls: m.value }));
+    getFCP((m) => sendToBackend({ page_load_time: m.value / 1000 }));
+    getTTFB(() =>
+      sendToBackend({
+        js_errors: jsErrors,
+        bounce: Date.now() - sessionStart < 10000 ? 1 : 0,
+      }),
+    );
+  });
+};
