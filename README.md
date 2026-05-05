@@ -1,4 +1,4 @@
-##  generation readme mise a jour protocole ##
+##  génération readme mise à jour protocole ##
 bash 
 backend/bin/generate-readme.sh
 ## les valeurs dans README.md sont mises à jour automatiquement à chaque déploiment grace à ce script ## 
