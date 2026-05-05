@@ -3,7 +3,7 @@ bash
 bash backend/bin/generate-readme.sh
 cela modifie le README.md avec les valeur a jour !!
 
-# 🚀 Installation de backend
+# Installation de backend
 
 > **Dernière mise à jour :** 2026-04-04
 > **Projet :** backend
@@ -11,7 +11,7 @@ cela modifie le README.md avec les valeur a jour !!
 > **PHP nécessaire :** 8.2+
 > **Base de données :** 
 
-## 📋 Prérequis
+## Prérequis
 
 | Outil | Version installée |
 |-------|-------------------|
@@ -21,7 +21,7 @@ cela modifie le README.md avec les valeur a jour !!
 | Git | 2.53.0 |
 | Docker | 24.0.6 |
 
-## ⚡ Installation rapide
+## Installation rapide
 
 ```bash
 # Backend Symfony
