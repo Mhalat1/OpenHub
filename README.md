@@ -1,7 +1,7 @@
-!! generation readme mise a jour protocole 
-bash
-bash backend/bin/generate-readme.sh
-cela modifie le README.md avec les valeur a jour !!
+##  generation readme mise a jour protocole ##
+bash 
+backend/bin/generate-readme.sh
+## cela modifie le README.md avec les valeur a jour ## 
 
 # Installation de backend
 
