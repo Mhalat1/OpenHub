@@ -471,7 +471,7 @@ const Projects = () => {
                       </span>
                       {skill.duree && (
                         <span className={styles.metaItem}>
-                          <strong>Duration:</strong> {skill.duree}
+                          <strong>Duration: ecrire de cette maniere YYYY-MM-DD </strong> {skill.duree}
                         </span>
                       )}
                     </div>
