@@ -7,9 +7,9 @@ services:
     dockerContext: ./frontend
     envVars:
       - key: VITE_API_URL
-        value: https://open-hub-backend.onrender.com
+        value: https://openhub-backend.onrender.com
       - key: REACT_APP_API_URL
-        value: https://open-hub-backend.onrender.com
+        value: https://openhub-backend.onrender.com
 
   - type: web
     name: open-hub-backend
