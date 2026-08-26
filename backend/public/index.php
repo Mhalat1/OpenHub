@@ -4,14 +4,12 @@ use App\Kernel;
 
 // CORS - en premier avant tout
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
 $allowed_patterns = [
     '/^https:\/\/open-hub-frontend\.onrender\.com$/',
-    '/https://openhub-frontend-76i0.onrender.com/',
-    '/^https:\/\/open-hub-frontend-[a-z0-9]+\.onrender\.com$/',
-    '/^https?:\/\/localhost(:\d+)?$/',   // ← le ? rend le s optionnel
+    '/^https:\/\/openhub-frontend-[a-z0-9]+\.onrender\.com$/',  // no hyphen after "open"
+    '/^https:\/\/open-hub-frontend-[a-z0-9]+\.onrender\.com$/', // with hyphen, kept for safety
+    '/^https?:\/\/localhost(:\d+)?$/',
     '/^https:\/\/www\.mh-logiciel\.fr$/',
-
 ];
 
 $allowed = false;
